@@ -96,10 +96,9 @@ export default function ClientShell({ children }) {
                         <AlertTriangle className="h-8 w-8" />
                     </div>
                     
-                    <h1 className="text-2xl font-black tracking-tight text-white mb-3">Access Denied</h1>
-                    <p className="text-slate-400 text-sm leading-relaxed mb-8">
-                        This portal is exclusively for client accounts. Administrators and employees can only access the client portal through impersonation.
-                    </p>
+                    <h1 className="text-xl font-bold tracking-tight text-white mb-8">
+                        This portal is exclusively for client accounts
+                    </h1>
                     
                     <button
                         onClick={() => signOut()}
