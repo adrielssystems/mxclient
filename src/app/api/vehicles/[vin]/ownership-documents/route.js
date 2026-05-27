@@ -1,0 +1,148 @@
+import { auth } from "@/auth";
+import fs from "fs/promises";
+import path from "path";
+import sql from "@/app/api/utils/sql";
+import { driveService } from "@/utils/googleDriveService";
+
+export const dynamic = "force-dynamic";
+
+async function getStorageDir(vin = "") {
+    let base = "";
+    if (process.env.UPLOAD_DIR) {
+        base = process.env.UPLOAD_DIR;
+    } else {
+        try {
+            await fs.access("/data");
+            base = "/data/documents";
+        } catch {
+            base = path.join(process.cwd(), "uploads");
+        }
+    }
+    const finalDir = vin ? path.join(base, vin) : base;
+    await fs.mkdir(finalDir, { recursive: true });
+    return finalDir;
+}
+
+// GET: List all ownership documents for a vehicle
+export async function GET(request, { params }) {
+    try {
+        const session = await auth();
+        if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+        const { vin } = params;
+
+        // --- Silent self-healing migration ---
+        const columnExists = await sql`
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'vehicle_ownership_documents' 
+            AND column_name = 'drive_file_id';
+        `;
+
+        if (columnExists.length === 0) {
+            await sql`ALTER TABLE vehicle_ownership_documents ADD COLUMN drive_file_id TEXT;`;
+        }
+
+        const docs = await sql`
+            SELECT id, vin, tag, filename, file_url, drive_file_id, uploaded_at 
+            FROM vehicle_ownership_documents 
+            WHERE vin = ${vin}
+            ORDER BY uploaded_at DESC
+        `;
+
+        // Enrich documents with Drive-specific links if they have a drive_file_id
+        const enrichedDocs = docs.map(doc => {
+            if (doc.drive_file_id) {
+                return {
+                    ...doc,
+                    // Drive webViewLink is good for target="_blank"
+                    // But for iframes we need /preview
+                    preview_url: `https://drive.google.com/file/d/${doc.drive_file_id}/preview`,
+                    download_url: `https://drive.google.com/uc?export=download&id=${doc.drive_file_id}`
+                };
+            }
+            return {
+                ...doc,
+                preview_url: doc.file_url,
+                download_url: doc.file_url
+            };
+        });
+
+        return Response.json({ documents: enrichedDocs });
+    } catch (error) {
+        return Response.json({ error: error.message }, { status: 500 });
+    }
+}
+
+// POST: Upload a new ownership document
+export async function POST(request, { params }) {
+    try {
+        const session = await auth();
+        if (!session || !session.user?.id) {
+            return Response.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const { vin } = params;
+        const body = await request.json();
+        const { base64, tag } = body;
+
+        if (!base64 || !tag) {
+            return Response.json({ error: "Missing required fields" }, { status: 400 });
+        }
+
+        // Parse base64 - handles cases with extra params like ;filename=...;base64
+        const matches = base64.match(/^data:([^;]+).*?;base64,(.+)$/);
+        if (!matches) {
+            return Response.json({ error: "Invalid base64 format" }, { status: 400 });
+        }
+
+        const mimeType = matches[1];
+        const fileData = Buffer.from(matches[2], "base64");
+
+        if (!mimeType.startsWith('application/pdf')) {
+            return Response.json({ error: "Only PDF documents are allowed" }, { status: 400 });
+        }
+
+        // User requested format: "VIN - Tag"
+        const filename = `${vin} - ${tag}.pdf`; 
+
+        let fileUrl = "";
+        let driveFileId = null;
+
+        try {
+            // --- NEW: Google Drive Storage ---
+            console.log(`[Upload] Attempting to save to Google Drive: ${filename}`);
+            const driveResult = await driveService.uploadFileToVINPath(vin, filename, fileData, mimeType, 'Ownership');
+            fileUrl = driveResult.webViewLink;
+            driveFileId = driveResult.id;
+            console.log(`[Drive] Saved successfully. ID: ${driveFileId}`);
+        } catch (driveError) {
+            console.error("[Drive Error] Falling back to local storage:", driveError.message);
+            
+            // --- Fallback: Local Storage ---
+            const storageDir = await getStorageDir(vin);
+            const filePath = path.join(storageDir, filename);
+            await fs.writeFile(filePath, fileData);
+            fileUrl = `/api/documents/${vin}/${filename}`;
+        }
+
+        // Save metadata to DB
+        const result = await sql`
+            INSERT INTO vehicle_ownership_documents (vin, tag, filename, file_url, drive_file_id, uploaded_by)
+            VALUES (${vin}, ${tag}, ${filename}, ${fileUrl}, ${driveFileId}, ${session.user.id})
+            RETURNING id
+        `;
+
+        return Response.json({ 
+            success: true, 
+            documentId: result[0].id,
+            filename,
+            fileUrl,
+            storage: driveFileId ? 'google_drive' : 'local'
+        }, { status: 201 });
+
+    } catch (error) {
+        console.error("POST ownership-documents error:", error);
+        return Response.json({ error: error.message }, { status: 500 });
+    }
+}

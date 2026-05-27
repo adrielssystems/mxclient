@@ -1,0 +1,25 @@
+.DS_Store
+/node_modules/
+.env
+.env.local
+
+# React Router
+/.react-router/
+/build/
+
+# Security - Secrets
+.env
+.env.*
+*.env
+*.pem
+*.key
+credentials.json
+service-account.json
+client_secret.json
+*.p12
+*.jks
+
+# Scratch / Debug files
+scratch_*.js
+scratch/
+
