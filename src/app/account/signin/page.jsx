@@ -44,7 +44,7 @@ function MainComponent() {
             } else {
               // Sign out immediately as this is client-only portal
               await signOut({ redirect: false });
-              setError("Este portal es de acceso exclusivo para clientes. Si eres administrador o empleado, ingresa desde el panel administrativo.");
+              setError("This portal is exclusively for client accounts. If you are an administrator or employee, please log in from the admin panel.");
               setLoading(false);
             }
           } else {

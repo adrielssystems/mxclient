@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import useUser from "@/utils/useUser";
 import useAuth from "@/utils/useAuth";
-import { LogOut, Home, Car, CreditCard, FileText, ArrowLeft, Eye } from "lucide-react";
+import { LogOut, Home, Car, CreditCard, FileText, ArrowLeft, Eye, AlertTriangle } from "lucide-react";
 
 const CLIENT_TABS = [
     { id: "overview", path: "/", name: "Overview", icon: Home },
@@ -90,15 +90,27 @@ export default function ClientShell({ children }) {
     // Admins/employees are only allowed if they are impersonating a client
     if (user.role !== 'client' && !impersonating) {
         return (
-            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center text-center px-4">
-                <h1 className="text-2xl font-bold text-slate-800 mb-2">Access Denied</h1>
-                <p className="text-slate-600 mb-6">Este portal es de acceso exclusivo para clientes. Administradores o empleados solo pueden acceder mediante impersonación.</p>
-                <button
-                    onClick={() => signOut()}
-                    className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700"
-                >
-                    Sign Out
-                </button>
+            <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-center px-4 relative overflow-hidden font-sans">
+                {/* Background glows */}
+                <div className="absolute top-0 left-1/4 w-96 h-96 bg-red-600 opacity-10 rounded-full blur-[120px] pointer-events-none"></div>
+                
+                <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-8 max-w-md w-full shadow-2xl relative z-10 text-white">
+                    <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+                        <AlertTriangle className="h-8 w-8" />
+                    </div>
+                    
+                    <h1 className="text-2xl font-black tracking-tight text-white mb-3">Access Denied</h1>
+                    <p className="text-slate-400 text-sm leading-relaxed mb-8">
+                        This portal is exclusively for client accounts. Administrators and employees can only access the client portal through impersonation.
+                    </p>
+                    
+                    <button
+                        onClick={() => signOut()}
+                        className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:scale-[1.02] active:scale-[0.98] text-white font-bold py-3 px-6 rounded-xl transition-all duration-200 shadow-[0_4px_20px_rgba(220,38,38,0.25)] flex items-center justify-center gap-2"
+                    >
+                        Sign Out
+                    </button>
+                </div>
             </div>
         );
     }
