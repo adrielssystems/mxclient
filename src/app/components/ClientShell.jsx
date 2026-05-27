@@ -83,9 +83,6 @@ export default function ClientShell({ children }) {
         return null;
     }
 
-    // DEBUG: Log user role to see what AuthJS is passing
-    console.log("ClientShell Auth Check - User Object:", user);
-
     // Role Enforcement (Crucial B2B Isolation)
     // Admins/employees are only allowed if they are impersonating a client
     if (user.role !== 'client' && !impersonating) {
