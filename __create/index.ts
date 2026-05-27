@@ -122,6 +122,18 @@ if (process.env.AUTH_SECRET) {
         signOut: '/account/logout',
       },
       // Automatic cookie management for better production compatibility
+      cookies: {
+        sessionToken: {
+          name: `authjs.session-token`,
+          options: {
+            httpOnly: true,
+            sameSite: 'lax',
+            path: '/',
+            secure: process.env.NODE_ENV === 'production' && process.env.SECURE_COOKIES !== 'false',
+            domain: process.env.NODE_ENV === 'production' && process.env.SECURE_COOKIES !== 'false' ? '.motorxcars.com' : undefined,
+          },
+        },
+      },
       session: {
         strategy: 'jwt',
         maxAge: 30 * 60, // 30 minutes
