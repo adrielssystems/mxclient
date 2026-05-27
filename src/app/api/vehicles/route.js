@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { logAudit, getRequestInfo, AUDIT_ACTIONS, RESOURCE_TYPES } from "@/utils/auditLogger";
 import { decodeVinForSizeClass } from "@/app/api/utils/vinDecoder";
 import { z } from "zod";
+import { resolveClientId } from "@/app/api/utils/impersonate";
 
 // Get vehicles based on user role
 export async function GET(request) {
@@ -344,11 +345,12 @@ export async function GET(request) {
 // Create new vehicle
 export async function POST(request) {
   try {
-    const session = await auth();
-    if (!session || !session.user?.id) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    const resolved = await resolveClientId(request);
+    if (resolved.error) {
+      return Response.json({ error: resolved.error }, { status: 401 });
     }
 
+    const effectiveClientId = resolved.clientId;
     const body = await request.json();
 
     // 1. Zod Validation
@@ -429,13 +431,16 @@ export async function POST(request) {
     let review_reason = review_reasons.length > 0 ? review_reasons.join(" | ") : null;
 
     // Get user info to check permissions
+    const session = await auth(); // fallback reference for log audit
     const userRows =
       await sql`SELECT role, is_main_client FROM auth_users WHERE id = ${session.user.id}`;
     const user = userRows[0];
 
     // Check if user can create vehicle for this client
-    if (user.role !== "admin") {
-      if (client_id !== session.user.id) {
+    const isRealUserAdmin = user.role === "admin";
+    
+    if (!isRealUserAdmin) {
+      if (client_id !== effectiveClientId) {
         // Check if it's a main client creating for their sub-client
         if (!user.is_main_client) {
           return Response.json(
@@ -446,7 +451,7 @@ export async function POST(request) {
 
         const hierarchyCheck = await sql`
           SELECT id FROM client_hierarchy 
-          WHERE main_client_id = ${session.user.id} AND sub_client_id = ${client_id}
+          WHERE main_client_id = ${effectiveClientId} AND sub_client_id = ${client_id}
         `;
 
         if (hierarchyCheck.length === 0) {
@@ -456,11 +461,31 @@ export async function POST(request) {
           );
         }
       }
+    } else {
+      // If the real user is an admin (impersonating or direct)
+      if (client_id !== effectiveClientId) {
+        const impersonatedClientData = await sql`SELECT is_main_client FROM auth_users WHERE id = ${effectiveClientId}`;
+        let hasAccess = false;
+        if (impersonatedClientData[0]?.is_main_client) {
+            const subCheck = await sql`
+                SELECT 1 FROM client_hierarchy 
+                WHERE main_client_id = ${effectiveClientId} AND sub_client_id = ${client_id}
+            `;
+            if (subCheck.length > 0) hasAccess = true;
+        }
+        if (!hasAccess && client_id !== session.user.id) {
+            return Response.json(
+              { error: "Forbidden - Cannot create vehicle for this client in this session context" },
+              { status: 403 },
+            );
+        }
+      }
     }
 
-    // Determine entry method based on user role
-    const entry_method = user.role === 'client' ? 'CLIENT_PORTAL' : 'ADMIN_MANUAL';
-    const external_service = user.role === 'client';
+    // Determine entry method based on user role / impersonation
+    const isClientContext = user.role === 'client' || resolved.isImpersonating;
+    const entry_method = isClientContext ? 'CLIENT_PORTAL' : 'ADMIN_MANUAL';
+    const external_service = isClientContext;
 
     // Detect Client Details for Rules/Financials
     // buyer_payment: client pays auction directly → no purchase price in invoice (alternate calculation per spec §7)

@@ -3,6 +3,7 @@ import fs from "fs/promises";
 import path from "path";
 import sql from "@/app/api/utils/sql";
 import { driveService } from "@/utils/googleDriveService";
+import { resolveClientId } from "@/app/api/utils/impersonate";
 
 export const dynamic = "force-dynamic";
 
@@ -26,10 +27,37 @@ async function getStorageDir(vin = "") {
 // GET: List all ownership documents for a vehicle
 export async function GET(request, { params }) {
     try {
-        const session = await auth();
-        if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
+        const resolved = await resolveClientId(request);
+        if (resolved.error) {
+            return Response.json({ error: resolved.error }, { status: 401 });
+        }
 
+        const effectiveClientId = resolved.clientId;
         const { vin } = params;
+
+        // Verify vehicle ownership/hierarchy access
+        const vehicleCheck = await sql`
+            SELECT client_id FROM vehicles WHERE vin = ${vin} AND master_status != 'cancelled'
+        `;
+        if (vehicleCheck.length === 0) {
+            return Response.json({ error: "Vehicle not found" }, { status: 404 });
+        }
+
+        const vehicleOwnerId = vehicleCheck[0].client_id;
+        if (vehicleOwnerId !== effectiveClientId) {
+            const userCheck = await sql`SELECT is_main_client FROM auth_users WHERE id = ${effectiveClientId}`;
+            let hasAccess = false;
+            if (userCheck[0]?.is_main_client) {
+                const subCheck = await sql`
+                    SELECT 1 FROM client_hierarchy 
+                    WHERE main_client_id = ${effectiveClientId} AND sub_client_id = ${vehicleOwnerId}
+                `;
+                if (subCheck.length > 0) hasAccess = true;
+            }
+            if (!hasAccess) {
+                return Response.json({ error: "Forbidden: Access denied to this vehicle" }, { status: 403 });
+            }
+        }
 
         // --- Silent self-healing migration ---
         const columnExists = await sql`
@@ -77,12 +105,38 @@ export async function GET(request, { params }) {
 // POST: Upload a new ownership document
 export async function POST(request, { params }) {
     try {
-        const session = await auth();
-        if (!session || !session.user?.id) {
-            return Response.json({ error: "Unauthorized" }, { status: 401 });
+        const resolved = await resolveClientId(request);
+        if (resolved.error) {
+            return Response.json({ error: resolved.error }, { status: 401 });
         }
 
+        const effectiveClientId = resolved.clientId;
         const { vin } = params;
+
+        // Verify vehicle ownership/hierarchy access
+        const vehicleCheck = await sql`
+            SELECT client_id FROM vehicles WHERE vin = ${vin} AND master_status != 'cancelled'
+        `;
+        if (vehicleCheck.length === 0) {
+            return Response.json({ error: "Vehicle not found" }, { status: 404 });
+        }
+
+        const vehicleOwnerId = vehicleCheck[0].client_id;
+        if (vehicleOwnerId !== effectiveClientId) {
+            const userCheck = await sql`SELECT is_main_client FROM auth_users WHERE id = ${effectiveClientId}`;
+            let hasAccess = false;
+            if (userCheck[0]?.is_main_client) {
+                const subCheck = await sql`
+                    SELECT 1 FROM client_hierarchy 
+                    WHERE main_client_id = ${effectiveClientId} AND sub_client_id = ${vehicleOwnerId}
+                `;
+                if (subCheck.length > 0) hasAccess = true;
+            }
+            if (!hasAccess) {
+                return Response.json({ error: "Forbidden: Access denied to this vehicle" }, { status: 403 });
+            }
+        }
+
         const body = await request.json();
         const { base64, tag } = body;
 
