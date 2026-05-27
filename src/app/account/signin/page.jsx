@@ -8,7 +8,7 @@ function MainComponent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const { signInWithCredentials } = useAuth();
+  const { signInWithCredentials, signOut } = useAuth();
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -42,13 +42,20 @@ function MainComponent() {
             if (role === "client") {
               window.location.href = "/";
             } else {
-              window.location.href = "/";
+              // Sign out immediately as this is client-only portal
+              await signOut({ redirect: false });
+              setError("Este portal es de acceso exclusivo para clientes. Si eres administrador o empleado, ingresa desde el panel administrativo.");
+              setLoading(false);
             }
           } else {
-            window.location.href = "/"; // Fallback
+            await signOut({ redirect: false });
+            setError("Failed to verify user profile access.");
+            setLoading(false);
           }
         } catch (e) {
-          window.location.href = "/"; // Fallback
+          await signOut({ redirect: false });
+          setError("Failed to verify user profile access.");
+          setLoading(false);
         }
       }
     } catch (err) {

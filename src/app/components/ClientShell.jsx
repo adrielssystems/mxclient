@@ -87,11 +87,12 @@ export default function ClientShell({ children }) {
     console.log("ClientShell Auth Check - User Object:", user);
 
     // Role Enforcement (Crucial B2B Isolation)
-    if (user.role !== 'client' && user.role !== 'admin') {
+    // Admins/employees are only allowed if they are impersonating a client
+    if (user.role !== 'client' && !impersonating) {
         return (
             <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center text-center px-4">
                 <h1 className="text-2xl font-bold text-slate-800 mb-2">Access Denied</h1>
-                <p className="text-slate-600 mb-6">You do not have permission to view the Client Portal.</p>
+                <p className="text-slate-600 mb-6">Este portal es de acceso exclusivo para clientes. Administradores o empleados solo pueden acceder mediante impersonación.</p>
                 <button
                     onClick={() => signOut()}
                     className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700"
