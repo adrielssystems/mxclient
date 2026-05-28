@@ -44,7 +44,8 @@ export default function ClientShell({ children }) {
                 const imp = cookies.find(c => c.startsWith('motorx-impersonate='));
                 if (imp) {
                     const val = decodeURIComponent(imp.split('=').slice(1).join('='));
-                    setImpersonating(JSON.parse(val));
+                    const parsed = JSON.parse(val);
+                    setImpersonating(parsed.payload || parsed);
                 }
             } catch (e) {
                 console.error('Failed to parse impersonation cookie:', e);
