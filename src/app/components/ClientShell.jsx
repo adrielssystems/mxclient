@@ -59,9 +59,7 @@ export default function ClientShell({ children }) {
         if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
             window.location.href = 'http://localhost:4000/admin?page=clients';
         } else {
-            // Replace clients.motorxcars.com with admin.motorxcars.com or strip 'clients.'
-            const adminHost = hostname.startsWith('clients.') ? hostname.replace('clients.', 'admin.') : `admin.${hostname}`;
-            window.location.href = `https://${adminHost}/admin?page=clients`;
+            window.location.href = 'https://dev.motorxcars.com/admin?page=clients';
         }
     };
 
