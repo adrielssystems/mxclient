@@ -118,10 +118,10 @@ export default function ClientVehiclePage() {
         if (draftConfig.terminal_id && String(draftConfig.terminal_id) !== String(vehicle.terminal_id)) {
             const terminal = terminals.find(t => String(t.id) === String(draftConfig.terminal_id));
             if (terminal) {
-                // Find tariff: match vehicle location and terminal location code (e.g. SAV)
+                const hub = terminal.location || terminal.name.split(' ')[0];
                 const tariff = tariffs.find(tr => 
                     String(tr.origin_ref_id) === String(vehicle.location_id) && 
-                    (tr.destination_name === terminal.location || tr.destination_ref_id === terminal.location)
+                    (tr.destination_ref_id?.toString().toUpperCase() === hub.toUpperCase() || tr.destination_name === hub)
                 );
                 if (tariff) {
                     fees.push({ label: `Internal Transport (${terminal.name})`, amount: Number(tariff.price_l1 || 0) });

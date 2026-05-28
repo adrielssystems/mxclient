@@ -97,11 +97,11 @@ export default function ClientLogisticsForm({
                             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
                                 <Package size={16} className="text-blue-500" /> Dispatch Terminal
                             </label>
-                            {formData.terminal_id && String(formData.terminal_id) !== String(vehicle.terminal_id) && (
+                            {selectedHub && (
                                 <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 animate-in fade-in zoom-in duration-200">
                                     + ${Number(tariffs.find(tr => 
                                         String(tr.origin_ref_id) === String(vehicle.location_id) && 
-                                        (tr.destination_name === terminals.find(t => String(t.id) === String(formData.terminal_id))?.location)
+                                        (tr.destination_ref_id?.toString().toUpperCase() === selectedHub.toUpperCase() || tr.destination_name === selectedHub)
                                     )?.price_l1 || 0).toFixed(2)}
                                 </span>
                             )}
