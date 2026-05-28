@@ -48,6 +48,7 @@ export async function GET(request) {
                 v.purchase_source,
                 
                 a.name as auction_name,
+                l.name as auction_location,
                 d.country_name as destination_country,
                 d.port_name as destination_port,
                 u.name as buyer_name,
@@ -109,6 +110,7 @@ export async function GET(request) {
 
             FROM vehicles v
             LEFT JOIN auctions a ON v.auction_id = a.id
+            LEFT JOIN locations l ON v.location_id = l.id
             LEFT JOIN destinations d ON v.destination_id = d.id
             LEFT JOIN auth_users u ON v.client_id = u.id
             LEFT JOIN (

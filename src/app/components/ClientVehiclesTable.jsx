@@ -1,23 +1,7 @@
 "use client";
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Search, Car, CalendarDays, Check, Copy } from 'lucide-react';
+import { Search, Car, CalendarDays } from 'lucide-react';
 import { formatToMDY } from "@/utils/dateUtils";
-
-// --- COPY VIN HELPER ---
-const CopyVin = ({ vin }) => {
-    const [copied, setCopied] = useState(false);
-    const handleCopy = (e) => {
-        e.stopPropagation();
-        navigator.clipboard.writeText(vin);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
-    return (
-        <button onClick={handleCopy} className="ml-1 text-slate-400 hover:text-blue-500 transition-colors" title="Copy VIN">
-            {copied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
-        </button>
-    );
-};
 
 // --- STATUS COLOR HELPERS ---
 const PURCHASE_COLORS = {
@@ -82,10 +66,7 @@ const VehicleRow = React.memo(({ vehicle }) => {
         <tr className={isLate ? "hover:bg-red-50 bg-red-50/50 transition-colors group border-b border-red-100 last:border-0" : "hover:bg-slate-50 transition-colors group border-b border-slate-100 last:border-0"}>
             {/* VIN */}
             <td className="px-2 py-1.5 w-[150px] whitespace-nowrap">
-                <div className="flex items-center gap-1 group/vin">
-                    <span className="text-[11px] font-bold text-slate-900 font-mono">{vehicle.vin}</span>
-                    <CopyVin vin={vehicle.vin} />
-                </div>
+                <span className="text-[11px] font-bold text-slate-900 font-mono">{vehicle.vin}</span>
             </td>
             {/* Lot # */}
             <td className="px-2 py-1.5 w-[68px] text-[11px] text-slate-500 font-mono whitespace-nowrap">
