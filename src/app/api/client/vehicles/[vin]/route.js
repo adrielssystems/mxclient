@@ -165,6 +165,11 @@ export async function PUT(request, { params }) {
         // Handling Terminal Assignment (direct column on vehicles table)
         if (body.terminal_id !== undefined) {
             await sql`UPDATE vehicles SET terminal_id = ${body.terminal_id || null} WHERE id = ${vehicleId}`;
+            
+            // Set as default terminal logic
+            if (body.setAsDefaultTerminal && body.terminal_id) {
+                await sql`UPDATE auth_users SET preferred_destination_id = ${body.terminal_id} WHERE id = ${clientId}`;
+            }
         }
 
         // Handling Title Services via vehicle_service_details

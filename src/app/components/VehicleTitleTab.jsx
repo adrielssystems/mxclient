@@ -217,23 +217,34 @@ export default function VehicleTitleTab({ vehicle, onUpdate, isClient = false, i
                         </div>
 
                         {/* Lien */}
-                        <div className="flex items-center gap-2 mt-4">
-                            <input
-                                id="title-has-lien"
-                                name="has_lien"
-                                type="checkbox"
-                                checked={titleTracking.has_lien}
-                                onChange={e => setTitleTracking({...titleTracking, has_lien: e.target.checked})}
-                                disabled={isClient || isLocked}
-                                className="h-4 w-4 text-blue-600 rounded border-gray-300"
-                            />
-                            <label className="text-sm font-bold text-slate-700">Vehicle has a Lien</label>
-                            {titleTracking.has_lien && (
-                                <span className="ml-auto text-[10px] font-black bg-purple-100 text-purple-800 px-2 py-0.5 rounded uppercase border border-purple-200">
-                                    This title has a Lien
-                                </span>
-                            )}
-                        </div>
+                        {isClient ? (
+                            titleTracking.has_lien && (
+                                <div className="mt-4 bg-purple-50 border border-purple-200 p-3 rounded-lg flex items-center gap-2 shadow-sm">
+                                    <AlertTriangle size={16} className="text-purple-600 flex-shrink-0" />
+                                    <span className="text-xs font-black text-purple-800 uppercase tracking-widest">
+                                        ⚠️ THIS TITLE HAS A LIEN
+                                    </span>
+                                </div>
+                            )
+                        ) : (
+                            <div className="flex items-center gap-2 mt-4">
+                                <input
+                                    id="title-has-lien"
+                                    name="has_lien"
+                                    type="checkbox"
+                                    checked={titleTracking.has_lien}
+                                    onChange={e => setTitleTracking({...titleTracking, has_lien: e.target.checked})}
+                                    disabled={isLocked}
+                                    className="h-4 w-4 text-blue-600 rounded border-gray-300"
+                                />
+                                <label className="text-sm font-bold text-slate-700">Vehicle has a Lien</label>
+                                {titleTracking.has_lien && (
+                                    <span className="ml-auto text-[10px] font-black bg-purple-100 text-purple-800 px-2 py-0.5 rounded uppercase border border-purple-200">
+                                        This title has a Lien
+                                    </span>
+                                )}
+                            </div>
+                        )}
 
                         {/* Client Notes */}
                         <div>
