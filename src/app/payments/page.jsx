@@ -175,6 +175,7 @@ export default function ClientPaymentsPage() {
                                     <input type="number" placeholder="Max" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded text-xs outline-none focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                                 </div>
                             </div>
+                            </div>
                         </div>
                     </div>
                     <div className="divide-y divide-slate-100 flex-1 overflow-y-auto max-h-[600px]">
