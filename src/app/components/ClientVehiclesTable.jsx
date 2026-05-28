@@ -169,7 +169,7 @@ function ClientVehicleCard({ vehicle, isExpanded, onToggle }) {
                                         href={`/vehicles/${vehicle.vin}`}
                                         className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-lg font-bold text-[10px] uppercase tracking-wider shadow-sm transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 whitespace-nowrap"
                                     >
-                                        Configure Delivery
+                                        Configure Services
                                     </a>
                                 ) : (
                                     <a 

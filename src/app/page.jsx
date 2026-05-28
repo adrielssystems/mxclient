@@ -35,29 +35,8 @@ export default function ClientDashboard() {
         );
     }
 
-    // --- Calculated KPIs based on real data ---
-    // Total Balance Due: Sum of total_due for all unpaid or partially paid vehicles
-    const balanceDue = vehicles.reduce((sum, v) => sum + Number(v.total_due || 0), 0);
-
     // Active Vehicles: Any vehicle not marked as delivered/canceled
     const activeVehicles = vehicles.filter(v => !['delivered', 'canceled'].includes(v.current_status));
-
-    // Delivered This Month
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-    const deliveredThisMonth = vehicles.filter(v => {
-        if (v.current_status !== 'delivered') return false;
-        // Assuming 'updated_at' or 'created_at' as a rough proxy if delivery_date isn't available
-        const date = new Date(v.created_at || new Date());
-        return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
-    }).length;
-
-    const clientInfo = {
-        name: user?.name || 'Client',
-        balanceDue,
-        activeCount: activeVehicles.length,
-        deliveredThisMonth
-    };
 
     // --- Helper Functions ---
     const getStatusGroup = (v) => {
@@ -85,37 +64,6 @@ export default function ClientDashboard() {
 
     return (
         <div className="font-sans animate-in fade-in duration-300">
-            {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="bg-white/70 backdrop-blur-md p-6 rounded-2xl border border-white/20 shadow-xl flex items-center justify-between transition-all hover:shadow-2xl hover:-translate-y-1">
-                    <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Balance Due</p>
-                        <h2 className="text-3xl font-black text-slate-800">${clientInfo.balanceDue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</h2>
-                    </div>
-                    <div className="w-12 h-12 bg-red-50 text-red-600 rounded-full flex items-center justify-center">
-                        <DollarSign size={24} />
-                    </div>
-                </div>
-                <div className="bg-white/70 backdrop-blur-md p-6 rounded-2xl border border-white/20 shadow-xl flex items-center justify-between transition-all hover:shadow-2xl hover:-translate-y-1">
-                    <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Active Vehicles</p>
-                        <h2 className="text-3xl font-black text-slate-800">{clientInfo.activeCount}</h2>
-                    </div>
-                    <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center">
-                        <Car size={24} />
-                    </div>
-                </div>
-                <div className="bg-white/70 backdrop-blur-md p-6 rounded-2xl border border-white/20 shadow-xl flex items-center justify-between transition-all hover:shadow-2xl hover:-translate-y-1">
-                    <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Delivered (This Month)</p>
-                        <h2 className="text-3xl font-black text-slate-800">{clientInfo.deliveredThisMonth}</h2>
-                    </div>
-                    <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center">
-                        <CheckCircle size={24} />
-                    </div>
-                </div>
-            </div>
-
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                 {/* Active Vehicles List (Takes 2/3 width) */}
                 <div className="xl:col-span-2 space-y-6">
@@ -166,7 +114,7 @@ export default function ClientDashboard() {
                                         <div className="w-full sm:w-auto flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-3 border-t sm:border-t-0 border-slate-100 pt-4 sm:pt-0 shrink-0">
                                             {uiStatus === 'ACTION_REQUIRED' ? (
                                                 <a href={`/vehicles/${v.vin}`} className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm transition-transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
-                                                    Configure Delivery <ChevronRight size={16} />
+                                                    Configure Services <ChevronRight size={16} />
                                                 </a>
                                             ) : (
                                                 <>
@@ -191,7 +139,7 @@ export default function ClientDashboard() {
                             <h3 className="font-bold text-lg mb-2">Need to add a vehicle?</h3>
                             <p className="text-blue-100 text-sm mb-6 leading-relaxed">Notify MotorX of a new auction purchase to start the dispatch process.</p>
                             <button onClick={() => navigate('/vehicles/new')} className="bg-white text-blue-700 w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-50 transition-colors shadow-sm">
-                                <Plus size={18} /> Report New Purchase
+                                <Plus size={18} /> Add Vehicle
                             </button>
                         </div>
                         <div className="absolute -right-6 -bottom-6 opacity-10 pointer-events-none">
