@@ -72,6 +72,6 @@ export async function GET(request, { params }) {
 
     } catch (error) {
         console.error("[GET QB Invoice PDF error]", error);
-        return new Response(JSON.stringify({ error: "Failed to load PDF" }), { status: 500 });
+        return new Response(JSON.stringify({ error: error.message || "Failed to load PDF", stack: error.stack }), { status: 500 });
     }
 }
