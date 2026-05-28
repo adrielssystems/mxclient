@@ -152,14 +152,15 @@ export default function ClientPaymentsPage() {
                 {/* Payments */}
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
                     <div className="p-5 border-b border-slate-100 bg-slate-50 flex flex-col gap-4">
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div className="flex items-center justify-between gap-4">
                             <div className="flex items-center gap-2">
                                 <CheckCircle className="text-blue-600" size={24} />
                                 <h2 className="text-xl font-bold text-slate-800">Payment History</h2>
                             </div>
+                        </div>
                             
-                            <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-                                <div className="flex flex-col gap-1.5 w-full sm:w-auto">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+                            <div className="flex flex-col gap-1.5 w-full">
                                 <label className="text-[10px] font-black text-slate-500 uppercase flex items-center gap-1"><CalendarDays size={12}/> Date Range</label>
                                 <div className="flex items-center gap-2">
                                     <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded text-xs outline-none focus:ring-1 focus:ring-blue-500" />
@@ -167,14 +168,13 @@ export default function ClientPaymentsPage() {
                                     <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded text-xs outline-none focus:ring-1 focus:ring-blue-500" />
                                 </div>
                             </div>
-                            <div className="flex flex-col gap-1.5">
+                            <div className="flex flex-col gap-1.5 w-full">
                                 <label className="text-[10px] font-black text-slate-500 uppercase flex items-center gap-1"><Filter size={12}/> Amount Range</label>
                                 <div className="flex items-center gap-2">
                                     <input type="number" placeholder="Min" value={minAmount} onChange={e => setMinAmount(e.target.value)} className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded text-xs outline-none focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                                     <span className="text-slate-300">-</span>
                                     <input type="number" placeholder="Max" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded text-xs outline-none focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                                 </div>
-                            </div>
                             </div>
                         </div>
                     </div>
