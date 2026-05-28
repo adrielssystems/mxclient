@@ -106,11 +106,11 @@ export default function ClientPaymentsPage() {
                                             <div className="font-bold text-slate-800 text-lg">#{inv.invoice_number}</div>
                                             <div className="text-xs text-slate-400 mt-0.5">{new Date(inv.created_at).toLocaleDateString()}</div>
                                         </div>
-                                        <div className={`px-2 py-1 rounded-full text-xs font-bold ${inv.status.toLowerCase() === 'paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                                        <div className={`px-2 py-1 rounded-full text-xs font-bold shrink-0 ${inv.status.toLowerCase() === 'paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
                                             {inv.status.replace(/_/g, ' ').toUpperCase()}
                                         </div>
                                     </div>
-                                    <div className="flex justify-between items-end mt-4">
+                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mt-4 gap-3">
                                         <div className="text-xs text-slate-500 font-medium">
                                             {inv.vin ? (
                                                 <div className="flex items-center flex-wrap gap-x-2 gap-y-1">
@@ -152,13 +152,14 @@ export default function ClientPaymentsPage() {
                 {/* Payments */}
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
                     <div className="p-5 border-b border-slate-100 bg-slate-50 flex flex-col gap-4">
-                        <div className="flex items-center gap-2">
-                            <CheckCircle className="text-slate-500" size={20} />
-                            <h3 className="font-bold text-slate-800">Payment History</h3>
-                        </div>
-                        {/* Filters */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div className="flex flex-col gap-1.5">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                            <div className="flex items-center gap-2">
+                                <CheckCircle className="text-blue-600" size={24} />
+                                <h2 className="text-xl font-bold text-slate-800">Payment History</h2>
+                            </div>
+                            
+                            <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                                <div className="flex flex-col gap-1.5 w-full sm:w-auto">
                                 <label className="text-[10px] font-black text-slate-500 uppercase flex items-center gap-1"><CalendarDays size={12}/> Date Range</label>
                                 <div className="flex items-center gap-2">
                                     <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded text-xs outline-none focus:ring-1 focus:ring-blue-500" />

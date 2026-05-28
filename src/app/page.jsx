@@ -90,17 +90,19 @@ export default function ClientDashboard() {
                                         ${uiStatus === 'ACTION_REQUIRED' ? 'border-orange-200/50' : 'border-white/20'}
                                     `}>
                                         <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-4 mb-2 overflow-hidden">
-                                                <h4 className="font-bold text-slate-800 text-lg sm:text-base truncate w-[220px] shrink-0">{v.year} {v.make} {v.model}</h4>
-                                                <div className="w-[140px] shrink-0 flex items-center">
-                                                    {getStatusBadge(uiStatus)}
-                                                </div>
-                                                <div className="shrink-0 flex items-center">
-                                                    {v.payment_status && (
-                                                        <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${String(v.payment_status).toLowerCase() === 'paid' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-amber-100 text-amber-700 border-amber-200'}`}>
-                                                            {['pending', 'payment_pending'].includes(String(v.payment_status).toLowerCase()) ? 'Pending Payment' : String(v.payment_status).replace('_', ' ')}
-                                                        </span>
-                                                    )}
+                                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-2 overflow-hidden">
+                                                <h4 className="font-bold text-slate-800 text-lg sm:text-base truncate sm:w-[220px] shrink-0">{v.year} {v.make} {v.model}</h4>
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <div className="sm:w-[140px] shrink-0 flex items-center">
+                                                        {getStatusBadge(uiStatus)}
+                                                    </div>
+                                                    <div className="shrink-0 flex items-center">
+                                                        {v.payment_status && (
+                                                            <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${String(v.payment_status).toLowerCase() === 'paid' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-amber-100 text-amber-700 border-amber-200'}`}>
+                                                                {['pending', 'payment_pending'].includes(String(v.payment_status).toLowerCase()) ? 'Pending Payment' : String(v.payment_status).replace('_', ' ')}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-1 gap-x-4 text-sm text-slate-500">

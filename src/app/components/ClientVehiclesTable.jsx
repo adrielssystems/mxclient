@@ -366,8 +366,8 @@ export default function ClientVehiclesTable({ vehicles = [] }) {
 
                 {/* Pagination Controls */}
                 {totalPages > 1 && (
-                    <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
-                        <div className="text-sm text-slate-500">
+                    <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="text-sm text-slate-500 text-center sm:text-left">
                             Showing <span className="font-bold text-slate-900">{totalCount > 0 ? ((currentPage - 1) * ITEMS_PER_PAGE) + 1 : 0}</span> to <span className="font-bold text-slate-900">{Math.min(currentPage * ITEMS_PER_PAGE, totalCount)}</span> of <span className="font-bold text-slate-900">{totalCount}</span> vehicles
                         </div>
                         <div className="flex gap-2">
