@@ -24,6 +24,11 @@ export default function ClientLogisticsForm({
 
     const [loading, setLoading] = useState(false);
 
+    const initialTerminal = terminals.find(t => String(t.id) === String(vehicle.terminal_id));
+    const [selectedHub, setSelectedHub] = useState(
+        initialTerminal ? (initialTerminal.location || initialTerminal.name.split(' ')[0]) : ""
+    );
+
     // Form State
     const [formData, setFormData] = useState({
         destination_id: vehicle.destination_id || "",
@@ -32,6 +37,9 @@ export default function ClientLogisticsForm({
         dismantling_service_id: dismSvc ? (dismSvc.service_id || dismSvc.id) : "",
         setAsDefaultTerminal: false,
     });
+
+    const uniqueHubs = Array.from(new Set(terminals.map(t => t.location || t.name.split(' ')[0]))).sort();
+    const filteredTerminals = selectedHub ? terminals.filter(t => (t.location === selectedHub || t.name.startsWith(selectedHub))) : [];
 
     const handleChange = (field, value) => {
         const newData = { ...formData, [field]: value };
@@ -98,19 +106,38 @@ export default function ClientLogisticsForm({
                                 </span>
                             )}
                         </div>
-                        <div className="space-y-2">
-                            <select
-                                value={formData.terminal_id}
-                                onChange={(e) => handleChange('terminal_id', e.target.value)}
-                                disabled={isLocked}
-                                className={`w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 transition-colors ${isLocked ? 'bg-slate-50 text-slate-400 cursor-not-allowed opacity-70' : 'bg-white'}`}
-                            >
-                                <option value="">Select Terminal...</option>
-                                {terminals.map(t => (
-                                    <option key={t.id} value={t.id}>{t.name} {t.location ? `(${t.location})` : ''}</option>
-                                ))}
-                            </select>
-                            <p className="text-[10px] text-slate-400 italic">Where should the vehicle be delivered locally?</p>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Hub</label>
+                                <select
+                                    value={selectedHub}
+                                    onChange={(e) => {
+                                        setSelectedHub(e.target.value);
+                                        handleChange('terminal_id', '');
+                                    }}
+                                    disabled={isLocked}
+                                    className={`w-full px-3 py-2.5 border border-slate-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-blue-500 transition-colors ${isLocked ? 'bg-slate-50 text-slate-400 cursor-not-allowed opacity-70' : 'bg-white'}`}
+                                >
+                                    <option value="">Select Hub...</option>
+                                    {uniqueHubs.map(h => (
+                                        <option key={h} value={h}>{h}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Terminal</label>
+                                <select
+                                    value={formData.terminal_id}
+                                    onChange={(e) => handleChange('terminal_id', e.target.value)}
+                                    disabled={isLocked || !selectedHub}
+                                    className={`w-full px-3 py-2.5 border border-slate-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-blue-500 transition-colors ${isLocked || !selectedHub ? 'bg-slate-50 text-slate-400 cursor-not-allowed opacity-70' : 'bg-white'}`}
+                                >
+                                    <option value="">Select Terminal...</option>
+                                    {filteredTerminals.map(t => (
+                                        <option key={t.id} value={t.id}>{t.name}</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
                         
                         {/* Default Terminal Checkbox */}
