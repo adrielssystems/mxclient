@@ -111,8 +111,37 @@ export async function GET(request) {
             LEFT JOIN auctions a ON v.auction_id = a.id
             LEFT JOIN destinations d ON v.destination_id = d.id
             LEFT JOIN auth_users u ON v.client_id = u.id
-            LEFT JOIN logistics_dispatch ld ON v.id = ld.vehicle_id
-            LEFT JOIN logistics_title_services lt ON v.id = lt.vehicle_id
+            LEFT JOIN (
+              SELECT DISTINCT ON (vehicle_id)
+                vehicle_id,
+                actual_delivery_date,
+                transporter_payment_date,
+                actual_pickup_date,
+                picked_up,
+                estimated_delivery_date
+              FROM dispatch_orders
+              ORDER BY vehicle_id, created_at DESC
+            ) ld ON ld.vehicle_id = v.id
+            LEFT JOIN (
+              SELECT DISTINCT ON (vts.vehicle_id)
+                vts.vehicle_id,
+                vts.id as ts_id,
+                vts.manual_status as ts_manual_status,
+                vts.date_requested as ts_date_requested,
+                vts.date_approved as ts_date_approved,
+                vts.date_mailing_in as ts_date_mailing_in,
+                vts.mailing_in_tracking as ts_mailing_in_tracking,
+                vts.date_received as ts_date_received,
+                vts.date_mailed_out as ts_date_mailed_out,
+                vts.mailing_out_tracking as ts_mailing_out_tracking,
+                vts.invoice_number as ts_invoice_number,
+                i.status as ts_invoice_payment_status
+              FROM vehicle_title_services vts
+              LEFT JOIN invoices i ON i.vehicle_id = vts.vehicle_id 
+                AND i.service_category = 'TITLE' 
+                AND (vts.invoice_number IS NOT NULL AND i.invoice_number = vts.invoice_number)
+              ORDER BY vts.vehicle_id, vts.created_at DESC
+            ) lt ON lt.vehicle_id = v.id
             WHERE v.client_id = ${clientId}
             ORDER BY v.created_at DESC
         `;
