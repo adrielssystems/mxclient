@@ -4,13 +4,13 @@ export async function GET(request) {
 		getToken({
 			req: request,
 			secret: process.env.AUTH_SECRET,
-			secureCookie: process.env.AUTH_URL ? process.env.AUTH_URL.startsWith('https') : false,
+			cookieName: 'authjs.session-token',
 			raw: true,
 		}),
 		getToken({
 			req: request,
 			secret: process.env.AUTH_SECRET,
-			secureCookie: process.env.AUTH_URL ? process.env.AUTH_URL.startsWith('https') : false,
+			cookieName: 'authjs.session-token',
 		}),
 	]);
 
@@ -23,13 +23,17 @@ export async function GET(request) {
 		});
 	}
 
+	const userId = jwt.id || jwt.sub;
+
 	return new Response(
 		JSON.stringify({
 			jwt: token,
 			user: {
-				id: jwt.sub,
+				id: userId,
 				email: jwt.email,
 				name: jwt.name,
+				role: jwt.role,
+				status: jwt.status,
 			},
 		}),
 		{

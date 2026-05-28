@@ -7,19 +7,24 @@ export default function CreateAuth() {
 		const token = await getToken({
 			req: c.req.raw,
 			secret: process.env.AUTH_SECRET,
-			secureCookie: process.env.AUTH_URL ? process.env.AUTH_URL.startsWith('https') : false,
+			cookieName: 'authjs.session-token',
 		});
 		if (token) {
+			const userId = token.id || token.sub;
+			if (!userId) return null;
 			return {
 				user: {
-					id: token.sub,
+					id: userId,
 					email: token.email,
 					name: token.name,
 					image: token.picture,
+					role: token.role,
+					status: token.status,
 				},
-				expires: token.exp.toString(),
+				expires: token.exp ? new Date(token.exp * 1000).toISOString() : '',
 			};
 		}
+		return null;
 	};
 	return {
 		auth,

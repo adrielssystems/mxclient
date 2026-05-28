@@ -363,6 +363,7 @@ export const { auth } = CreateAuth({
   })],
 
   session: {
+    strategy: 'jwt',
     maxAge: 8 * 60 * 60, // 8 hours (extended for operational shifts)
     updateAge: 1 * 60 * 60, // 1 hour (refresh frequency)
   },
