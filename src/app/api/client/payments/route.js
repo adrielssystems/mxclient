@@ -31,13 +31,17 @@ export async function GET(request) {
             SELECT 
                 i.id,
                 i.invoice_number,
+                i.quickbooks_invoice_id,
                 i.amount,
                 i.status,
                 i.created_at,
                 v.vin,
-                v.description as vehicle_desc
+                v.lot_number,
+                u.name as client_name,
+                REGEXP_REPLACE(v.description, '\\s*\\([^\\)]+\\)', '', 'g') as vehicle_desc
             FROM invoices i
             LEFT JOIN vehicles v ON i.vehicle_id = v.id
+            LEFT JOIN auth_users u ON i.client_id = u.id
             WHERE i.client_id = ${clientId}
             ORDER BY i.created_at DESC
         `;
