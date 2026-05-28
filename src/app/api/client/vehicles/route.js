@@ -44,6 +44,8 @@ export async function GET(request) {
                 v.current_status,
                 v.payment_status,
                 v.amount_paid,
+                v.purchase_status,
+                v.purchase_source,
                 
                 a.name as auction_name,
                 d.country_name as destination_country,
@@ -71,12 +73,46 @@ export async function GET(request) {
                   FROM invoice_line_items 
                   WHERE vehicle_id = v.id AND type IN ('SERVICE', 'FEE') 
                   AND description NOT ILIKE '%Purchase%'
-                ) as transport_fees_total
+                ) as transport_fees_total,
+
+                CASE
+                  WHEN v.dispatch_status = 'not_applicable' THEN NULL
+                  WHEN ld.vehicle_id IS NULL THEN 'Pending'
+                  WHEN (
+                    ld.actual_delivery_date IS NOT NULL
+                    AND ld.transporter_payment_date IS NOT NULL
+                  ) THEN 'Completed'
+                  WHEN ld.actual_delivery_date IS NOT NULL THEN 'INVOICE'
+                  WHEN ld.estimated_delivery_date::date < CURRENT_DATE THEN 'Late'
+                  WHEN ld.estimated_delivery_date::date = CURRENT_DATE THEN 'Today'
+                  WHEN (ld.actual_pickup_date IS NOT NULL OR ld.picked_up = TRUE) THEN 'In Transit'
+                  ELSE 'New'
+                END as dispatch_display_status,
+                
+                CASE
+                  WHEN lt.ts_id IS NULL THEN NULL
+                  WHEN lt.ts_manual_status = 'Canceled' THEN 'Canceled'
+                  WHEN (lt.ts_manual_status IS NOT NULL AND lt.ts_manual_status != 'none') THEN lt.ts_manual_status
+                  WHEN (
+                    (lt.ts_date_mailed_out IS NOT NULL OR (lt.ts_mailing_out_tracking IS NOT NULL AND lt.ts_mailing_out_tracking != ''))
+                    AND (lt.ts_invoice_number IS NOT NULL AND lt.ts_invoice_number != '')
+                    AND lt.ts_invoice_payment_status = 'paid'
+                  ) THEN 'Completed'
+                  WHEN (lt.ts_date_mailed_out IS NOT NULL OR (lt.ts_mailing_out_tracking IS NOT NULL AND lt.ts_mailing_out_tracking != '')) THEN 'NOT PAID'
+                  WHEN (lt.ts_date_received IS NOT NULL AND (lt.ts_invoice_number IS NULL OR lt.ts_invoice_number = '')) THEN 'INVOICE'
+                  WHEN lt.ts_date_received IS NOT NULL THEN 'Received'
+                  WHEN (lt.ts_date_mailing_in IS NOT NULL OR (lt.ts_mailing_in_tracking IS NOT NULL AND lt.ts_mailing_in_tracking != '')) THEN 'Mailing IN'
+                  WHEN lt.ts_date_approved IS NOT NULL THEN 'Approved'
+                  WHEN lt.ts_date_requested IS NOT NULL THEN 'Requested'
+                  ELSE 'New'
+                END as title_service_status
 
             FROM vehicles v
             LEFT JOIN auctions a ON v.auction_id = a.id
             LEFT JOIN destinations d ON v.destination_id = d.id
             LEFT JOIN auth_users u ON v.client_id = u.id
+            LEFT JOIN logistics_dispatch ld ON v.id = ld.vehicle_id
+            LEFT JOIN logistics_title_services lt ON v.id = lt.vehicle_id
             WHERE v.client_id = ${clientId}
             ORDER BY v.created_at DESC
         `;

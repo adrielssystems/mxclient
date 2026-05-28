@@ -1,260 +1,416 @@
 "use client";
-import React, { useState } from "react";
-import { Search, Filter, ChevronDown, ChevronUp, Car, Ship, Gavel, Package, Truck, CheckCircle } from "lucide-react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import { Search, Car, CalendarDays, Check, Copy } from 'lucide-react';
 import { formatToMDY } from "@/utils/dateUtils";
 
-// ── Logistics pipeline steps (Client View) ──────────────────────────────────
-const PIPELINE = [
-    { key: "purchased", label: "Purchased", icon: Gavel },
-    { key: "dispatched", label: "Dispatch", icon: Truck },
-    { key: "at_terminal", label: "Terminal", icon: Package },
-    { key: "in_transit", label: "Shipping", icon: Ship },
-    { key: "delivered", label: "Delivered", icon: CheckCircle },
-];
-
-const STATUS_STEP = {
-    purchased: 0, entered: 0, payment_pending: 0,
-    dispatched: 1, in_transit: 1, assignment_pending: 1, picked_up: 1,
-    at_terminal: 2, at_warehouse: 2,
-    booked: 3, loaded: 3, in_transit_ocean: 3,
-    arrived: 4, customs_cleared: 4, delivered: 4,
-};
-
-const PAY_CONFIG = {
-    paid: { label: "Paid", cls: "bg-green-100 text-green-800 border-green-200" },
-    pending: { label: "Pending", cls: "bg-amber-100 text-amber-800 border-amber-200" },
-    payment_pending: { label: "Pending", cls: "bg-amber-100 text-amber-800 border-amber-200" },
-    late: { label: "Late", cls: "bg-red-100 text-red-800 border-red-200" },
-    unpaid: { label: "Unpaid", cls: "bg-slate-100 text-slate-600 border-slate-200" },
-    not_applicable: { label: "N/A", cls: "bg-slate-50 text-slate-400 border-slate-100" },
-};
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-const fmt = (n) => `$${Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
-const fmtStatus = (s) => (s || "").split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-
-// ── Client Vehicle Card (Read-Only) ──────────────────────────────────────────
-function ClientVehicleCard({ vehicle, isExpanded, onToggle }) {
-    const step = STATUS_STEP[vehicle.current_status] ?? 0;
-    const rawPaymentStatus = typeof vehicle.payment_status === 'string' ? vehicle.payment_status.toLowerCase() : 'unpaid';
-    const payConf = PAY_CONFIG[rawPaymentStatus] || PAY_CONFIG.unpaid;
-
-    // Helper for status background
-    const getStatusBadge = (statusGroup) => {
-        // Group statuses into the UI categories requested by the user
-        const status = statusGroup || '';
-        const uiStatus = ['purchased', 'entered', 'assignment_pending'].includes(status) ? 'ACTION_REQUIRED' : 
-            ['dispatched', 'in_transit', 'booked', 'loaded', 'in_transit_ocean', 'at_terminal'].includes(status) ? 'IN_TRANSIT' : 
-            ['arrived', 'customs_cleared', 'delivered'].includes(status) ? 'DELIVERED' : status.toUpperCase();
-        
-        switch (uiStatus) {
-            case 'ACTION_REQUIRED': return "bg-orange-100 text-orange-700";
-            case 'IN_TRANSIT': return "bg-blue-100 text-blue-700";
-            case 'DELIVERED': return "bg-emerald-100 text-emerald-700";
-            default: return "bg-slate-100 text-slate-700";
-        }
+// --- COPY VIN HELPER ---
+const CopyVin = ({ vin }) => {
+    const [copied, setCopied] = useState(false);
+    const handleCopy = (e) => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(vin);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
     };
-    const statusBgClass = getStatusBadge(vehicle.current_status);
-
     return (
-        <div className={`bg-white rounded-xl border transition-all duration-200 overflow-hidden ${isExpanded ? "border-blue-300 shadow-md" : "border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300"}`}>
-
-            {/* Header */}
-            <button onClick={onToggle} className="w-full text-left px-5 py-4 flex items-center gap-4 group">
-                <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
-                    <Car size={20} className="text-blue-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                    <p className="font-mono font-bold text-slate-900 text-sm leading-tight">{vehicle.vin}</p>
-                    <p className="text-xs text-slate-500 truncate mt-0.5">
-                        {vehicle.year} {vehicle.make} {vehicle.model}
-                    </p>
-                </div>
-
-                <span className={`flex-shrink-0 px-2.5 py-1 text-[10px] font-bold rounded-full border uppercase tracking-wider ${payConf.cls}`}>
-                    {payConf.label}
-                </span>
-
-                <span className="flex-shrink-0 text-slate-400 group-hover:text-slate-600 transition-colors">
-                    {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                </span>
-            </button>
-
-            {/* Expanded Details */}
-            {isExpanded && (
-                <div className="border-t border-slate-100 px-5 pb-5 pt-4 space-y-5 animate-in fade-in duration-200">
-
-                    {/* Pipeline */}
-                    <div>
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Transport Progress</p>
-                        <div className="flex items-center gap-0">
-                            {PIPELINE.map((stage, i) => {
-                                const done = i < step;
-                                const active = i === step;
-                                return (
-                                    <React.Fragment key={stage.key}>
-                                        <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
-                                            <div className={`w-9 h-9 rounded-full flex items-center justify-center border-2 transition-all
-                                                ${done ? "bg-blue-600 border-blue-600 text-white" :
-                                                    active ? "bg-blue-50 border-blue-500 text-blue-600" :
-                                                        "bg-slate-50 border-slate-200 text-slate-400"}`}>
-                                                <stage.icon size={16} />
-                                            </div>
-                                            <span className={`text-[10px] font-bold text-center leading-tight max-w-[52px] ${active ? "text-blue-600" : done ? "text-blue-500" : "text-slate-400"}`}>
-                                                {stage.label}
-                                            </span>
-                                        </div>
-                                        {i < PIPELINE.length - 1 && (
-                                            <div className={`flex-1 h-0.5 mx-1 mb-5 transition-colors ${done ? "bg-blue-500" : "bg-slate-200"}`} />
-                                        )}
-                                    </React.Fragment>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* Standard details grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-                        {[
-                            { label: "Auction", value: vehicle.auction_name || "—" },
-                            { label: "Port", value: vehicle.destination_port || "—" },
-                            { label: "Destination", value: vehicle.destination_country || "—" },
-                            { label: "Purchase Date", value: vehicle.purchase_date ? formatToMDY(vehicle.purchase_date) : "—" },
-                            { label: "Current Status", value: fmtStatus(vehicle.current_status) },
-                        ].map((item) => (
-                            <div key={item.label} className="bg-slate-50 rounded-lg p-2.5">
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{item.label}</p>
-                                {item.label === 'Current Status' ? (
-                                    <div className="mt-1">
-                                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${statusBgClass}`}>
-                                            {item.value}
-                                        </span>
-                                    </div>
-                                ) : (
-                                    <p className="text-sm font-semibold text-slate-800 mt-0.5 truncate">{item.value}</p>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Financial Summary */}
-                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-                        <div className="flex flex-col sm:flex-row justify-between gap-4">
-                            <div className="flex-1">
-                                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 border-b border-slate-200 pb-2">Financial Summary</p>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                                    <div>
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Base Price</p>
-                                        <p className="text-sm font-bold text-slate-700">{fmt(vehicle.client_base_price)}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Transport Fees</p>
-                                        <p className="text-sm font-bold text-slate-700">{fmt(vehicle.transport_fees_total)}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Price</p>
-                                        <p className="text-sm font-bold text-slate-900">{fmt(vehicle.client_total_price)}</p>
-                                    </div>
-                                    <div className="text-right border-l border-slate-200 pl-4">
-                                        <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest">Balance Due</p>
-                                        <p className="text-base font-black text-red-600">{fmt(vehicle.total_due)}</p>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            {/* Action Button */}
-                            <div className="flex items-center sm:border-l sm:border-slate-200 sm:pl-6">
-                                {['purchased', 'entered', 'assignment_pending'].includes(vehicle.current_status) ? (
-                                    <a 
-                                        href={`/vehicles/${vehicle.vin}`}
-                                        className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-lg font-bold text-[10px] uppercase tracking-wider shadow-sm transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 whitespace-nowrap"
-                                    >
-                                        Configure Services
-                                    </a>
-                                ) : (
-                                    <a 
-                                        href={`/vehicles/${vehicle.vin}`}
-                                        className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-bold text-[10px] uppercase tracking-wider shadow-sm transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 whitespace-nowrap"
-                                    >
-                                        View Details
-                                    </a>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
+        <button onClick={handleCopy} className="ml-1 text-slate-400 hover:text-blue-500 transition-colors" title="Copy VIN">
+            {copied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+        </button>
     );
-}
+};
 
-// ── List Component ───────────────────────────────────────────────────────────
-export default function ClientVehiclesTable({ vehicles = [] }) {
-    const [searchTerm, setSearchTerm] = useState("");
-    const [statusFilter, setStatusFilter] = useState("all");
-    const [expandedVin, setExpandedVin] = useState(null);
+// --- STATUS COLOR HELPERS ---
+const PURCHASE_COLORS = {
+    late:            'bg-red-100 text-red-800 border-red-200',
+    paid:            'bg-green-100 text-green-800 border-green-200',
+    payment_pending: 'bg-amber-100 text-amber-800 border-amber-200',
+    default:         'bg-slate-100 text-slate-600 border-slate-200',
+};
+const DISPATCH_COLORS = {
+    'Completed':  'bg-green-100 text-green-800 border-green-200',
+    'In Transit': 'bg-blue-100 text-blue-800 border-blue-200',
+    'Today':      'bg-sky-100 text-sky-800 border-sky-200',
+    'Late':       'bg-red-100 text-red-800 border-red-200',
+    'INVOICE':    'bg-purple-100 text-purple-800 border-purple-200',
+    'Pending':    'bg-slate-100 text-slate-500 border-slate-200',
+    'New':        'bg-slate-100 text-slate-500 border-slate-200',
+};
+const TITLE_COLORS = {
+    'Completed':  'bg-green-100 text-green-800 border-green-200',
+    'NOT PAID':   'bg-red-100 text-red-800 border-red-200',
+    'INVOICE':    'bg-violet-100 text-violet-800 border-violet-200',
+    'Received':   'bg-emerald-100 text-emerald-800 border-emerald-200',
+    'Mailing IN': 'bg-sky-100 text-sky-800 border-sky-200',
+    'Approved':   'bg-blue-100 text-blue-800 border-blue-200',
+    'Requested':  'bg-indigo-100 text-indigo-800 border-indigo-200',
+    'Canceled':   'bg-slate-100 text-slate-400 border-slate-200',
+    'New':        'bg-slate-100 text-slate-400 border-slate-200',
+};
 
-    const filtered = vehicles.filter(v => {
-        const term = searchTerm.toLowerCase();
-        const matchSearch =
-            (v.vin || "").toLowerCase().includes(term) ||
-            (v.make || "").toLowerCase().includes(term) ||
-            (v.model || "").toLowerCase().includes(term);
+const StatusBadge = ({ label, colorClass }) => (
+    <span className={`px-1 py-0.5 text-[9px] font-black rounded border uppercase tracking-widest block text-center leading-tight ${colorClass}`}>
+        {label}
+    </span>
+);
 
-        const matchStatus = statusFilter === "all" || v.current_status === statusFilter;
-        return matchSearch && matchStatus;
-    });
+// --- MEMOIZED ROW COMPONENT ---
+const VehicleRow = React.memo(({ vehicle }) => {
+    const isLate = vehicle.payment_status === 'late';
+
+    // Purchase badge
+    const isExternal = vehicle.purchase_source === 'External';
+    const purchaseColor = isExternal 
+        ? PURCHASE_COLORS.default 
+        : isLate
+            ? PURCHASE_COLORS.late
+            : vehicle.purchase_status === 'paid'
+                ? PURCHASE_COLORS.paid
+                : vehicle.purchase_status === 'payment_pending'
+                    ? PURCHASE_COLORS.payment_pending
+                    : PURCHASE_COLORS.default;
+    const purchaseLabel = isExternal ? 'External' : isLate ? 'Late' : vehicle.purchase_status === 'paid' ? 'Paid' : vehicle.purchase_status === 'payment_pending' ? 'Invoiced' : (vehicle.purchase_status || '—');
+
+    // Dispatch badge
+    const dispatchStatus = vehicle.dispatch_display_status;
+    const dispatchColor  = DISPATCH_COLORS[dispatchStatus] || DISPATCH_COLORS['New'];
+
+    // Title Service badge
+    const titleStatus = vehicle.title_service_status;
+    const titleColor  = TITLE_COLORS[titleStatus] || 'bg-violet-50 text-violet-600 border-violet-200';
 
     return (
-        <div className="space-y-5">
-            {/* Toolbar */}
-            <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <input
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        placeholder="Search by VIN, Make, Model…"
-                        className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
-                    />
+        <tr className={isLate ? "hover:bg-red-50 bg-red-50/50 transition-colors group border-b border-red-100 last:border-0" : "hover:bg-slate-50 transition-colors group border-b border-slate-100 last:border-0"}>
+            {/* VIN */}
+            <td className="px-2 py-1.5 w-[150px] whitespace-nowrap">
+                <div className="flex items-center gap-1 group/vin">
+                    <span className="text-[11px] font-bold text-slate-900 font-mono">{vehicle.vin}</span>
+                    <CopyVin vin={vehicle.vin} />
                 </div>
-                <div className="relative">
-                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <select
-                        value={statusFilter}
-                        onChange={e => setStatusFilter(e.target.value)}
-                        className="w-full sm:w-auto pl-10 pr-8 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 appearance-none bg-white shadow-sm"
-                    >
-                        <option value="all">All Statuses</option>
-                        <option value="purchased">Purchased</option>
-                        <option value="dispatched">Dispatched</option>
-                        <option value="at_terminal">At Terminal</option>
-                        <option value="in_transit">In Transit / Ocean</option>
-                        <option value="delivered">Delivered</option>
-                    </select>
+            </td>
+            {/* Lot # */}
+            <td className="px-2 py-1.5 w-[68px] text-[11px] text-slate-500 font-mono whitespace-nowrap">
+                {vehicle.lot_number || "—"}
+            </td>
+            {/* Description */}
+            <td className="px-2 py-1.5 w-[190px] max-w-[190px] truncate text-[11px] font-bold text-slate-700" title={vehicle.description}>
+                {vehicle.description ? vehicle.description.replace(/\s*\([^)]*\)\s*/g, '').trim() : "—"}
+            </td>
+            {/* Auction / Location */}
+            <td className="px-2 py-1.5 w-[160px]">
+                <div className="flex flex-col leading-tight">
+                    <span className="text-[11px] font-bold text-slate-700 truncate max-w-[150px]">{vehicle.auction_name || "N/A"}</span>
+                    <span className="text-[9px] text-slate-400 uppercase tracking-wider truncate max-w-[150px]">{vehicle.auction_location || "—"}</span>
                 </div>
-            </div>
+            </td>
+            {/* Client */}
+            <td className="px-2 py-1.5 w-[130px]">
+                <div className="flex flex-col leading-tight">
+                    <span className="text-[11px] text-slate-700 font-bold truncate max-w-[120px]">{vehicle.buyer_name || "—"}</span>
+                </div>
+            </td>
+            {/* Date + Price */}
+            <td className="px-2 py-1.5 w-[95px] whitespace-nowrap">
+                <div className="flex flex-col leading-tight">
+                    <span className="text-[10px] text-slate-400 font-medium">{formatToMDY(vehicle.purchase_date)}</span>
+                    <span className="text-[11px] font-black text-slate-900">{vehicle.purchase_price ? `$${parseFloat(vehicle.purchase_price).toLocaleString()}` : "—"}</span>
+                </div>
+            </td>
+            {/* Purchase Status */}
+            <td className="px-2 py-1.5 w-[82px]">
+                <StatusBadge label={purchaseLabel} colorClass={purchaseColor} />
+            </td>
+            {/* Dispatch Status */}
+            <td className="px-2 py-1.5 w-[82px]">
+                {dispatchStatus
+                    ? <StatusBadge label={dispatchStatus} colorClass={dispatchColor} />
+                    : <span className="text-slate-200 text-[11px] block text-center">—</span>
+                }
+            </td>
+            {/* Title Service Status */}
+            <td className="px-2 py-1.5 w-[82px]">
+                {titleStatus
+                    ? <StatusBadge label={titleStatus} colorClass={titleColor} />
+                    : <span className="text-slate-200 text-[11px] block text-center">—</span>
+                }
+            </td>
+        </tr>
+    );
+});
 
-            {/* List */}
-            {filtered.length === 0 ? (
-                <div className="bg-white rounded-xl border border-dashed border-slate-300 px-6 py-16 text-center">
-                    <Car className="mx-auto mb-3 h-10 w-10 text-slate-300" />
-                    <p className="text-sm font-medium text-slate-500">
-                        {searchTerm ? "No vehicles match your search." : "You have no vehicles yet."}
-                    </p>
+export default function ClientVehiclesTable({ vehicles = [] }) {
+    const startPickerRef = useRef(null);
+    const endPickerRef   = useRef(null);
+
+    // Helper: YYYY-MM-DD (native picker) → MM/DD/YYYY (display)
+    const isoToMDY = (iso) => {
+        if (!iso) return '';
+        const [y, m, d] = iso.split('-');
+        return `${m}/${d}/${y}`;
+    };
+
+    const [localSearch, setLocalSearch] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState(localSearch);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedSearch(localSearch), 300);
+        return () => clearTimeout(timer);
+    }, [localSearch]);
+
+    const [auctionFilter, setAuctionFilter] = useState("all");
+    const [locationFilter, setLocationFilter] = useState("all");
+    const [startDate, setStartDate] = useState(""); // MM/DD/YYYY
+    const [endDate, setEndDate] = useState("");   // MM/DD/YYYY
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 50;
+
+    // --- OPTIMIZED DERIVED LISTS ---
+    const uniqueAuctions = useMemo(() => {
+        return [...new Set(vehicles.map(v => v.auction_name).filter(Boolean))].sort();
+    }, [vehicles]);
+
+    const uniqueLocations = useMemo(() => {
+        return [...new Set(vehicles.map(v => v.auction_location).filter(Boolean))].sort();
+    }, [vehicles]);
+
+    // --- CLIENT-SIDE FILTER LOGIC ---
+    const filteredVehicles = useMemo(() => {
+        return vehicles.filter(v => {
+            // 1. Search Filter (VIN, LOT, DESC)
+            if (debouncedSearch) {
+                const term = debouncedSearch.toLowerCase();
+                const matchSearch = 
+                    (v.vin || "").toLowerCase().includes(term) ||
+                    (v.lot_number || "").toLowerCase().includes(term) ||
+                    (v.description || "").toLowerCase().includes(term);
+                if (!matchSearch) return false;
+            }
+
+            // 2. Auction Filter
+            if (auctionFilter !== "all" && v.auction_name !== auctionFilter) {
+                return false;
+            }
+
+            // 3. Location Filter
+            if (locationFilter !== "all" && v.auction_location !== locationFilter) {
+                return false;
+            }
+
+            // 4. Date Filter
+            if (startDate || endDate) {
+                const pDate = new Date(v.purchase_date);
+                if (!isNaN(pDate)) {
+                    if (startDate) {
+                        const sDate = new Date(startDate);
+                        if (pDate < sDate) return false;
+                    }
+                    if (endDate) {
+                        const eDate = new Date(endDate);
+                        if (pDate > eDate) return false;
+                    }
+                }
+            }
+
+            return true;
+        });
+    }, [vehicles, debouncedSearch, auctionFilter, locationFilter, startDate, endDate]);
+
+    // --- PAGINATION LOGIC ---
+    const totalCount = filteredVehicles.length;
+    const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE) || 1;
+    const paginatedVehicles = useMemo(() => {
+        const start = (currentPage - 1) * ITEMS_PER_PAGE;
+        return filteredVehicles.slice(start, start + ITEMS_PER_PAGE);
+    }, [filteredVehicles, currentPage]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [debouncedSearch, auctionFilter, locationFilter, startDate, endDate]);
+
+    return (
+        <div className="space-y-6">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden min-h-[500px] flex flex-col">
+                {/* Search and Advanced Filters */}
+                <div className="p-3 bg-slate-50 border-b border-slate-200 flex flex-wrap gap-3 items-end">
+                    {/* Search */}
+                    <div className="flex-1 min-w-[200px]">
+                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Search (VIN, Lot, Desc)</label>
+                        <div className="relative group">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={14} />
+                            <input 
+                                type="text" 
+                                placeholder="Search vehicles..." 
+                                className="w-full pl-9 pr-4 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all shadow-sm"
+                                value={localSearch}
+                                onChange={(e) => setLocalSearch(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Auction Filter */}
+                    <div className="w-[160px]">
+                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Auction</label>
+                        <select 
+                            value={auctionFilter}
+                            onChange={(e) => setAuctionFilter(e.target.value)}
+                            className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
+                        >
+                            <option value="all">All Auctions</option>
+                            {uniqueAuctions.map(a => <option key={a} value={a}>{a}</option>)}
+                        </select>
+                    </div>
+
+                    {/* Location Filter */}
+                    <div className="w-[160px]">
+                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Location</label>
+                        <select 
+                            value={locationFilter}
+                            onChange={(e) => setLocationFilter(e.target.value)}
+                            className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
+                        >
+                            <option value="all">All Locations</option>
+                            {uniqueLocations.map(l => <option key={l} value={l}>{l}</option>)}
+                        </select>
+                    </div>
+
+                    {/* Date Range */}
+                    <div className="flex gap-2 items-end">
+                        {/* FROM */}
+                        <div>
+                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">From</label>
+                            <div className="relative flex items-center">
+                                <input 
+                                    type="text"
+                                    placeholder="MM/DD/YYYY"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    maxLength={10}
+                                    className="w-[110px] pl-2 pr-7 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-blue-500 outline-none shadow-sm placeholder:text-slate-300"
+                                />
+                                {/* Hidden native picker triggered by icon */}
+                                <input
+                                    ref={startPickerRef}
+                                    type="date"
+                                    className="absolute inset-0 opacity-0 w-0 h-0 pointer-events-none"
+                                    onChange={(e) => setStartDate(isoToMDY(e.target.value))}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => startPickerRef.current?.showPicker()}
+                                    className="absolute right-1.5 text-slate-400 hover:text-blue-500 transition-colors"
+                                    title="Pick date"
+                                >
+                                    <CalendarDays size={13} />
+                                </button>
+                            </div>
+                        </div>
+                        {/* TO */}
+                        <div>
+                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">To</label>
+                            <div className="relative flex items-center">
+                                <input 
+                                    type="text"
+                                    placeholder="MM/DD/YYYY"
+                                    value={endDate}
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                    maxLength={10}
+                                    className="w-[110px] pl-2 pr-7 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-blue-500 outline-none shadow-sm placeholder:text-slate-300"
+                                />
+                                <input
+                                    ref={endPickerRef}
+                                    type="date"
+                                    className="absolute inset-0 opacity-0 w-0 h-0 pointer-events-none"
+                                    onChange={(e) => setEndDate(isoToMDY(e.target.value))}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => endPickerRef.current?.showPicker()}
+                                    className="absolute right-1.5 text-slate-400 hover:text-blue-500 transition-colors"
+                                    title="Pick date"
+                                >
+                                    <CalendarDays size={13} />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Reset Button */}
+                    <button 
+                        onClick={() => {
+                            setLocalSearch("");
+                            setAuctionFilter("all");
+                            setLocationFilter("all");
+                            setStartDate("");
+                            setEndDate("");
+                        }}
+                        className="px-3 py-1.5 text-xs font-bold text-slate-400 hover:text-red-500 transition-colors"
+                    >
+                        Reset
+                    </button>
                 </div>
-            ) : (
-                <div className="space-y-3">
-                    {filtered.map(v => (
-                        <ClientVehicleCard
-                            key={v.vin}
-                            vehicle={v}
-                            isExpanded={expandedVin === v.vin}
-                            onToggle={() => setExpandedVin(expandedVin === v.vin ? null : v.vin)}
-                        />
-                    ))}
+
+                {/* Vehicles Table */}
+                <div className="overflow-x-auto flex-1">
+                    <table className="min-w-full divide-y divide-slate-200 table-fixed">
+                        <thead className="bg-slate-100 sticky top-0 z-10 border-b border-slate-200">
+                            <tr>
+                                <th className="px-2 py-2 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest w-[150px]">VIN</th>
+                                <th className="px-2 py-2 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest w-[68px]">Lot #</th>
+                                <th className="px-2 py-2 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest w-[190px]">Description</th>
+                                <th className="px-2 py-2 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest w-[160px]">Auction / Location</th>
+                                <th className="px-2 py-2 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest w-[130px]">Client</th>
+                                <th className="px-2 py-2 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest w-[95px]">Date / Price</th>
+                                <th className="px-2 py-2 text-center text-[10px] font-black text-slate-500 uppercase tracking-widest w-[82px]">Purchase</th>
+                                <th className="px-2 py-2 text-center text-[10px] font-black text-blue-500 uppercase tracking-widest w-[82px]">Dispatch</th>
+                                <th className="px-2 py-2 text-center text-[10px] font-black text-violet-500 uppercase tracking-widest w-[82px]">Title Svc</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-slate-100">
+                            {paginatedVehicles.length === 0 ? (
+                                <tr>
+                                    <td colSpan="9" className="px-6 py-24 text-center text-slate-500">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <Search className="h-8 w-8 text-slate-300" />
+                                            <p className="font-medium">No vehicles found matching your criteria.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : (
+                                paginatedVehicles.map((vehicle) => (
+                                    <VehicleRow key={vehicle.vin || vehicle.id} vehicle={vehicle} />
+                                ))
+                            )}
+                        </tbody>
+                    </table>
                 </div>
-            )}
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                    <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+                        <div className="text-sm text-slate-500">
+                            Showing <span className="font-bold text-slate-900">{totalCount > 0 ? ((currentPage - 1) * ITEMS_PER_PAGE) + 1 : 0}</span> to <span className="font-bold text-slate-900">{Math.min(currentPage * ITEMS_PER_PAGE, totalCount)}</span> of <span className="font-bold text-slate-900">{totalCount}</span> vehicles
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                disabled={currentPage === 1}
+                                className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                Previous
+                            </button>
+                            <div className="flex items-center px-4 text-sm font-bold text-slate-600">
+                                Page {currentPage} of {totalPages}
+                            </div>
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                disabled={currentPage === totalPages}
+                                className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
