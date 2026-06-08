@@ -51,22 +51,30 @@ app.use('*', requestId());
 app.use('*', csrf());
 
 // 🛡️ Fail-Safe Security Headers (MotorX Custom Middleware)
-// Instead of Hono's secureHeaders(), we use a manual approach to avoid
-// 'TypeError: immutable' on native fetch Responses (Auth.js, Proxy, Redirects).
+// Overwrites c.res with a new Response object when it's immutable
+// to ensure security headers are always applied and not silently ignored.
 app.use('*', async (c, next) => {
   await next();
-  if (c.res && c.res.headers) {
-    const setSafe = (key: string, value: string) => {
-      try {
-        c.res.headers.set(key, value);
-      } catch (e) {
-        // Silently ignore immutable headers to prevent server crash
-      }
-    };
-    setSafe('X-Frame-Options', 'SAMEORIGIN');
-    setSafe('X-Content-Type-Options', 'nosniff');
-    setSafe('X-XSS-Protection', '0');
-    setSafe('Referrer-Policy', 'no-referrer');
+  if (c.res) {
+    try {
+      const newHeaders = new Headers(c.res.headers);
+      
+      newHeaders.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+      newHeaders.set('X-Frame-Options', 'SAMEORIGIN');
+      newHeaders.set('X-Content-Type-Options', 'nosniff');
+      newHeaders.set('X-XSS-Protection', '0');
+      newHeaders.set('Referrer-Policy', 'no-referrer');
+      newHeaders.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+      newHeaders.set('Content-Security-Policy', "default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval'; frame-ancestors 'self';");
+
+      c.res = new Response(c.res.body, {
+        status: c.res.status,
+        statusText: c.res.statusText,
+        headers: newHeaders,
+      });
+    } catch (e) {
+      // Fail-safe fallback if Response cloning fails
+    }
   }
 });
 
