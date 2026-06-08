@@ -78,6 +78,17 @@ app.use('*', async (c, next) => {
   }
 });
 
+// 🤖 Anti-Bot & Anti-Scanner Blocklist (L7 Web Protection)
+// Blocks malicious automated scanners like l9scan, sqlmap, etc., immediately.
+app.use('*', async (c, next) => {
+  const userAgent = c.req.header('user-agent')?.toLowerCase() || '';
+  const blocklist = ['l9scan', 'libwww-perl', 'wget', 'python-requests', 'scrapy', 'sqlmap', 'nmap'];
+  if (blocklist.some(bot => userAgent.includes(bot))) {
+    return c.text('Forbidden', 403);
+  }
+  await next();
+});
+
 app.use('*', (c, next) => {
   const requestId = c.get('requestId');
   return als.run({ requestId }, () => next());
