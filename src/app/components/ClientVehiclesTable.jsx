@@ -38,7 +38,7 @@ const StatusBadge = ({ label, colorClass }) => (
 );
 
 // --- MEMOIZED ROW COMPONENT ---
-const VehicleRow = React.memo(({ vehicle }) => {
+const VehicleRow = React.memo(({ vehicle, activeTab = 'All' }) => {
     const isLate = vehicle.payment_status === 'late';
 
     // Purchase badge
@@ -97,28 +97,34 @@ const VehicleRow = React.memo(({ vehicle }) => {
                 </div>
             </td>
             {/* Purchase Status */}
-            <td className="px-2 py-1.5 w-[82px]">
-                <StatusBadge label={purchaseLabel} colorClass={purchaseColor} />
-            </td>
+            { (activeTab === 'All' || activeTab === 'Purchases') && (
+                <td className="px-2 py-1.5 w-[82px]">
+                    <StatusBadge label={purchaseLabel} colorClass={purchaseColor} />
+                </td>
+            )}
             {/* Dispatch Status */}
-            <td className="px-2 py-1.5 w-[82px]">
-                {dispatchStatus
-                    ? <StatusBadge label={dispatchStatus} colorClass={dispatchColor} />
-                    : <span className="text-slate-200 text-[11px] block text-center">—</span>
-                }
-            </td>
+            { (activeTab === 'All' || activeTab === 'Dispatch') && (
+                <td className="px-2 py-1.5 w-[82px]">
+                    {dispatchStatus
+                        ? <StatusBadge label={dispatchStatus} colorClass={dispatchColor} />
+                        : <span className="text-slate-200 text-[11px] block text-center">—</span>
+                    }
+                </td>
+            )}
             {/* Title Service Status */}
-            <td className="px-2 py-1.5 w-[82px]">
-                {titleStatus
-                    ? <StatusBadge label={titleStatus} colorClass={titleColor} />
-                    : <span className="text-slate-200 text-[11px] block text-center">—</span>
-                }
-            </td>
+            { (activeTab === 'All' || activeTab === 'Title SVC') && (
+                <td className="px-2 py-1.5 w-[82px]">
+                    {titleStatus
+                        ? <StatusBadge label={titleStatus} colorClass={titleColor} />
+                        : <span className="text-slate-200 text-[11px] block text-center">—</span>
+                    }
+                </td>
+            )}
         </tr>
     );
 });
 
-export default function ClientVehiclesTable({ vehicles = [] }) {
+export default function ClientVehiclesTable({ vehicles = [], activeTab = 'All' }) {
     const startPickerRef = useRef(null);
     const endPickerRef   = useRef(null);
 
@@ -340,9 +346,15 @@ export default function ClientVehiclesTable({ vehicles = [] }) {
                                 <th className="px-2 py-2 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest w-[160px]">Auction / Location</th>
                                 <th className="px-2 py-2 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest w-[130px]">Client</th>
                                 <th className="px-2 py-2 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest w-[95px]">Date / Price</th>
-                                <th className="px-2 py-2 text-center text-[10px] font-black text-slate-500 uppercase tracking-widest w-[82px]">Purchase</th>
-                                <th className="px-2 py-2 text-center text-[10px] font-black text-blue-500 uppercase tracking-widest w-[82px]">Dispatch</th>
-                                <th className="px-2 py-2 text-center text-[10px] font-black text-violet-500 uppercase tracking-widest w-[82px]">Title Svc</th>
+                                { (activeTab === 'All' || activeTab === 'Purchases') && (
+                                    <th className="px-2 py-2 text-center text-[10px] font-black text-slate-500 uppercase tracking-widest w-[82px]">Purchase</th>
+                                )}
+                                { (activeTab === 'All' || activeTab === 'Dispatch') && (
+                                    <th className="px-2 py-2 text-center text-[10px] font-black text-blue-500 uppercase tracking-widest w-[82px]">Dispatch</th>
+                                )}
+                                { (activeTab === 'All' || activeTab === 'Title SVC') && (
+                                    <th className="px-2 py-2 text-center text-[10px] font-black text-violet-500 uppercase tracking-widest w-[82px]">Title Svc</th>
+                                )}
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-slate-100">
@@ -357,7 +369,7 @@ export default function ClientVehiclesTable({ vehicles = [] }) {
                                 </tr>
                             ) : (
                                 paginatedVehicles.map((vehicle) => (
-                                    <VehicleRow key={vehicle.vin || vehicle.id} vehicle={vehicle} />
+                                    <VehicleRow key={vehicle.vin || vehicle.id} vehicle={vehicle} activeTab={activeTab} />
                                 ))
                             )}
                         </tbody>

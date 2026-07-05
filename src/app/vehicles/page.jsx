@@ -152,7 +152,7 @@ export default function ClientVehiclesPage() {
                 <ClientReportsDashboard vehicles={vehicles} />
             ) : (
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                    <ClientVehiclesTable vehicles={filteredVehicles} />
+                    <ClientVehiclesTable vehicles={filteredVehicles} activeTab={activeTab} />
                 </div>
             )}
         </div>
