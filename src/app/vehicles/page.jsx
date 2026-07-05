@@ -25,24 +25,6 @@ export default function ClientVehiclesPage() {
             .finally(() => setLoading(false));
     }, [user]);
 
-    if (userLoading || (loading && vehicles.length === 0)) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="w-8 h-8 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin"></div>
-            </div>
-        );
-    }
-
-    const filteredVehicles = vehicles.filter(v => {
-        if (activeTab === 'Dispatch') {
-            return v.dispatch_display_status && v.dispatch_display_status !== 'Completed';
-        }
-        if (activeTab === 'Title SVC') {
-            return v.title_service_status && v.title_service_status !== 'Completed' && v.title_service_status !== 'Canceled';
-        }
-        return true; // Purchases and Reports show all base data
-    });
-
     // Calculate Metrics
     const metrics = useMemo(() => {
         let notPaid = 0;
@@ -77,6 +59,24 @@ export default function ClientVehiclesPage() {
             activeTitleServices
         };
     }, [vehicles]);
+
+    if (userLoading || (loading && vehicles.length === 0)) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="w-8 h-8 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin"></div>
+            </div>
+        );
+    }
+
+    const filteredVehicles = vehicles.filter(v => {
+        if (activeTab === 'Dispatch') {
+            return v.dispatch_display_status && v.dispatch_display_status !== 'Completed';
+        }
+        if (activeTab === 'Title SVC') {
+            return v.title_service_status && v.title_service_status !== 'Completed' && v.title_service_status !== 'Canceled';
+        }
+        return true; // Purchases and Reports show all base data
+    });
 
     const tabs = ['Purchases', 'Dispatch', 'Title SVC', 'Reports'];
 
