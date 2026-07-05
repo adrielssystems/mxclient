@@ -42,7 +42,7 @@ const VehicleRow = React.memo(({ vehicle }) => {
     const isLate = vehicle.payment_status === 'late';
 
     // Purchase badge
-    const isExternal = vehicle.purchase_source === 'External';
+    const isExternal = !(vehicle.dl_number === 'AR' || vehicle.dl_number === 'WI');
     const purchaseColor = isExternal 
         ? PURCHASE_COLORS.default 
         : isLate

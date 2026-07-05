@@ -57,8 +57,8 @@ export default function ClientDashboard() {
         }
     };
 
-    // Take top 5 active vehicles for the dashboard snippet
-    const displayVehicles = activeVehicles.slice(0, 5);
+    // Take top 20 active vehicles for the dashboard snippet
+    const displayVehicles = activeVehicles.slice(0, 20);
 
     // Using live recentPayments state from API
 
@@ -89,7 +89,7 @@ export default function ClientDashboard() {
                                     <div key={v.vin || i} className={`bg-white/70 backdrop-blur-md p-5 rounded-2xl border shadow-xl transition-all hover:shadow-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4
                                         ${uiStatus === 'ACTION_REQUIRED' ? 'border-orange-200/50' : 'border-white/20'}
                                     `}>
-                                        <div className="flex-1 min-w-0">
+                                        <div className="flex-1 min-w-0 space-y-2">
                                             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-2 overflow-hidden">
                                                 <h4 className="font-bold text-slate-800 text-lg sm:text-base truncate sm:w-[220px] shrink-0">{v.year} {v.make} {v.model}</h4>
                                                 <div className="flex items-center gap-2 flex-wrap">
@@ -115,6 +115,18 @@ export default function ClientDashboard() {
                                                     </p>
                                                 )}
                                             </div>
+                                            
+                                            {/* Warning Alerts */}
+                                            {(v.title_service_status === 'Received' && !v.mailing_location) && (
+                                                <div className="mt-2 bg-yellow-50 text-yellow-800 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 border border-yellow-200">
+                                                    <AlertCircle size={14} className="text-yellow-600" /> Title Received - Please Configure Mailing Location
+                                                </div>
+                                            )}
+                                            {(v.has_lien && (!v.title_service_status || v.title_service_status === 'Not Received')) && (
+                                                <div className="mt-2 bg-red-50 text-red-800 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 border border-red-200">
+                                                    <AlertCircle size={14} className="text-red-600" /> Lien on Title - Title Service Required
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="w-full sm:w-auto flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-3 border-t sm:border-t-0 border-slate-100 pt-4 sm:pt-0 shrink-0">
@@ -154,7 +166,7 @@ export default function ClientDashboard() {
                     </div>
 
                     {/* Recent Payments */}
-                    <div className="bg-white/70 backdrop-blur-md rounded-2xl border border-white/20 shadow-xl overflow-hidden flex flex-col h-[300px]">
+                    <div className="bg-white/70 backdrop-blur-md rounded-2xl border border-white/20 shadow-xl overflow-hidden flex flex-col h-[500px]">
                         <div className="p-5 border-b border-white/10 bg-white/30 flex justify-between items-center shrink-0">
                             <h3 className="font-bold text-slate-800">Recent Payments</h3>
                             <button className="text-blue-600 text-sm font-bold hover:underline">View All</button>

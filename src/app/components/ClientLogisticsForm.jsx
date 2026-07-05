@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Package, FileText, Save } from 'lucide-react';
+import { Package, FileText, Save, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function ClientLogisticsForm({
@@ -140,28 +140,13 @@ export default function ClientLogisticsForm({
                             </div>
                         </div>
                         
-                        {/* Default Terminal Checkbox */}
-                        {!isLocked && (
-                            <div className="flex items-center gap-2 mt-2 bg-slate-50 border border-slate-200 p-2.5 rounded-lg">
-                                <input 
-                                    type="checkbox" 
-                                    id="default_terminal_checkbox"
-                                    checked={formData.setAsDefaultTerminal}
-                                    onChange={(e) => handleChange('setAsDefaultTerminal', e.target.checked)}
-                                    className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-                                />
-                                <label htmlFor="default_terminal_checkbox" className="text-xs font-bold text-slate-700 cursor-pointer">
-                                    Set this terminal as default for all my vehicles
-                                </label>
-                            </div>
-                        )}
                     </div>
 
                     {/* Right Side: Title Handling */}
                     <div className="space-y-4 md:border-l md:border-slate-100 md:pl-8">
                         <div className="flex items-center justify-between">
                             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                                <FileText size={16} className="text-orange-500" /> Title Handling
+                                <FileText size={16} className="text-orange-500" /> Title Services
                             </label>
                             {formData.title_service_id && String(formData.title_service_id) !== (titleSvc ? String(titleSvc.service_id || titleSvc.id) : "") && (
                                 <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 animate-in fade-in zoom-in duration-200">
@@ -182,6 +167,11 @@ export default function ClientLogisticsForm({
                                 ))}
                             </select>
                             <p className="text-[10px] text-slate-400 italic">Select if you need special title services like Lien Release or Duplicates.</p>
+                            {vehicle.has_lien && !formData.title_service_id && (
+                                <div className="mt-2 bg-red-50 text-red-800 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 border border-red-200 animate-in fade-in zoom-in">
+                                    <AlertCircle size={14} className="text-red-600" /> Lien on Title - Please select a service
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

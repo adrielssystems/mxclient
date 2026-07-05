@@ -46,6 +46,10 @@ export async function GET(request) {
                 v.amount_paid,
                 v.purchase_status,
                 v.purchase_source,
+                v.dl_number,
+                
+                t.lien_holder as has_lien,
+                st.name as mailing_location,
                 
                 a.name as auction_name,
                 l.name as auction_location,
@@ -113,6 +117,8 @@ export async function GET(request) {
             LEFT JOIN locations l ON v.location_id = l.id
             LEFT JOIN destinations d ON v.destination_id = d.id
             LEFT JOIN auth_users u ON v.client_id = u.id
+            LEFT JOIN title_logs t ON v.vin = t.vin
+            LEFT JOIN shippers_terminals st ON t.mailing_terminal_id = st.id
             LEFT JOIN (
               SELECT DISTINCT ON (vehicle_id)
                 vehicle_id,

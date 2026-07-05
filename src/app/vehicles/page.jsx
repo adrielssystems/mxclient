@@ -3,10 +3,13 @@ import React, { useState, useEffect } from "react";
 import useUser from "@/utils/useUser";
 import ClientVehiclesTable from "../components/ClientVehiclesTable";
 
+import ClientReportsDashboard from "../components/ClientReportsDashboard";
+
 export default function ClientVehiclesPage() {
     const { data: user, loading: userLoading } = useUser();
     const [vehicles, setVehicles] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState('Purchases');
 
     useEffect(() => {
         if (!user) return;
@@ -29,6 +32,18 @@ export default function ClientVehiclesPage() {
         );
     }
 
+    const filteredVehicles = vehicles.filter(v => {
+        if (activeTab === 'Dispatch') {
+            return v.dispatch_display_status && v.dispatch_display_status !== 'Completed';
+        }
+        if (activeTab === 'Title SVC') {
+            return v.title_service_status && v.title_service_status !== 'Completed' && v.title_service_status !== 'Canceled';
+        }
+        return true; // Purchases and Reports show all base data
+    });
+
+    const tabs = ['Purchases', 'Dispatch', 'Title SVC', 'Reports'];
+
     return (
         <div className="space-y-6">
             <div>
@@ -36,9 +51,31 @@ export default function ClientVehiclesPage() {
                 <p className="text-slate-500 mt-1">Track the transport and payment status of your purchases.</p>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                <ClientVehiclesTable vehicles={vehicles} />
+            {/* Tabs */}
+            <div className="flex space-x-1 border-b border-slate-200">
+                {tabs.map(tab => (
+                    <button
+                        key={tab}
+                        onClick={() => setActiveTab(tab)}
+                        className={`px-4 py-2.5 text-sm font-bold transition-colors border-b-2 ${
+                            activeTab === tab
+                                ? 'border-blue-600 text-blue-600'
+                                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                        }`}
+                    >
+                        {tab}
+                    </button>
+                ))}
             </div>
+
+            {/* Content */}
+            {activeTab === 'Reports' ? (
+                <ClientReportsDashboard vehicles={vehicles} />
+            ) : (
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <ClientVehiclesTable vehicles={filteredVehicles} />
+                </div>
+            )}
         </div>
     );
 }
