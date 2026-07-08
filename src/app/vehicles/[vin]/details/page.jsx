@@ -105,6 +105,7 @@ export default function ClientVehicleDetailsPage() {
                         dispatchData={dispatchData}
                         titleData={titleData}
                         fees={fees}
+                        invoices={invoices}
                     />
                 </div>
 

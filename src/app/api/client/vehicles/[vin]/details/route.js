@@ -115,12 +115,11 @@ export async function GET(request, { params }) {
         `;
         const titleData = titleServices.length > 0 ? titleServices[0] : null;
 
-        // Fetch Purchase Fees Breakdown (Only Extra Charges, not the base purchase price)
+        // Fetch Purchase Fees Breakdown (Only Extra Charges, excluding the base PURCHASE type)
         const fees = await sql`
             SELECT description, amount FROM invoice_line_items 
             WHERE vehicle_id = ${vehicle.id} 
             AND type = 'FEE'
-            AND description NOT ILIKE '%Purchase%'
         `;
 
         return Response.json({

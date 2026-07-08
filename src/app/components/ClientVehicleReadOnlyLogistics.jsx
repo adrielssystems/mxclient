@@ -4,7 +4,7 @@ import { DollarSign, Truck, FileText, CheckCircle, Clock } from 'lucide-react';
 import { formatToMDY } from "@/utils/dateUtils";
 import { formatCurrency } from "@/utils/formatUtils";
 
-export default function ClientVehicleReadOnlyLogistics({ vehicle, services, dispatchData, titleData, fees }) {
+export default function ClientVehicleReadOnlyLogistics({ vehicle, services, dispatchData, titleData, fees, invoices }) {
     const initialTab = vehicle?.purchase_source === 'MotorX' ? 'purchases' : 'dispatch';
     const [activeTab, setActiveTab] = useState(initialTab);
 
@@ -14,7 +14,12 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services, disp
 
     const renderPurchasesTab = () => {
         // Calculate totals
-        const purchasePrice = parseFloat(vehicle?.client_base_price) || 0;
+        const winningBidAmount = parseFloat(vehicle?.client_base_price) || 0;
+        
+        // The purchase invoice amount includes the auction price PLUS the MotorX markup
+        const purchaseInvoice = invoices?.find(inv => inv.service_category === 'PURCHASE' && inv.status !== 'void' && inv.status !== 'canceled' && inv.status !== 'deleted');
+        const purchasePrice = purchaseInvoice ? (parseFloat(purchaseInvoice.amount) || 0) : winningBidAmount;
+        
         let feesTotal = 0;
         fees.forEach(f => { feesTotal += parseFloat(f.amount) || 0; });
         const totalCost = purchasePrice + feesTotal;
@@ -44,7 +49,7 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services, disp
                         <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Auction Details (Source)</h4>
                         <div>
                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Winning Bid Amount</p>
-                            <p className="text-2xl font-black text-slate-900">{formatCurrency(purchasePrice)}</p>
+                            <p className="text-2xl font-black text-slate-900">{formatCurrency(winningBidAmount)}</p>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
