@@ -139,12 +139,12 @@ export default function ClientDashboard() {
                                             </div>
                                             
                                             {/* Warning Alerts */}
-                                            {(v.title_service_status === 'Received' && !v.mailing_location) && (
+                                            {(v.title_log_status === 'Received' && !v.mailing_location) && (
                                                 <div className="mt-2 bg-yellow-50 text-yellow-800 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 border border-yellow-200">
                                                     <AlertCircle size={14} className="text-yellow-600" /> Title Received - Please Configure Mailing Location
                                                 </div>
                                             )}
-                                            {(v.has_lien && !v.title_service_requested && (!v.title_service_status || v.title_service_status === 'Not Received')) && (
+                                            {(v.has_lien && !v.title_service_requested) && (
                                                 <div className="mt-2 bg-red-50 text-red-800 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 border border-red-200">
                                                     <AlertCircle size={14} className="text-red-600" /> Lien on Title - Title Service Required
                                                 </div>
