@@ -91,7 +91,7 @@ export default function ClientVehicleDetailsPage() {
             </div>
 
             {/* Main Content Grid */}
-            <div className="grid grid-cols-12 gap-4 xl:gap-6 items-start min-w-[1200px] overflow-x-auto">
+            <div className="grid grid-cols-12 gap-4 xl:gap-6 items-start w-full">
                 {/* Left Column: Info */}
                 <div className="col-span-3">
                     <ClientVehicleReadOnlyInfo vehicle={vehicle} />

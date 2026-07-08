@@ -66,13 +66,13 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services, disp
                         </div>
                         <div className="p-6 space-y-4">
                             <div className="flex items-end gap-2 w-full">
-                                <span className="text-sm font-bold text-slate-700 shrink-0">Purchase Price</span>
+                                <span className="text-sm font-bold text-slate-700">Purchase Price</span>
                                 <div className="flex-1 border-b-2 border-dotted border-slate-200 mb-1.5 mx-1"></div>
                                 <span className="text-sm font-black text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(purchasePrice)}</span>
                             </div>
                             {fees.map((fee, idx) => (
                                 <div key={idx} className="flex items-end gap-2 w-full group">
-                                    <span className="text-sm font-bold text-slate-500 leading-snug shrink-0 group-hover:text-slate-700 transition-colors">{fee.description?.split(' for ')[0] || fee.description}</span>
+                                    <span className="text-sm font-bold text-slate-500 leading-snug group-hover:text-slate-700 transition-colors">{fee.description?.split(' for ')[0] || fee.description}</span>
                                     <div className="flex-1 border-b-2 border-dotted border-slate-200 mb-1.5 mx-1 group-hover:border-slate-300 transition-colors"></div>
                                     <span className="text-sm font-black text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(fee.amount)}</span>
                                 </div>
