@@ -166,7 +166,7 @@ export default function ClientDashboard() {
                     </div>
 
                     {/* Recent Payments */}
-                    <div className="bg-white/70 backdrop-blur-md rounded-2xl border border-white/20 shadow-xl overflow-hidden flex flex-col h-[500px]">
+                    <div className="bg-white/70 backdrop-blur-md rounded-2xl border border-white/20 shadow-xl overflow-hidden flex flex-col h-[500px] xl:h-[800px]">
                         <div className="p-5 border-b border-white/10 bg-white/30 flex justify-between items-center shrink-0">
                             <h3 className="font-bold text-slate-800">Recent Payments</h3>
                             <button className="text-blue-600 text-sm font-bold hover:underline">View All</button>

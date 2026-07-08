@@ -21,7 +21,7 @@ const STATUS_LABELS = {
     canceled: "Canceled"
 };
 
-export default function ClientReportsPage() {
+export default function ClientReportsPage({ hideHeader = false }) {
     const { data: user, loading: userLoading } = useUser();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -70,14 +70,16 @@ export default function ClientReportsPage() {
     return (
         <div className="font-sans animate-in fade-in duration-300 space-y-8">
             {/* Header */}
-            <div>
-                <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                    <TrendingUp className="text-blue-600" /> Reports & Analytics
-                </h1>
-                <p className="text-slate-500 mt-1">
-                    {isMainClient ? "Consolidated view including all sub-client activity." : "Your vehicle and financial activity summary."}
-                </p>
-            </div>
+            {!hideHeader && (
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                        <TrendingUp className="text-blue-600" /> Reports & Analytics
+                    </h1>
+                    <p className="text-slate-500 mt-1">
+                        {isMainClient ? "Consolidated view including all sub-client activity." : "Your vehicle and financial activity summary."}
+                    </p>
+                </div>
+            )}
 
             {/* KPI Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
