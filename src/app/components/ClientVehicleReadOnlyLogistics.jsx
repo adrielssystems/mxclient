@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { DollarSign, Truck, FileText, CheckCircle, Clock } from 'lucide-react';
 import { formatToMDY } from "@/utils/dateUtils";
+import { formatCurrency } from "@/utils/formatUtils";
 
 export default function ClientVehicleReadOnlyLogistics({ vehicle, services, dispatchData, titleData, fees }) {
     const initialTab = vehicle?.purchase_source === 'MotorX' ? 'purchases' : 'dispatch';
@@ -26,7 +27,7 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services, disp
                     </h3>
                     <div className="text-right">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Total Invoice</p>
-                        <p className="text-lg font-black text-slate-900">${totalCost.toFixed(2)}</p>
+                        <p className="text-lg font-black text-slate-900">{formatCurrency(totalCost)}</p>
                         {vehicle?.payment_status && (
                             <span className={`inline-flex px-2 py-0.5 mt-1 rounded-full text-[9px] font-bold uppercase tracking-widest border ${
                                 vehicle.payment_status === 'paid' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'
@@ -43,7 +44,7 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services, disp
                         <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Auction Details (Source)</h4>
                         <div>
                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Winning Bid Amount</p>
-                            <p className="text-2xl font-black text-slate-900">${purchasePrice.toFixed(2)}</p>
+                            <p className="text-2xl font-black text-slate-900">{formatCurrency(purchasePrice)}</p>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
@@ -67,19 +68,19 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services, disp
                             <div className="flex items-end gap-2 w-full">
                                 <span className="text-sm font-bold text-slate-700 shrink-0">Purchase Price</span>
                                 <div className="flex-1 border-b-2 border-dotted border-slate-200 mb-1.5 mx-1"></div>
-                                <span className="text-sm font-black text-slate-900 whitespace-nowrap shrink-0">${purchasePrice.toFixed(2)}</span>
+                                <span className="text-sm font-black text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(purchasePrice)}</span>
                             </div>
                             {fees.map((fee, idx) => (
                                 <div key={idx} className="flex items-end gap-2 w-full group">
                                     <span className="text-sm font-bold text-slate-500 leading-snug shrink-0 group-hover:text-slate-700 transition-colors">{fee.description?.split(' for ')[0] || fee.description}</span>
                                     <div className="flex-1 border-b-2 border-dotted border-slate-200 mb-1.5 mx-1 group-hover:border-slate-300 transition-colors"></div>
-                                    <span className="text-sm font-black text-slate-900 whitespace-nowrap shrink-0">${parseFloat(fee.amount).toFixed(2)}</span>
+                                    <span className="text-sm font-black text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(fee.amount)}</span>
                                 </div>
                             ))}
                         </div>
                         <div className="px-6 py-4 bg-slate-900 border-t border-slate-800 flex justify-between items-center rounded-b-xl">
                             <span className="text-xs font-black text-slate-300 uppercase tracking-widest">Total Purchase Cost</span>
-                            <span className="text-lg font-black text-white">${totalCost.toFixed(2)}</span>
+                            <span className="text-lg font-black text-white">{formatCurrency(totalCost)}</span>
                         </div>
                     </div>
                 </div>

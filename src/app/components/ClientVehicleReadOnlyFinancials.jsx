@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { DollarSign, FileText, CreditCard, Download, AlertCircle, Eye, Loader2 } from 'lucide-react';
 import { formatToMDY } from "@/utils/dateUtils";
+import { formatCurrency } from "@/utils/formatUtils";
 
 export default function ClientVehicleReadOnlyFinancials({ vehicle, invoices = [] }) {
     const [downloadingId, setDownloadingId] = useState(null);
@@ -67,15 +68,15 @@ export default function ClientVehicleReadOnlyFinancials({ vehicle, invoices = []
                 <div className="grid grid-cols-3 gap-4 text-center divide-x divide-slate-700">
                     <div>
                         <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1 font-bold">Invoiced</div>
-                        <div className="text-xl font-bold tracking-tight">${totalInvoiced.toFixed(2)}</div>
+                        <div className="text-xl font-bold tracking-tight">{formatCurrency(totalInvoiced)}</div>
                     </div>
                     <div>
                         <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1 font-bold">Paid</div>
-                        <div className="text-xl font-bold text-green-400 tracking-tight">${totalPaid.toFixed(2)}</div>
+                        <div className="text-xl font-bold text-green-400 tracking-tight">{formatCurrency(totalPaid)}</div>
                     </div>
                     <div>
                         <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1 font-bold">Balance</div>
-                        <div className="text-xl font-bold text-yellow-400 tracking-tight">${totalBalance.toFixed(2)}</div>
+                        <div className="text-xl font-bold text-yellow-400 tracking-tight">{formatCurrency(totalBalance)}</div>
                     </div>
                 </div>
             </div>
@@ -122,7 +123,7 @@ export default function ClientVehicleReadOnlyFinancials({ vehicle, invoices = []
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <div className="font-bold text-slate-900 text-lg">${parseFloat(inv.amount).toFixed(2)}</div>
+                                            <div className="font-bold text-slate-900 text-lg">{formatCurrency(inv.amount)}</div>
                                             {(() => {
                                                 let bal = parseFloat(inv.balance);
                                                 const amt = parseFloat(inv.amount) || 0;
@@ -135,7 +136,7 @@ export default function ClientVehicleReadOnlyFinancials({ vehicle, invoices = []
                                                     return (
                                                         <div className="text-xs text-red-600 font-bold flex items-center justify-end gap-1 mt-0.5">
                                                             <AlertCircle className="h-3 w-3" />
-                                                            Due: ${bal.toFixed(2)}
+                                                            Due: {formatCurrency(bal)}
                                                         </div>
                                                     );
                                                 }
