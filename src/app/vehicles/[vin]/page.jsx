@@ -165,7 +165,7 @@ export default function ClientVehiclePage() {
         <div className="space-y-6 animate-in fade-in duration-300">
             <ClientVehicleHeader vehicle={vehicle} />
 
-            {(vehicle?.has_lien && (!vehicle?.title_service_status || vehicle?.title_service_status === 'Not Received')) && (
+            {(vehicle?.has_lien && !services.some(s => s.service_category === 'TITLE') && !draftConfig.title_service_id) && (
                 <div className="bg-red-50 text-red-800 px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-2 border border-red-200 shadow-sm animate-in fade-in zoom-in">
                     <AlertCircle size={16} className="text-red-600" /> Lien on Title - Title Service Required
                 </div>
