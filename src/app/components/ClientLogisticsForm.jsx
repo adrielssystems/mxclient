@@ -19,8 +19,9 @@ export default function ClientLogisticsForm({
     const titleSvc = services.find(s => s.service_category === 'TITLE');
     const dismSvc = services.find(s => s.service_category === 'DISMANTLING');
 
-    // If vehicle status is anything but purchased/pending (e.g. pending_dispatch, loaded, delivered), it should be locked.
-    const isLocked = vehicle.current_status && !['purchased', 'pending'].includes(vehicle.current_status.toLowerCase());
+    // If vehicle status is actively in transit or processed by MotorX (e.g. loaded, delivered, in_transit, booked), it should be locked.
+    // 'pending_dispatch' means the client has submitted it, but they can still edit it before MotorX actually processes it.
+    const isLocked = vehicle.current_status && !['purchased', 'pending', 'pending_dispatch', 'assignment_pending'].includes(vehicle.current_status.toLowerCase());
 
     const [loading, setLoading] = useState(false);
 

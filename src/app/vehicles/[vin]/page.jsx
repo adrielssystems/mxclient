@@ -192,7 +192,7 @@ export default function ClientVehiclePage() {
                         <VehicleTitleTab 
                             vehicle={vehicle} 
                             isClient={true}
-                            isLocked={vehicle?.current_status && !['purchased', 'pending'].includes(vehicle.current_status.toLowerCase())}
+                            isLocked={vehicle?.current_status && !['purchased', 'pending', 'pending_dispatch', 'assignment_pending'].includes(vehicle.current_status.toLowerCase())}
                             onUpdate={fetchVehicleData}
                         />
                     </div>
