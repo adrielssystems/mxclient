@@ -77,9 +77,6 @@ export default function ClientVehicleDetailsPage() {
                         <h1 className="text-xl sm:text-2xl font-black text-slate-800 flex items-center gap-3">
                             {vehicle.vin}
                         </h1>
-                        <p className="text-xs sm:text-sm font-semibold text-slate-500 mt-1 uppercase tracking-widest">
-                            Lot: {vehicle.lot_number || 'N/A'}
-                        </p>
                     </div>
                 </div>
                 
