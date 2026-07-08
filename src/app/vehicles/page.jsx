@@ -4,7 +4,7 @@ import useUser from "@/utils/useUser";
 import { DollarSign, FileText, Truck, CheckCircle2, Car } from 'lucide-react';
 import ClientVehiclesTable from "../components/ClientVehiclesTable";
 
-import ClientReportsPage from "../reports/page";
+import ClientReportsView from "../components/ClientReportsView";
 
 export default function ClientVehiclesPage() {
     const { data: user, loading: userLoading } = useUser();
@@ -149,7 +149,7 @@ export default function ClientVehiclesPage() {
 
             {/* Content */}
             {activeTab === 'Reports' ? (
-                <ClientReportsPage hideHeader={true} />
+                <ClientReportsView hideHeader={true} />
             ) : (
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                     <ClientVehiclesTable vehicles={filteredVehicles} activeTab={activeTab} />
