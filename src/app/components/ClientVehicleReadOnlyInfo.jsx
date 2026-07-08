@@ -112,16 +112,16 @@ export default function ClientVehicleReadOnlyInfo({ vehicle }) {
                 {/* Origin & Location */}
                 <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Origin & Location</label>
-                    <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 space-y-2 text-xs">
-                        <div className="flex justify-between items-center">
+                    <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 space-y-3 text-xs">
+                        <div className="flex flex-col gap-1">
                             <span className="font-bold text-slate-500 uppercase tracking-widest text-[9px]">Auction</span>
                             <span className="font-bold text-slate-800">{vehicle.auction_name || '-'}</span>
                         </div>
-                        <div className="flex justify-between items-center">
+                        <div className="flex flex-col gap-1">
                             <span className="font-bold text-slate-500 uppercase tracking-widest text-[9px]">Location</span>
-                            <span className="font-bold text-slate-800 flex items-center gap-1">
-                                <MapPin className="h-3 w-3 text-slate-400" />
-                                {vehicle.auction_location || '-'}
+                            <span className="font-bold text-slate-800 flex items-start gap-1">
+                                <MapPin className="h-3 w-3 text-slate-400 mt-0.5 shrink-0" />
+                                <span>{vehicle.auction_location || '-'}</span>
                             </span>
                         </div>
                     </div>
@@ -140,10 +140,10 @@ export default function ClientVehicleReadOnlyInfo({ vehicle }) {
                 <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">PIN #</label>
-                        <div className="flex items-center justify-between text-xs font-bold text-slate-700 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100 font-mono">
-                            {vehicle.pin_number || '-'}
+                        <div className="flex items-start justify-between text-xs font-bold text-slate-700 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100 font-mono break-all">
+                            <span>{vehicle.pin_number || '-'}</span>
                             {vehicle.pin_number && (
-                                <button onClick={() => handleCopy(vehicle.pin_number, 'pin')} className="text-slate-400 hover:text-slate-600">
+                                <button onClick={() => handleCopy(vehicle.pin_number, 'pin')} className="text-slate-400 hover:text-slate-600 shrink-0 ml-2">
                                     {copiedField === 'pin' ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
                                 </button>
                             )}
@@ -151,10 +151,10 @@ export default function ClientVehicleReadOnlyInfo({ vehicle }) {
                     </div>
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Buyer #</label>
-                        <div className="flex items-center justify-between text-xs font-bold text-slate-700 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100 font-mono">
-                            {vehicle.buyer_number || '-'}
+                        <div className="flex items-start justify-between text-xs font-bold text-slate-700 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100 font-mono break-words">
+                            <span>{vehicle.buyer_number || '-'}</span>
                             {vehicle.buyer_number && (
-                                <button onClick={() => handleCopy(vehicle.buyer_number, 'buyer')} className="text-slate-400 hover:text-slate-600">
+                                <button onClick={() => handleCopy(vehicle.buyer_number, 'buyer')} className="text-slate-400 hover:text-slate-600 shrink-0 ml-2">
                                     {copiedField === 'buyer' ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
                                 </button>
                             )}

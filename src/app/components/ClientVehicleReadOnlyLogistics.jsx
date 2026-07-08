@@ -69,9 +69,9 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services, disp
                                 <span className="text-xs font-black text-slate-900">${purchasePrice.toFixed(2)}</span>
                             </div>
                             {fees.map((fee, idx) => (
-                                <div key={idx} className="flex justify-between items-center">
-                                    <span className="text-xs font-bold text-slate-600">{fee.description}</span>
-                                    <span className="text-xs font-black text-slate-900">${parseFloat(fee.amount).toFixed(2)}</span>
+                                <div key={idx} className="flex justify-between items-start gap-4">
+                                    <span className="text-xs font-bold text-slate-600 leading-snug">{fee.description}</span>
+                                    <span className="text-xs font-black text-slate-900 whitespace-nowrap mt-0.5">${parseFloat(fee.amount).toFixed(2)}</span>
                                 </div>
                             ))}
                         </div>
