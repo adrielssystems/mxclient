@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { AlertCircle } from 'lucide-react';
 import useUser from "@/utils/useUser";
 import ClientVehicleHeader from "../../components/ClientVehicleHeader";
 import ClientLogisticsForm from "../../components/ClientLogisticsForm";
@@ -164,6 +165,12 @@ export default function ClientVehiclePage() {
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
             <ClientVehicleHeader vehicle={vehicle} />
+
+            {(vehicle?.has_lien && (!vehicle?.title_service_status || vehicle?.title_service_status === 'Not Received')) && (
+                <div className="bg-red-50 text-red-800 px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-2 border border-red-200 shadow-sm animate-in fade-in zoom-in">
+                    <AlertCircle size={16} className="text-red-600" /> Lien on Title - Title Service Required
+                </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left side: Configuration Forms */}
