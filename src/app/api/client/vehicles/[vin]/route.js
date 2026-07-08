@@ -46,6 +46,7 @@ export async function GET(request, { params }) {
                 u.name as buyer_name,
                 v.terminal_id,
                 v.location_id,
+                t.lien_holder as has_lien,
                 
                 -- We only expose client-facing prices
                 v.purchase_price as client_base_price,
@@ -58,11 +59,20 @@ export async function GET(request, { params }) {
                     ELSE 0 
                   END
                   FROM invoice_line_items WHERE vehicle_id = v.id AND invoice_id IS NULL
-                ) as total_due
+                ) as total_due,
+                
+                (
+                  SELECT quickbooks_invoice_id 
+                  FROM invoices 
+                  WHERE vehicle_id = v.id 
+                  ORDER BY created_at DESC 
+                  LIMIT 1
+                ) as qb_invoice_id
             FROM vehicles v
             LEFT JOIN auctions a ON v.auction_id = a.id
             LEFT JOIN destinations d ON v.destination_id = d.id
             LEFT JOIN auth_users u ON v.client_id = u.id
+            LEFT JOIN title_logs t ON v.vin = t.vin
             WHERE v.vin = ${vin} AND v.client_id = ${clientId}
         `;
 

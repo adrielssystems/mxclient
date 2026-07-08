@@ -1,5 +1,6 @@
 import React from 'react';
 import { DollarSign, FileText } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function ClientFinancialCard({ vehicle, pendingFees = [] }) {
     if (!vehicle) return null;
@@ -60,7 +61,17 @@ export default function ClientFinancialCard({ vehicle, pendingFees = [] }) {
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-slate-100">
-                    <button className="w-full bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-lg font-bold text-xs shadow-sm transition-transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                    <button 
+                        onClick={() => {
+                            if (vehicle.qb_invoice_id) {
+                                window.open(`/api/integrations/quickbooks/invoice/${vehicle.qb_invoice_id}/pdf`, '_blank');
+                            } else {
+                                toast.info("Official invoice will be attached soon. Using browser print for a draft record.");
+                                setTimeout(() => window.print(), 500);
+                            }
+                        }}
+                        className="w-full bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-lg font-bold text-xs shadow-sm transition-transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+                    >
                         <FileText size={16} /> View Official Invoice
                     </button>
                     <p className="text-[9px] text-center text-slate-400 mt-1.5 font-medium uppercase tracking-tight">Download PDF for your records</p>
