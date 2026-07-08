@@ -42,6 +42,17 @@ export default function ClientLogisticsForm({
     const uniqueHubs = Array.from(new Set(terminals.map(t => t.location || t.name.split(' ')[0]))).sort();
     const filteredTerminals = selectedHub ? terminals.filter(t => (t.location === selectedHub || t.name.startsWith(selectedHub))) : [];
 
+    // Ensure state syncs if terminals load after mount or vehicle updates
+    useEffect(() => {
+        if (vehicle.terminal_id && !selectedHub && terminals.length > 0) {
+            const term = terminals.find(t => String(t.id) === String(vehicle.terminal_id));
+            if (term) {
+                setSelectedHub(term.location || term.name.split(' ')[0]);
+                setFormData(prev => ({ ...prev, terminal_id: vehicle.terminal_id }));
+            }
+        }
+    }, [vehicle.terminal_id, terminals, selectedHub]);
+
     const handleChange = (field, value) => {
         const newData = { ...formData, [field]: value };
         setFormData(newData);
@@ -168,15 +179,6 @@ export default function ClientLogisticsForm({
                                 ))}
                             </select>
                             <p className="text-[10px] text-slate-400 italic">Select if you need special title services like Lien Release or Duplicates.</p>
-                            {formData.title_service_id ? (
-                                <div className="mt-2 bg-emerald-50 text-emerald-800 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 border border-emerald-200 animate-in fade-in zoom-in">
-                                    <CheckCircle size={14} className="text-emerald-600" /> Title Service Requested
-                                </div>
-                            ) : vehicle.has_lien ? (
-                                <div className="mt-2 bg-red-50 text-red-800 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 border border-red-200 animate-in fade-in zoom-in">
-                                    <AlertCircle size={14} className="text-red-600" /> Lien on Title - Title Service Required
-                                </div>
-                            ) : null}
                         </div>
                     </div>
                 </div>
