@@ -49,7 +49,7 @@ export async function GET(request) {
                 v.dl_number,
                 
                 t.lien_holder as has_lien,
-                t.status as title_log_status,
+                t.title_status as title_log_status,
                 st.name as mailing_location,
                 
                 EXISTS (
