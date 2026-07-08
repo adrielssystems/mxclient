@@ -145,7 +145,7 @@ export default function ClientDashboard() {
                                             ) : (
                                                 <>
                                                     <p className="font-black text-xl text-slate-800">${Number(v.client_total_price || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
-                                                    <button className="text-blue-600 font-bold text-sm hover:underline">View Invoice</button>
+                                                    <a href={`/vehicles/${v.vin}`} className="text-blue-600 font-bold text-sm hover:underline">View Invoice</a>
                                                 </>
                                             )}
                                         </div>
