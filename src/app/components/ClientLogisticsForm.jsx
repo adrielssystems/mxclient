@@ -167,9 +167,9 @@ export default function ClientLogisticsForm({
                                 ))}
                             </select>
                             <p className="text-[10px] text-slate-400 italic">Select if you need special title services like Lien Release or Duplicates.</p>
-                            {vehicle.has_lien && !formData.title_service_id && (
+                            {vehicle.has_lien && (
                                 <div className="mt-2 bg-red-50 text-red-800 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 border border-red-200 animate-in fade-in zoom-in">
-                                    <AlertCircle size={14} className="text-red-600" /> Lien on Title - Please select a service
+                                    <AlertCircle size={14} className="text-red-600" /> Lien on Title
                                 </div>
                             )}
                         </div>
