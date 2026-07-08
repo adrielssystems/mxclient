@@ -42,6 +42,14 @@ export default function ClientDashboard() {
     const getStatusGroup = (v) => {
         // Group statuses into the UI categories requested by the user
         const status = v.current_status || '';
+        
+        // Fallback: If it's in an early stage (including pending_dispatch) but missing required config, force ACTION_REQUIRED
+        if (['purchased', 'entered', 'assignment_pending', 'pending_dispatch', 'pending'].includes(status)) {
+            if (!v.terminal_id || !v.mailing_location) {
+                return 'ACTION_REQUIRED';
+            }
+        }
+
         if (['purchased', 'entered', 'assignment_pending'].includes(status)) return 'ACTION_REQUIRED';
         if (['dispatched', 'in_transit', 'booked', 'loaded', 'in_transit_ocean', 'at_terminal'].includes(status)) return 'IN_TRANSIT';
         if (['arrived', 'customs_cleared', 'delivered'].includes(status)) return 'DELIVERED';
