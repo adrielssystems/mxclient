@@ -16,13 +16,19 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services, disp
         // Calculate totals
         const winningBidAmount = parseFloat(vehicle?.client_base_price) || 0;
         
-        // The purchase invoice amount includes the auction price PLUS the MotorX markup
-        const purchaseInvoice = invoices?.find(inv => inv.service_category === 'PURCHASE' && inv.status !== 'void' && inv.status !== 'canceled' && inv.status !== 'deleted');
-        const purchasePrice = purchaseInvoice ? (parseFloat(purchaseInvoice.amount) || 0) : winningBidAmount;
+        let feeMap = { gateFee: 0, brokerFee: 0, commissionFee: 0, wireFee: 0 };
+        if (services?.length > 0) {
+            services.forEach(s => {
+                const name = (s.service_name || '').toLowerCase();
+                const amount = parseFloat(s.price || 0);
+                if (name.includes('buyer') || name.includes('broker')) feeMap.brokerFee += amount;
+                else if (name.includes('gate')) feeMap.gateFee += amount;
+                else if (name.includes('commission') || name.includes('markup')) feeMap.commissionFee += amount;
+                else if (name.includes('wire')) feeMap.wireFee += amount;
+            });
+        }
         
-        let feesTotal = 0;
-        fees.forEach(f => { feesTotal += parseFloat(f.amount) || 0; });
-        const totalCost = purchasePrice + feesTotal;
+        const totalCost = winningBidAmount + feeMap.gateFee + feeMap.brokerFee + feeMap.commissionFee + feeMap.wireFee;
 
         return (
             <div className="space-y-6 animate-in fade-in duration-300">
@@ -73,15 +79,36 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services, disp
                             <div className="flex items-end gap-2 w-full">
                                 <span className="text-sm font-bold text-slate-700">Purchase Price</span>
                                 <div className="flex-1 border-b-2 border-dotted border-slate-200 mb-1.5 mx-1"></div>
-                                <span className="text-sm font-black text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(purchasePrice)}</span>
+                                <span className="text-sm font-black text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(winningBidAmount)}</span>
                             </div>
-                            {fees.map((fee, idx) => (
-                                <div key={idx} className="flex items-end gap-2 w-full group">
-                                    <span className="text-sm font-bold text-slate-500 leading-snug group-hover:text-slate-700 transition-colors">{fee.description?.split(' for ')[0] || fee.description}</span>
+                            {feeMap.gateFee > 0 && (
+                                <div className="flex items-end gap-2 w-full group">
+                                    <span className="text-sm font-bold text-slate-500 leading-snug group-hover:text-slate-700 transition-colors">Gate Fee</span>
                                     <div className="flex-1 border-b-2 border-dotted border-slate-200 mb-1.5 mx-1 group-hover:border-slate-300 transition-colors"></div>
-                                    <span className="text-sm font-black text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(fee.amount)}</span>
+                                    <span className="text-sm font-black text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(feeMap.gateFee)}</span>
                                 </div>
-                            ))}
+                            )}
+                            {feeMap.brokerFee > 0 && (
+                                <div className="flex items-end gap-2 w-full group">
+                                    <span className="text-sm font-bold text-slate-500 leading-snug group-hover:text-slate-700 transition-colors">Broker Fee</span>
+                                    <div className="flex-1 border-b-2 border-dotted border-slate-200 mb-1.5 mx-1 group-hover:border-slate-300 transition-colors"></div>
+                                    <span className="text-sm font-black text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(feeMap.brokerFee)}</span>
+                                </div>
+                            )}
+                            {feeMap.commissionFee > 0 && (
+                                <div className="flex items-end gap-2 w-full group">
+                                    <span className="text-sm font-bold text-slate-500 leading-snug group-hover:text-slate-700 transition-colors">Markup Fee</span>
+                                    <div className="flex-1 border-b-2 border-dotted border-slate-200 mb-1.5 mx-1 group-hover:border-slate-300 transition-colors"></div>
+                                    <span className="text-sm font-black text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(feeMap.commissionFee)}</span>
+                                </div>
+                            )}
+                            {feeMap.wireFee > 0 && (
+                                <div className="flex items-end gap-2 w-full group">
+                                    <span className="text-sm font-bold text-slate-500 leading-snug group-hover:text-slate-700 transition-colors">Wire Fee</span>
+                                    <div className="flex-1 border-b-2 border-dotted border-slate-200 mb-1.5 mx-1 group-hover:border-slate-300 transition-colors"></div>
+                                    <span className="text-sm font-black text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(feeMap.wireFee)}</span>
+                                </div>
+                            )}
                         </div>
                         <div className="px-6 py-4 bg-slate-900 border-t border-slate-800 flex justify-between items-center rounded-b-xl">
                             <span className="text-xs font-black text-slate-300 uppercase tracking-widest">Total Purchase Cost</span>
