@@ -6,7 +6,6 @@ import { AlertCircle } from 'lucide-react';
 import useUser from "@/utils/useUser";
 import ClientVehicleHeader from "../../components/ClientVehicleHeader";
 import ClientLogisticsForm from "../../components/ClientLogisticsForm";
-import ClientFinancialCard from "../../components/ClientFinancialCard";
 import VehicleTitleTab from "../../components/VehicleTitleTab";
 
 export default function ClientVehiclePage() {
@@ -172,37 +171,27 @@ export default function ClientVehiclePage() {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left side: Configuration Forms */}
-                <div className="lg:col-span-2 space-y-6">
-                    <ClientLogisticsForm
-                        vehicle={vehicle}
-                        services={services}
-                        terminals={terminals}
-                        destinations={destinations}
-                        titleOptions={titleOptions}
-                        dismantlingOptions={dismantlingOptions}
-                        tariffs={tariffs}
-                        onDraftChange={setDraftConfig}
-                        onUpdate={fetchVehicleData}
-                    />
-                    
-                    {/* NEW: Title Tracking for Clients */}
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                        <VehicleTitleTab 
-                            vehicle={vehicle} 
-                            isClient={true}
-                            isLocked={vehicle?.current_status && !['purchased', 'pending', 'pending_dispatch', 'assignment_pending'].includes(vehicle.current_status.toLowerCase())}
-                            onUpdate={fetchVehicleData}
-                        />
-                    </div>
-                </div>
-
-                {/* Right side: Financial Summary */}
-                <div className="lg:col-span-1 border rounded-lg overflow-hidden h-fit border-slate-200 sticky top-4 shadow-[0px_4px_16px_rgba(0,0,0,0.02)]">
-                    <ClientFinancialCard 
+            <div className="max-w-4xl space-y-6">
+                {/* Configuration Forms */}
+                <ClientLogisticsForm
+                    vehicle={vehicle}
+                    services={services}
+                    terminals={terminals}
+                    destinations={destinations}
+                    titleOptions={titleOptions}
+                    dismantlingOptions={dismantlingOptions}
+                    tariffs={tariffs}
+                    onDraftChange={setDraftConfig}
+                    onUpdate={fetchVehicleData}
+                />
+                
+                {/* NEW: Title Tracking for Clients */}
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <VehicleTitleTab 
                         vehicle={vehicle} 
-                        pendingFees={pendingFees}
+                        isClient={true}
+                        isLocked={vehicle?.current_status && !['purchased', 'pending', 'pending_dispatch', 'assignment_pending'].includes(vehicle.current_status.toLowerCase())}
+                        onUpdate={fetchVehicleData}
                     />
                 </div>
             </div>

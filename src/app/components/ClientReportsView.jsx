@@ -2,7 +2,7 @@
 import React, { useState, useEffect, lazy, Suspense } from "react";
 import useUser from "@/utils/useUser";
 const ReportCharts = lazy(() => import("../reports/components/ReportCharts"));
-import { FileText, Car, DollarSign, TrendingUp, Truck, AlertCircle, Search, Loader2 } from "lucide-react";
+import { FileText, Car, DollarSign, TrendingUp, Truck, AlertCircle, Search, Loader2, CheckCircle2 } from "lucide-react";
 
 const STATUS_LABELS = {
     purchased: "Purchased",
@@ -66,6 +66,16 @@ export default function ClientReportsView({ hideHeader = false }) {
         );
     });
 
+    // Additional Logistics Metrics
+    let notPaid = 0, titlesReceived = 0, activeDispatch = 0, activeTitleServices = 0;
+    (vehicleHistory || []).forEach(v => {
+        const pStatus = (v.purchase_status || '').toLowerCase();
+        if (['new', 'pending', 'late', 'payment_pending'].includes(pStatus)) notPaid++;
+        if (v.title_service_status === 'Received') titlesReceived++;
+        if (v.title_service_status && v.title_service_status !== 'Completed' && v.title_service_status !== 'Canceled') activeTitleServices++;
+        if (v.dispatch_display_status && ['New', 'In Transit', 'Today', 'Late', 'Pending'].includes(v.dispatch_display_status)) activeDispatch++;
+    });
+
     return (
         <div className="font-sans animate-in fade-in duration-300 space-y-8">
             {/* Header */}
@@ -81,7 +91,30 @@ export default function ClientReportsView({ hideHeader = false }) {
             )}
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                {/* 4 New Logistics Cards from Vehicles page */}
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Not Paid</p>
+                    <h2 className="text-2xl font-black text-slate-800">{notPaid}</h2>
+                    <DollarSign className="text-red-500 mt-2" size={20} />
+                </div>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Titles Received</p>
+                    <h2 className="text-2xl font-black text-slate-800">{titlesReceived}</h2>
+                    <CheckCircle2 className="text-emerald-500 mt-2" size={20} />
+                </div>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Active Dispatch</p>
+                    <h2 className="text-2xl font-black text-slate-800">{activeDispatch}</h2>
+                    <Truck className="text-sky-500 mt-2" size={20} />
+                </div>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Title SVC (Active)</p>
+                    <h2 className="text-2xl font-black text-slate-800">{activeTitleServices}</h2>
+                    <FileText className="text-violet-500 mt-2" size={20} />
+                </div>
+
+                {/* Original 5 Financial/Status Cards */}
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Vehicles</p>
                     <h2 className="text-2xl font-black text-slate-800">{kpis.totalVehicles}</h2>
