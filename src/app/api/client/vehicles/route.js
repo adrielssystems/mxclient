@@ -51,6 +51,12 @@ export async function GET(request) {
                 t.lien_holder as has_lien,
                 st.name as mailing_location,
                 
+                EXISTS (
+                  SELECT 1 FROM vehicle_service_details vsd 
+                  JOIN services s ON vsd.service_id = s.id 
+                  WHERE vsd.vehicle_id = v.id AND s.category = 'TITLE'
+                ) as title_service_requested,
+                
                 a.name as auction_name,
                 l.name as auction_location,
                 d.country_name as destination_country,

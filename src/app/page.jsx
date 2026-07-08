@@ -56,12 +56,26 @@ export default function ClientDashboard() {
         return status.toUpperCase();
     };
 
-    const getStatusBadge = (statusGroup) => {
+    const getStatusBadge = (statusGroup, v) => {
+        if (statusGroup === 'ACTION_REQUIRED') {
+            return (
+                <div className="flex flex-col gap-2">
+                    {v.terminal_id ? (
+                        <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 w-max"><CheckCircle size={14} /> Dispatch Requested</span>
+                    ) : (
+                        <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 w-max"><AlertCircle size={14} /> Setup Delivery</span>
+                    )}
+                    {v.title_service_requested && (
+                        <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 w-max"><CheckCircle size={14} /> Title Service Requested</span>
+                    )}
+                </div>
+            );
+        }
+
         switch (statusGroup) {
-            case 'ACTION_REQUIRED': return <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 w-max"><AlertCircle size={14} /> Setup Delivery</span>;
-            case 'IN_TRANSIT': return <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 w-max"><Clock size={14} /> In Transit</span>;
-            case 'DELIVERED': return <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 w-max"><CheckCircle size={14} /> Delivered</span>;
-            default: return <span className="bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-xs font-bold w-max">{statusGroup}</span>;
+            case 'IN_TRANSIT': return <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 w-max"><Clock size={14} /> In Transit</span>;
+            case 'DELIVERED': return <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 w-max"><CheckCircle size={14} /> Delivered</span>;
+            default: return <span className="bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-[11px] font-bold w-max">{statusGroup}</span>;
         }
     };
 
@@ -101,8 +115,8 @@ export default function ClientDashboard() {
                                             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-2 overflow-hidden">
                                                 <h4 className="font-bold text-slate-800 text-lg sm:text-base truncate sm:w-[220px] shrink-0">{v.year} {v.make} {v.model}</h4>
                                                 <div className="flex items-center gap-2 flex-wrap">
-                                                    <div className="sm:w-[140px] shrink-0 flex items-center">
-                                                        {getStatusBadge(uiStatus)}
+                                                    <div className="shrink-0 flex items-center">
+                                                        {getStatusBadge(uiStatus, v)}
                                                     </div>
                                                     <div className="shrink-0 flex items-center">
                                                         {v.payment_status && (
@@ -130,7 +144,7 @@ export default function ClientDashboard() {
                                                     <AlertCircle size={14} className="text-yellow-600" /> Title Received - Please Configure Mailing Location
                                                 </div>
                                             )}
-                                            {(v.has_lien && (!v.title_service_status || v.title_service_status === 'Not Received')) && (
+                                            {(v.has_lien && !v.title_service_requested && (!v.title_service_status || v.title_service_status === 'Not Received')) && (
                                                 <div className="mt-2 bg-red-50 text-red-800 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 border border-red-200">
                                                     <AlertCircle size={14} className="text-red-600" /> Lien on Title - Title Service Required
                                                 </div>
