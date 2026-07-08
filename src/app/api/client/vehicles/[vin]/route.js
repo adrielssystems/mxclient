@@ -146,7 +146,7 @@ export async function PUT(request, { params }) {
         const body = await request.json();
 
         // Security check: Make sure vehicle belongs to this client
-        const authCheck = await sql`SELECT id FROM vehicles WHERE vin = ${vin} AND client_id = ${clientId}`;
+        const authCheck = await sql`SELECT id, terminal_id FROM vehicles WHERE vin = ${vin} AND client_id = ${clientId}`;
         if (authCheck.length === 0) {
             return Response.json({ error: "Vehicle not found" }, { status: 404 });
         }
@@ -218,13 +218,27 @@ export async function PUT(request, { params }) {
             }
         }
 
-        // Update Status to 'pending_dispatch' if user is configuring it for the first time
-        // The frontend considers 'purchased' or 'pending' as editable.
-        await sql`
-            UPDATE vehicles 
-            SET current_status = 'pending_dispatch' 
-            WHERE id = ${vehicleId} AND (current_status = 'purchased' OR current_status = 'pending' OR current_status IS NULL)
-        `;
+        // Update Status to 'pending_dispatch' ONLY if fully configured (Terminal + Mailing)
+        const terminalId = body.terminal_id !== undefined ? body.terminal_id : authCheck[0].terminal_id;
+        const hasTerminal = terminalId !== null && terminalId !== "";
+        
+        const titleCheck = await sql`SELECT mailing_location FROM vehicle_titles WHERE vehicle_id = ${vehicleId}`;
+        const hasMailing = titleCheck.length > 0 && titleCheck[0].mailing_location && titleCheck[0].mailing_location.trim() !== '';
+
+        if (hasTerminal && hasMailing) {
+            await sql`
+                UPDATE vehicles 
+                SET current_status = 'pending_dispatch' 
+                WHERE id = ${vehicleId} AND (current_status = 'purchased' OR current_status = 'pending' OR current_status IS NULL)
+            `;
+        } else {
+            // Revert to purchased if they unselected something while in pending_dispatch
+            await sql`
+                UPDATE vehicles 
+                SET current_status = 'purchased' 
+                WHERE id = ${vehicleId} AND current_status = 'pending_dispatch'
+            `;
+        }
 
         return Response.json({ success: true, message: "Vehicle details updated" }, { status: 200 });
 
