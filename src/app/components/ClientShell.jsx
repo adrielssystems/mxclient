@@ -220,7 +220,7 @@ export default function ClientShell({ children }) {
 
                 {/* Main Content Area */}
                 <main className="flex-1 overflow-auto bg-gradient-to-br from-slate-50 via-slate-100 to-indigo-50/30 relative p-4 sm:p-6 lg:p-8 xl:p-10">
-                    <div className="max-w-7xl mx-auto">
+                    <div className="w-full">
                         {children}
                     </div>
                 </main>
