@@ -66,7 +66,9 @@ const VehicleRow = React.memo(({ vehicle, activeTab = 'All' }) => {
         <tr className={isLate ? "hover:bg-red-50 bg-red-50/50 transition-colors group border-b border-red-100 last:border-0" : "hover:bg-slate-50 transition-colors group border-b border-slate-100 last:border-0"}>
             {/* VIN */}
             <td className="px-2 py-1.5 w-[150px] whitespace-nowrap">
-                <span className="text-[11px] font-bold text-slate-900 font-mono">{vehicle.vin}</span>
+                <a href={`/vehicles/${vehicle.vin}/details`} className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline font-mono cursor-pointer transition-colors">
+                    {vehicle.vin}
+                </a>
             </td>
             {/* Lot # */}
             <td className="px-2 py-1.5 w-[68px] text-[11px] text-slate-500 font-mono whitespace-nowrap">
