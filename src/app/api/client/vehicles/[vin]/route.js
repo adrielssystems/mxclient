@@ -176,6 +176,42 @@ export async function PUT(request, { params }) {
         if (body.terminal_id !== undefined) {
             await sql`UPDATE vehicles SET terminal_id = ${body.terminal_id || null} WHERE id = ${vehicleId}`;
             
+            if (body.terminal_id) {
+                // Resolve the DISPATCH service id
+                const dispatchSvcRows = await sql`SELECT id FROM services WHERE category = 'DISPATCH' AND is_active = true LIMIT 1`;
+                const dispatchSvcId = dispatchSvcRows.length > 0 ? dispatchSvcRows[0].id : null;
+
+                if (dispatchSvcId) {
+                    // Upsert vehicle_service_details for DISPATCH
+                    const existingDispatch = await sql`
+                        SELECT vsd.id FROM vehicle_service_details vsd 
+                        JOIN services s ON vsd.service_id = s.id 
+                        WHERE vsd.vehicle_id = ${vehicleId} AND s.category = 'DISPATCH'
+                    `;
+                    if (existingDispatch.length > 0) {
+                        await sql`UPDATE vehicle_service_details SET service_id = ${dispatchSvcId} WHERE id = ${existingDispatch[0].id}`;
+                    } else {
+                        await sql`INSERT INTO vehicle_service_details (vehicle_id, service_id, status) VALUES (${vehicleId}, ${dispatchSvcId}, 'pending')`;
+                        
+                        // Also insert invoice_line_item if not already present
+                        const existingDispatchItem = await sql`SELECT id FROM invoice_line_items WHERE vehicle_id = ${vehicleId} AND type = 'SERVICE' AND description ILIKE '%Transport%'`;
+                        if (existingDispatchItem.length === 0 && body.dispatch_price) {
+                            await sql`INSERT INTO invoice_line_items (vehicle_id, description, amount, type, service_id) VALUES (${vehicleId}, 'Inland Transport', ${body.dispatch_price}, 'SERVICE', ${dispatchSvcId})`;
+                        }
+                    }
+
+                    // Update dispatch_status so admin can see it's pending
+                    await sql`UPDATE vehicles SET dispatch_status = 'assignment_pending' WHERE id = ${vehicleId} AND (dispatch_status IS NULL OR dispatch_status = 'not_applicable')`;
+                }
+            } else {
+                // Terminal removed — remove dispatch service detail
+                await sql`
+                    DELETE FROM vehicle_service_details 
+                    WHERE vehicle_id = ${vehicleId} AND service_id IN (SELECT id FROM services WHERE category = 'DISPATCH')
+                `;
+                await sql`UPDATE vehicles SET dispatch_status = 'not_applicable' WHERE id = ${vehicleId} AND dispatch_status = 'assignment_pending'`;
+            }
+
             // Set as default terminal logic
             if (body.setAsDefaultTerminal && body.terminal_id) {
                 await sql`UPDATE auth_users SET preferred_destination_id = ${body.terminal_id} WHERE id = ${clientId}`;
@@ -207,6 +243,14 @@ export async function PUT(request, { params }) {
                 }
                 // Mark vehicle title_status as processing so Admin Panel toggle activates
                 await sql`UPDATE vehicles SET title_status = 'processing' WHERE id = ${vehicleId} AND (title_status IS NULL OR title_status = 'not_applicable')`;
+
+                // Insert invoice_line_item for title if not already present and price provided
+                if (body.title_price) {
+                    const existingTitleItem = await sql`SELECT id FROM invoice_line_items WHERE vehicle_id = ${vehicleId} AND type = 'SERVICE' AND description ILIKE '%Title%'`;
+                    if (existingTitleItem.length === 0) {
+                        await sql`INSERT INTO invoice_line_items (vehicle_id, description, amount, type, service_id) VALUES (${vehicleId}, 'Title Service', ${body.title_price}, 'SERVICE', ${body.title_service_id})`;
+                    }
+                }
 
             } else if (existingTitle.length > 0) {
                 // User reset to default standard, remove the special title service

@@ -67,10 +67,24 @@ export default function ClientLogisticsForm({
     const handleSave = async () => {
         setLoading(true);
         try {
+            // Calculate prices to pass to the API for invoice_line_items
+            const dispatchPrice = Number(tariffs.find(tr => 
+                String(tr.origin_ref_id) === String(vehicle.location_id) && 
+                (tr.destination_ref_id?.toString().toUpperCase() === selectedHub.toUpperCase() || tr.destination_name === selectedHub)
+            )?.price_l1 || 0);
+
+            const titlePrice = Number(titleOptions.find(o => String(o.service_id) === String(formData.title_service_id))?.price_l1 || 0);
+
+            const payload = {
+                ...formData,
+                dispatch_price: dispatchPrice || undefined,
+                title_price: titlePrice || undefined
+            };
+
             const res = await fetch(`/api/client/vehicles/${vehicle.vin}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(payload)
             });
 
             if (res.ok) {
