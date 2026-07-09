@@ -24,7 +24,7 @@ export async function GET(request, { params }) {
                 const userCheck = await sql`SELECT role FROM auth_users WHERE id = ${clientId}`;
                 if (userCheck.length > 0) role = userCheck[0].role;
             }
-            if (role !== "client" && role !== "admin") {
+            if (role !== "client" && role !== "main_client" && role !== "sub_client" && role !== "admin") {
                 return Response.json({ error: "Forbidden: Client access only" }, { status: 403 });
             }
         }
@@ -149,7 +149,7 @@ export async function PUT(request, { params }) {
                 const userCheck = await sql`SELECT role FROM auth_users WHERE id = ${clientId}`;
                 if (userCheck.length > 0) role = userCheck[0].role;
             }
-            if (role !== "client" && role !== "admin") {
+            if (role !== "client" && role !== "main_client" && role !== "sub_client" && role !== "admin") {
                 return Response.json({ error: "Forbidden: Client access only" }, { status: 403 });
             }
         }
