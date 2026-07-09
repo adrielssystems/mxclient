@@ -67,7 +67,7 @@ export default function ClientVehicleDetailsPage() {
     }
 
     return (
-        <div className="w-full px-4 sm:px-6 lg:px-8 space-y-6 animate-in fade-in duration-300">
+        <div className="w-full px-4 sm:px-6 lg:px-8 space-y-6">
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="flex items-center gap-3">

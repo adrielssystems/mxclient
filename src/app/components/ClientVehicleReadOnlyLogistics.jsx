@@ -47,7 +47,7 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [],
         const totalCost = winningBidAmount + clientPayAdjustment + Object.values(feeMap).reduce((a, b) => a + b, 0);
 
         return (
-            <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="space-y-6">
                 <div className="flex justify-between items-start border-b border-slate-100 pb-4">
                     <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
                         <DollarSign size={16} className="text-blue-500" /> Purchase Breakdown
@@ -141,7 +141,7 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [],
         const price = dispatchSvc?.price || 0;
 
         return (
-            <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="space-y-6">
                 <div className="flex items-center justify-between border border-slate-200 rounded-xl p-4 bg-slate-50/50">
                     <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
@@ -244,7 +244,7 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [],
         const price = titleSvc?.price || 0;
 
         return (
-            <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="space-y-6">
                 <div className="flex items-center justify-between border border-slate-200 rounded-xl p-4 bg-slate-50/50">
                     <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center">

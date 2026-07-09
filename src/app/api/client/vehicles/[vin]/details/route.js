@@ -134,13 +134,8 @@ export async function GET(request, { params }) {
             if (rulesRows.length > 0) operationalRules = rulesRows[0];
         }
 
-        // Fetch client commission (markup)
-        const commissionRows = await sql`
-            SELECT commission FROM client_rules 
-            WHERE client_id = ${vehicle.client_id} 
-            LIMIT 1
-        `;
-        const clientCommission = commissionRows.length > 0 ? parseFloat(commissionRows[0].commission || 0) : 0;
+        // Client commission comes directly from the vehicle record (same as admin)
+        const clientCommission = parseFloat(vehicle.client_markup_fee || 0);
 
         return Response.json({
             vehicle,
