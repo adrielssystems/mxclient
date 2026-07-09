@@ -67,7 +67,7 @@ export default function ClientPaymentsPage() {
     }
 
     return (
-        <div className="font-sans animate-in fade-in duration-300 max-w-6xl mx-auto space-y-8">
+        <div className="font-sans animate-in fade-in duration-300 space-y-6">
             <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
                     <CreditCard className="text-blue-600" />
