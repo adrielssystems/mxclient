@@ -514,7 +514,7 @@ import SessionHeartbeat from '@/components/SessionHeartbeat'; // Import SessionH
 
 export default function App() {
   return (
-    <SessionProvider>
+    <SessionProvider refetchOnWindowFocus={false}>
       <SessionTimeout />
       <SessionHeartbeat />
       <Outlet />
