@@ -199,9 +199,26 @@ export async function PUT(request, { params }) {
                         VALUES (${vehicleId}, ${body.title_service_id}, 'pending')
                     `;
                 }
+
+                // Also ensure vehicle_title_services record exists (this is what the Admin Panel reads)
+                const existingTitleSvc = await sql`SELECT id FROM vehicle_title_services WHERE vehicle_id = ${vehicleId}`;
+                if (existingTitleSvc.length === 0) {
+                    await sql`INSERT INTO vehicle_title_services (vehicle_id) VALUES (${vehicleId})`;
+                }
+                // Mark vehicle title_status as processing so Admin Panel toggle activates
+                await sql`UPDATE vehicles SET title_status = 'processing' WHERE id = ${vehicleId} AND (title_status IS NULL OR title_status = '' OR title_status = 'not_applicable')`;
+
             } else if (existingTitle.length > 0) {
                 // User reset to default standard, remove the special title service
                 await sql`DELETE FROM vehicle_service_details WHERE id = ${existingTitle[0].id}`;
+
+                // Also remove the title services record if it exists and has no data entered yet
+                const existingTitleSvc = await sql`SELECT id FROM vehicle_title_services WHERE vehicle_id = ${vehicleId}`;
+                if (existingTitleSvc.length > 0) {
+                    await sql`DELETE FROM vehicle_title_services WHERE vehicle_id = ${vehicleId} AND (purchaser_name IS NULL OR purchaser_name = '')`;
+                    // Revert title_status
+                    await sql`UPDATE vehicles SET title_status = 'not_applicable' WHERE id = ${vehicleId} AND title_status = 'processing'`;
+                }
             }
         }
 

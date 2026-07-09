@@ -160,8 +160,8 @@ export default function ClientLogisticsForm({
                             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
                                 <FileText size={16} className="text-orange-500" /> Title Services
                             </label>
-                            {formData.title_service_id && String(formData.title_service_id) !== (titleSvc ? String(titleSvc.service_id || titleSvc.id) : "") && (
-                                <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 animate-in fade-in zoom-in duration-200">
+                            {formData.title_service_id && (
+                                <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
                                     + ${Number(titleOptions.find(o => String(o.service_id) === String(formData.title_service_id))?.price_l1 || 0).toFixed(2)}
                                 </span>
                             )}
