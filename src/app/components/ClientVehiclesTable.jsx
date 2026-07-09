@@ -161,7 +161,12 @@ export default function ClientVehiclesTable({ vehicles = [], activeTab = 'All' }
         return [...new Set(vehicles.map(v => v.auction_location).filter(Boolean))].sort();
     }, [vehicles]);
 
+    const uniqueClients = useMemo(() => {
+        return [...new Set(vehicles.map(v => v.buyer_name).filter(Boolean))].sort();
+    }, [vehicles]);
+
     // --- CLIENT-SIDE FILTER LOGIC ---
+    const [clientFilter, setClientFilter] = useState("all");
     const filteredVehicles = useMemo(() => {
         return vehicles.filter(v => {
             // 1. Search Filter (VIN, LOT, DESC)
@@ -184,7 +189,12 @@ export default function ClientVehiclesTable({ vehicles = [], activeTab = 'All' }
                 return false;
             }
 
-            // 4. Date Filter
+            // 4. Client Filter (for main clients with sub-clients)
+            if (clientFilter !== "all" && v.buyer_name !== clientFilter) {
+                return false;
+            }
+
+            // 5. Date Filter
             if (startDate || endDate) {
                 const pDate = new Date(v.purchase_date);
                 if (!isNaN(pDate)) {
@@ -201,7 +211,7 @@ export default function ClientVehiclesTable({ vehicles = [], activeTab = 'All' }
 
             return true;
         });
-    }, [vehicles, debouncedSearch, auctionFilter, locationFilter, startDate, endDate]);
+    }, [vehicles, debouncedSearch, auctionFilter, locationFilter, clientFilter, startDate, endDate]);
 
     // --- PAGINATION LOGIC ---
     const totalCount = filteredVehicles.length;
@@ -213,7 +223,7 @@ export default function ClientVehiclesTable({ vehicles = [], activeTab = 'All' }
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [debouncedSearch, auctionFilter, locationFilter, startDate, endDate]);
+    }, [debouncedSearch, auctionFilter, locationFilter, clientFilter, startDate, endDate]);
 
     return (
         <div className="space-y-6">
@@ -249,6 +259,8 @@ export default function ClientVehiclesTable({ vehicles = [], activeTab = 'All' }
                     </div>
 
                     {/* Location Filter */}
+
+                    {/* Location Filter */}
                     <div className="w-[160px]">
                         <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Location</label>
                         <select 
@@ -261,7 +273,22 @@ export default function ClientVehiclesTable({ vehicles = [], activeTab = 'All' }
                         </select>
                     </div>
 
-                    {/* Date Range */}
+                    {/* Sub-Client Filter (Only visible if there are multiple clients) */}
+                    {uniqueClients.length > 1 && (
+                        <div className="w-[160px]">
+                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Client</label>
+                            <select 
+                                value={clientFilter}
+                                onChange={(e) => setClientFilter(e.target.value)}
+                                className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
+                            >
+                                <option value="all">All Clients</option>
+                                {uniqueClients.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                        </div>
+                    )}
+
+                    {/* Date Filters */}
                     <div className="flex gap-2 items-end">
                         {/* FROM */}
                         <div>
@@ -326,12 +353,14 @@ export default function ClientVehiclesTable({ vehicles = [], activeTab = 'All' }
                     <button 
                         onClick={() => {
                             setLocalSearch("");
+                            setDebouncedSearch("");
                             setAuctionFilter("all");
                             setLocationFilter("all");
+                            setClientFilter("all");
                             setStartDate("");
                             setEndDate("");
                         }}
-                        className="px-3 py-1.5 text-xs font-bold text-slate-400 hover:text-red-500 transition-colors"
+                        className="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-[11px] rounded-lg transition-colors border border-slate-200"
                     >
                         Reset
                     </button>
