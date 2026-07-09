@@ -206,7 +206,7 @@ export async function PUT(request, { params }) {
                     await sql`INSERT INTO vehicle_title_services (vehicle_id) VALUES (${vehicleId})`;
                 }
                 // Mark vehicle title_status as processing so Admin Panel toggle activates
-                await sql`UPDATE vehicles SET title_status = 'processing' WHERE id = ${vehicleId} AND (title_status IS NULL OR title_status = '' OR title_status = 'not_applicable')`;
+                await sql`UPDATE vehicles SET title_status = 'processing' WHERE id = ${vehicleId} AND (title_status IS NULL OR title_status = 'not_applicable')`;
 
             } else if (existingTitle.length > 0) {
                 // User reset to default standard, remove the special title service
