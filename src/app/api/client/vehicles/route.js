@@ -50,7 +50,7 @@ export async function GET(request) {
                 
                 t.lien_holder as has_lien,
                 t.title_status as title_log_status,
-                COALESCE(st.name, lt.ts_mailing_location) as mailing_location,
+                st.name as mailing_location,
                 
                 EXISTS (
                   SELECT 1 FROM vehicle_service_details vsd 
