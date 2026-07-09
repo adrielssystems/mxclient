@@ -126,9 +126,9 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [],
                                 </div>
                             )}
                         </div>
-                        <div className="px-6 py-4 bg-slate-900 border-t border-slate-800 flex justify-between items-center rounded-b-xl">
-                            <span className="text-xs font-black text-slate-300 uppercase tracking-widest">Total Purchase Cost</span>
-                            <span className="text-lg font-black text-white">{formatCurrency(totalCost)}</span>
+                        <div className="px-6 pt-4 pb-6 border-t border-slate-200 flex justify-between items-center">
+                            <span className="text-xs font-black text-slate-600 uppercase tracking-widest">Total Purchase Cost</span>
+                            <span className="text-xl font-black text-slate-900">{formatCurrency(totalCost)}</span>
                         </div>
                     </div>
 
