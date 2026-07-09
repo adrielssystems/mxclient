@@ -100,7 +100,8 @@ export async function GET(request, { params }) {
 
         // Also fetch assigned services to show which ones are active
         const vehicleServices = await sql`
-            SELECT vsd.*, s.name as service_name, s.category as service_category
+            SELECT vsd.*, s.name as service_name, s.category as service_category,
+            (SELECT amount FROM invoice_line_items WHERE vehicle_id = vsd.vehicle_id AND service_id = vsd.service_id LIMIT 1) as price
             FROM vehicle_service_details vsd
             LEFT JOIN services s ON vsd.service_id = s.id
             WHERE vsd.vehicle_id = ${vehicle.id}

@@ -138,7 +138,8 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [],
 
     const renderDispatchTab = () => {
         const isRequired = !!dispatchSvc;
-        const price = dispatchSvc?.price || 0;
+        // Fallback to dispatchData.client_price if not yet invoiced
+        const price = dispatchSvc?.price || dispatchData?.client_price || 0;
 
         return (
             <div className="space-y-6">
@@ -241,7 +242,8 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [],
 
     const renderTitleTab = () => {
         const isRequired = !!titleSvc;
-        const price = titleSvc?.price || 0;
+        // Fallback to titleData.price_client_override or titleData.price_client if not yet invoiced
+        const price = titleSvc?.price || titleData?.price_client_override || titleData?.price_client || 0;
 
         return (
             <div className="space-y-6">

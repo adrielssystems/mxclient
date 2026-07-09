@@ -88,9 +88,10 @@ export async function GET(request, { params }) {
             vehicle.purchase_source = 'MotorX';
         }
 
-        // Fetch Services
+        // Fetch Services and their prices from invoice_line_items
         const serviceDetails = await sql`
-            SELECT vsd.*, s.name as service_name, s.category as service_category
+            SELECT vsd.*, s.name as service_name, s.category as service_category,
+            (SELECT amount FROM invoice_line_items WHERE vehicle_id = vsd.vehicle_id AND service_id = vsd.service_id LIMIT 1) as price
             FROM vehicle_service_details vsd
             LEFT JOIN services s ON vsd.service_id = s.id
             WHERE vsd.vehicle_id = ${vehicle.id}
