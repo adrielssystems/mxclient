@@ -53,7 +53,8 @@ export async function GET(request) {
                 pr.amount_received as amount,
                 pr.payment_reference as ref,
                 pr.reconciliation_date as date,
-                i.invoice_number
+                i.invoice_number,
+                i.quickbooks_invoice_id
             FROM payment_reconciliations pr
             JOIN invoices i ON pr.invoice_id = i.id
             WHERE (i.client_id = ${clientId} OR i.client_id IN (SELECT sub_client_id FROM client_hierarchy WHERE main_client_id = ${clientId}))
