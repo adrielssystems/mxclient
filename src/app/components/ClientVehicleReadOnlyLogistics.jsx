@@ -66,21 +66,52 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [],
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                    {/* Source Details */}
-                    <div className="md:col-span-5 bg-slate-50 rounded-xl p-5 border border-slate-100 h-fit space-y-5">
-                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Auction Details (Source)</h4>
-                        <div>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Winning Bid Amount</p>
-                            <p className="text-2xl font-black text-slate-900">{formatCurrency(winningBidAmount)}</p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
+                    {/* Left Column: Source Details & Logistics Request */}
+                    <div className="md:col-span-5 space-y-6">
+                        {/* Source Details */}
+                        <div className="bg-slate-50 rounded-xl p-5 border border-slate-100 space-y-5">
+                            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Auction Details (Source)</h4>
                             <div>
-                                <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-0.5 font-bold">Auction House</p>
-                                <p className="text-sm font-bold text-slate-700">{vehicle?.auction_name || 'N/A'}</p>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Winning Bid Amount</p>
+                                <p className="text-2xl font-black text-slate-900">{formatCurrency(winningBidAmount)}</p>
                             </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-0.5 font-bold">Auction House</p>
+                                    <p className="text-sm font-bold text-slate-700">{vehicle?.auction_name || 'N/A'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-0.5 font-bold">Date</p>
+                                    <p className="text-sm font-bold text-slate-700">{formatToMDY(vehicle?.purchase_date) || 'N/A'}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Logistics & Request */}
+                        <div className="bg-slate-50 rounded-xl p-5 border border-slate-100 space-y-5">
+                            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Logistics & Request</h4>
+                            
                             <div>
-                                <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-0.5 font-bold">Date</p>
-                                <p className="text-sm font-bold text-slate-700">{formatToMDY(vehicle?.purchase_date) || 'N/A'}</p>
+                                <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-1.5 font-bold">Title Status</p>
+                                <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase ${
+                                    (vehicle?.title_log_status || '').toLowerCase() === 'sent' ? 'bg-blue-900 text-white' : 'bg-slate-200 text-slate-700'
+                                }`}>
+                                    {vehicle?.title_log_status || vehicle?.title_service_status || 'Pending'}
+                                </span>
+                            </div>
+
+                            <div>
+                                <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-1 font-bold">Mailing Title Request</p>
+                                <div className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-700">
+                                    {vehicle?.mailing_location || 'Not Specified'}
+                                </div>
+                            </div>
+
+                            <div>
+                                <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-1 font-bold">Client Message For Mailing Titles</p>
+                                <div className="bg-white border border-slate-200 rounded-lg p-3 text-xs text-slate-600 min-h-[60px]">
+                                    {vehicle?.client_notes_title || <span className="italic text-slate-400">No message provided.</span>}
+                                </div>
                             </div>
                         </div>
                     </div>

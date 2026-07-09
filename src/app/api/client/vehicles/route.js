@@ -51,6 +51,7 @@ export async function GET(request) {
                 t.lien_holder as has_lien,
                 t.title_status as title_log_status,
                 st.name as mailing_location,
+                t.client_notes as client_notes_title,
                 
                 EXISTS (
                   SELECT 1 FROM vehicle_service_details vsd 
