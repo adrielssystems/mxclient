@@ -84,7 +84,7 @@ export default function ClientShell({ children }) {
 
     // Role Enforcement (Crucial B2B Isolation)
     const userRole = (user.role || '').toLowerCase();
-    const isAllowedRole = ['client', 'main_client', 'sub_client', 'user', 'admin', ''].includes(userRole);
+    const isAllowedRole = ['client', 'main_client', 'sub_client'].includes(userRole);
     
     // Admins/employees are only allowed if they are impersonating a client or explicitly allowed
     if (!isAllowedRole && !impersonating) {
