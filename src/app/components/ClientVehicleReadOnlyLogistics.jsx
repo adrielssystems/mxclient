@@ -4,7 +4,7 @@ import { DollarSign, Truck, FileText, CheckCircle, Clock } from 'lucide-react';
 import { formatToMDY } from "@/utils/dateUtils";
 import { formatCurrency } from "@/utils/formatUtils";
 
-export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [], dispatchData, titleData, invoiceLineItems = [], invoices = [] }) {
+export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [], dispatchData, titleData, fees: initialFees = [], operationalRules = null, clientCommission = 0, invoices = [] }) {
     const initialTab = vehicle?.purchase_source === 'MotorX' ? 'purchases' : 'dispatch';
     const [activeTab, setActiveTab] = useState(initialTab);
 
@@ -13,16 +13,16 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [],
     const titleSvc = services.find(s => s.service_category === 'TITLE');
 
     const renderPurchasesTab = () => {
-        // Calculate totals
-        const winningBidAmount = parseFloat(vehicle?.client_base_price) || 0;
-        
+        // ── Exact same logic as VehiclePurchaseTab.jsx in Admin ──
+        const winningBidAmount = parseFloat(vehicle?.purchase_price || vehicle?.client_base_price || 0);
+
         let feeMap = { gateFee: 0, brokerFee: 0, commissionFee: 0, wireFee: 0 };
-        
-        // 1. First try to get fees from services (if they exist there)
-        if (services?.length > 0) {
-            services.forEach(s => {
-                const name = (s.service_name || '').toLowerCase();
-                const amount = parseFloat(s.price || 0);
+
+        // Step 1: populate from invoice_line_items type=FEE (same as admin initialFees)
+        if (initialFees?.length > 0) {
+            initialFees.forEach(f => {
+                const name = (f.service_name || f.name || f.description || '').toLowerCase();
+                const amount = parseFloat(f.amount || 0);
                 if (name.includes('buyer') || name.includes('broker')) feeMap.brokerFee += amount;
                 else if (name.includes('gate')) feeMap.gateFee += amount;
                 else if (name.includes('commission') || name.includes('markup')) feeMap.commissionFee += amount;
@@ -30,32 +30,21 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [],
             });
         }
 
-        // 2. If no fees in services, try to extract them from invoice_line_items belonging to the PURCHASE invoice (or unbilled)
-        if (feeMap.gateFee === 0 && feeMap.brokerFee === 0 && feeMap.commissionFee === 0 && feeMap.wireFee === 0) {
-            const purchaseInvoice = invoices?.find(inv => inv.service_category === 'PURCHASE' && inv.status !== 'void' && inv.status !== 'canceled' && inv.status !== 'deleted');
-            
-            if (invoiceLineItems?.length > 0) {
-                // Filter line items for this specific purchase invoice, OR if none exists, use unbilled items
-                const purchaseItems = invoiceLineItems.filter(item => {
-                    if (purchaseInvoice) return String(item.invoice_id) === String(purchaseInvoice.id);
-                    return item.invoice_id === null;
-                });
-                
-                purchaseItems.forEach(item => {
-                    const name = (item.description || '').toLowerCase();
-                    const amount = parseFloat(item.amount || 0);
-                    // Avoid counting the base vehicle price or extra charges as fees
-                    if (item.type !== 'EXTRA_CHARGE' && !name.includes('vehicle purchase price')) {
-                        if (name.includes('buyer') || name.includes('broker')) feeMap.brokerFee += amount;
-                        else if (name.includes('gate')) feeMap.gateFee += amount;
-                        else if (name.includes('commission') || name.includes('markup') || name.includes('purchase fee')) feeMap.commissionFee += amount;
-                        else if (name.includes('wire') || name.includes('mailing')) feeMap.wireFee += amount;
-                    }
-                });
-            }
+        // Step 2: operationalRules override (client_auction_rules — same as admin)
+        if (operationalRules) {
+            if (operationalRules.broker_fee) feeMap.brokerFee = parseFloat(operationalRules.broker_fee);
+            if (operationalRules.commission) feeMap.commissionFee = parseFloat(operationalRules.commission);
+            if (operationalRules.wire_fee) feeMap.wireFee = parseFloat(operationalRules.wire_fee);
+            if (operationalRules.gate_fee) feeMap.gateFee = parseFloat(operationalRules.gate_fee);
         }
-        
-        const totalCost = winningBidAmount + feeMap.gateFee + feeMap.brokerFee + feeMap.commissionFee + feeMap.wireFee;
+
+        // Step 3: fallback defaults if nothing else (same hardcoded defaults as admin)
+        if (!initialFees?.length && !operationalRules) {
+            feeMap = { gateFee: 79, brokerFee: 150, commissionFee: clientCommission || 0, wireFee: 25 };
+        }
+
+        const clientPayAdjustment = vehicle?.buyer_pays_auction ? -winningBidAmount : 0;
+        const totalCost = winningBidAmount + clientPayAdjustment + Object.values(feeMap).reduce((a, b) => a + b, 0);
 
         return (
             <div className="space-y-6 animate-in fade-in duration-300">

@@ -21,7 +21,9 @@ export default function ClientVehicleDetailsPage() {
     const [invoices, setInvoices] = useState([]);
     const [dispatchData, setDispatchData] = useState(null);
     const [titleData, setTitleData] = useState(null);
-    const [invoiceLineItems, setInvoiceLineItems] = useState([]);
+    const [fees, setFees] = useState([]);
+    const [operationalRules, setOperationalRules] = useState(null);
+    const [clientCommission, setClientCommission] = useState(0);
 
     const fetchVehicleDetails = useCallback(async () => {
         if (!vin) return;
@@ -35,7 +37,9 @@ export default function ClientVehicleDetailsPage() {
                 setInvoices(data.invoices || []);
                 setDispatchData(data.dispatchData);
                 setTitleData(data.titleData);
-                setInvoiceLineItems(data.invoiceLineItems || []);
+                setFees(data.fees || []);
+                setOperationalRules(data.operationalRules || null);
+                setClientCommission(data.clientCommission || 0);
             } else {
                 toast.error("Vehicle not found or unauthorized.");
                 navigate('/vehicles');
@@ -104,7 +108,9 @@ export default function ClientVehicleDetailsPage() {
                         services={services}
                         dispatchData={dispatchData}
                         titleData={titleData}
-                        invoiceLineItems={invoiceLineItems}
+                        fees={fees}
+                        operationalRules={operationalRules}
+                        clientCommission={clientCommission}
                         invoices={invoices}
                     />
                 </div>

@@ -115,11 +115,32 @@ export async function GET(request, { params }) {
         `;
         const titleData = titleServices.length > 0 ? titleServices[0] : null;
 
-        // Fetch all invoice line items to rebuild the breakdowns accurately
-        const invoiceLineItems = await sql`
+        // Fetch Purchase Fees Breakdown (same query as admin: type=FEE rows)
+        const fees = await sql`
             SELECT * FROM invoice_line_items 
-            WHERE vehicle_id = ${vehicle.id}
+            WHERE vehicle_id = ${vehicle.id} 
+            AND (type = 'FEE' OR description = 'Vehicle Purchase Price')
         `;
+
+        // Fetch Operational Rules (client auction rules — same as admin)
+        let operationalRules = null;
+        if (vehicle.auction_id) {
+            const rulesRows = await sql`
+                SELECT * FROM client_auction_rules 
+                WHERE client_id = ${vehicle.client_id} 
+                AND LOWER(auction_provider) = LOWER(${vehicle.auction_name})
+                LIMIT 1
+            `;
+            if (rulesRows.length > 0) operationalRules = rulesRows[0];
+        }
+
+        // Fetch client commission (markup)
+        const commissionRows = await sql`
+            SELECT commission FROM client_rules 
+            WHERE client_id = ${vehicle.client_id} 
+            LIMIT 1
+        `;
+        const clientCommission = commissionRows.length > 0 ? parseFloat(commissionRows[0].commission || 0) : 0;
 
         return Response.json({
             vehicle,
@@ -127,7 +148,9 @@ export async function GET(request, { params }) {
             invoices,
             dispatchData,
             titleData,
-            invoiceLineItems: invoiceLineItems || []
+            fees: fees || [],
+            operationalRules,
+            clientCommission
         }, { status: 200 });
 
     } catch (error) {
