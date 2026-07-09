@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Search, Car, CalendarDays } from 'lucide-react';
+import { Search, Car, CalendarDays, ChevronDown, Check } from 'lucide-react';
 import { formatToMDY } from "@/utils/dateUtils";
 
 // --- STATUS COLOR HELPERS ---
@@ -166,7 +166,20 @@ export default function ClientVehiclesTable({ vehicles = [], activeTab = 'All' }
     }, [vehicles]);
 
     // --- CLIENT-SIDE FILTER LOGIC ---
-    const [clientFilter, setClientFilter] = useState("all");
+    const [clientFilter, setClientFilter] = useState([]);
+    const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false);
+    const clientDropdownRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (clientDropdownRef.current && !clientDropdownRef.current.contains(event.target)) {
+                setIsClientDropdownOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
     const filteredVehicles = useMemo(() => {
         return vehicles.filter(v => {
             // 1. Search Filter (VIN, LOT, DESC)
@@ -190,7 +203,7 @@ export default function ClientVehiclesTable({ vehicles = [], activeTab = 'All' }
             }
 
             // 4. Client Filter (for main clients with sub-clients)
-            if (clientFilter !== "all" && v.buyer_name !== clientFilter) {
+            if (clientFilter.length > 0 && !clientFilter.includes(v.buyer_name)) {
                 return false;
             }
 
@@ -275,16 +288,55 @@ export default function ClientVehiclesTable({ vehicles = [], activeTab = 'All' }
 
                     {/* Sub-Client Filter (Only visible if there are multiple clients) */}
                     {uniqueClients.length > 1 && (
-                        <div className="w-[160px]">
-                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Client</label>
-                            <select 
-                                value={clientFilter}
-                                onChange={(e) => setClientFilter(e.target.value)}
-                                className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
-                            >
-                                <option value="all">All Clients</option>
-                                {uniqueClients.map(c => <option key={c} value={c}>{c}</option>)}
-                            </select>
+                        <div className="w-[160px]" ref={clientDropdownRef}>
+                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Clients</label>
+                            <div className="relative">
+                                <button
+                                    onClick={() => setIsClientDropdownOpen(!isClientDropdownOpen)}
+                                    className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] font-bold outline-none shadow-sm flex items-center justify-between hover:border-blue-500 transition-colors"
+                                >
+                                    <span className="truncate">
+                                        {clientFilter.length === 0 
+                                            ? "All Clients" 
+                                            : clientFilter.length === 1 
+                                                ? clientFilter[0] 
+                                                : `${clientFilter.length} Selected`}
+                                    </span>
+                                    <ChevronDown size={14} className={`text-slate-400 transition-transform ${isClientDropdownOpen ? 'rotate-180' : ''}`} />
+                                </button>
+                                
+                                {isClientDropdownOpen && (
+                                    <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-slate-200 rounded-lg shadow-xl z-50 py-1 max-h-60 overflow-y-auto">
+                                        <div 
+                                            className="px-3 py-2 hover:bg-slate-50 cursor-pointer flex items-center gap-2 border-b border-slate-100"
+                                            onClick={() => setClientFilter([])}
+                                        >
+                                            <div className={`w-4 h-4 rounded border flex items-center justify-center ${clientFilter.length === 0 ? 'bg-blue-500 border-blue-500' : 'border-slate-300'}`}>
+                                                {clientFilter.length === 0 && <Check size={10} className="text-white" />}
+                                            </div>
+                                            <span className="text-[11px] font-bold text-slate-700">All Clients</span>
+                                        </div>
+                                        {uniqueClients.map(c => (
+                                            <div 
+                                                key={c}
+                                                className="px-3 py-2 hover:bg-slate-50 cursor-pointer flex items-center gap-2"
+                                                onClick={() => {
+                                                    setClientFilter(prev => 
+                                                        prev.includes(c) 
+                                                            ? prev.filter(item => item !== c)
+                                                            : [...prev, c]
+                                                    );
+                                                }}
+                                            >
+                                                <div className={`w-4 h-4 rounded border flex items-center justify-center ${clientFilter.includes(c) ? 'bg-blue-500 border-blue-500' : 'border-slate-300'}`}>
+                                                    {clientFilter.includes(c) && <Check size={10} className="text-white" />}
+                                                </div>
+                                                <span className="text-[11px] font-bold text-slate-700 truncate" title={c}>{c}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
 
@@ -356,7 +408,7 @@ export default function ClientVehiclesTable({ vehicles = [], activeTab = 'All' }
                             setDebouncedSearch("");
                             setAuctionFilter("all");
                             setLocationFilter("all");
-                            setClientFilter("all");
+                            setClientFilter([]);
                             setStartDate("");
                             setEndDate("");
                         }}

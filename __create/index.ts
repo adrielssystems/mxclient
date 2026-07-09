@@ -11,6 +11,7 @@ import { proxy } from 'hono/proxy';
 import { bodyLimit } from 'hono/body-limit';
 import { requestId } from 'hono/request-id';
 import { csrf } from 'hono/csrf';
+import { logger } from 'hono/logger';
 import { createHonoServer } from 'react-router-hono-server/node';
 import { serializeError } from 'serialize-error';
 import NeonAdapter from './adapter';
@@ -47,6 +48,7 @@ const adapter = NeonAdapter(sql);
 
 const app = new Hono();
 
+app.use('*', logger());
 app.use('*', requestId());
 app.use('*', csrf());
 
