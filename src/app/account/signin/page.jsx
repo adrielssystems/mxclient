@@ -39,7 +39,7 @@ function MainComponent() {
             const data = await sessionRes.json();
             const role = (data.user?.role || "").toLowerCase();
 
-            if (role === "client" || role === "user" || role === "sub_client" || role === "admin") {
+            if (role === "client" || role === "main_client" || role === "user" || role === "sub_client" || role === "admin") {
               window.location.href = "/";
             } else {
               // Sign out immediately as this is client-only portal
