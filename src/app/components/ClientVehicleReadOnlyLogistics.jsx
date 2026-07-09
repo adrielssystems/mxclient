@@ -37,7 +37,7 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [],
             if (invoiceLineItems?.length > 0) {
                 // Filter line items for this specific purchase invoice, OR if none exists, use unbilled items
                 const purchaseItems = invoiceLineItems.filter(item => {
-                    if (purchaseInvoice) return item.invoice_id === purchaseInvoice.id;
+                    if (purchaseInvoice) return String(item.invoice_id) === String(purchaseInvoice.id);
                     return item.invoice_id === null;
                 });
                 
@@ -45,11 +45,11 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [],
                     const name = (item.description || '').toLowerCase();
                     const amount = parseFloat(item.amount || 0);
                     // Avoid counting the base vehicle price or extra charges as fees
-                    if (item.type !== 'PURCHASE' && item.type !== 'EXTRA_CHARGE' && !name.includes('vehicle purchase')) {
+                    if (item.type !== 'EXTRA_CHARGE' && !name.includes('vehicle purchase price')) {
                         if (name.includes('buyer') || name.includes('broker')) feeMap.brokerFee += amount;
                         else if (name.includes('gate')) feeMap.gateFee += amount;
-                        else if (name.includes('commission') || name.includes('markup')) feeMap.commissionFee += amount;
-                        else if (name.includes('wire')) feeMap.wireFee += amount;
+                        else if (name.includes('commission') || name.includes('markup') || name.includes('purchase fee')) feeMap.commissionFee += amount;
+                        else if (name.includes('wire') || name.includes('mailing')) feeMap.wireFee += amount;
                     }
                 });
             }
