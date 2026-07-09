@@ -37,9 +37,9 @@ function MainComponent() {
           const sessionRes = await fetch("/api/user/profile");
           if (sessionRes.ok) {
             const data = await sessionRes.json();
-            const role = data.user?.role;
+            const role = (data.user?.role || "").toLowerCase();
 
-            if (role === "client") {
+            if (role === "client" || role === "user" || role === "sub_client" || role === "admin") {
               window.location.href = "/";
             } else {
               // Sign out immediately as this is client-only portal

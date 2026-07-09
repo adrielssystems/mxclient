@@ -157,7 +157,7 @@ export async function GET(request) {
                 AND (vts.invoice_number IS NOT NULL AND i.invoice_number = vts.invoice_number)
               ORDER BY vts.vehicle_id, vts.created_at DESC
             ) lt ON lt.vehicle_id = v.id
-            WHERE v.client_id = ${clientId}
+            WHERE (v.client_id = ${clientId} OR v.client_id IN (SELECT sub_client_id FROM client_hierarchy WHERE main_client_id = ${clientId}))
             ORDER BY v.created_at DESC
         `;
 
