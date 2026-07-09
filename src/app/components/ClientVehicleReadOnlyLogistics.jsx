@@ -4,7 +4,7 @@ import { DollarSign, Truck, FileText, CheckCircle, Clock } from 'lucide-react';
 import { formatToMDY } from "@/utils/dateUtils";
 import { formatCurrency } from "@/utils/formatUtils";
 
-export default function ClientVehicleReadOnlyLogistics({ vehicle, services, dispatchData, titleData, fees, invoices }) {
+export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [], dispatchData, titleData, invoiceLineItems = [], invoices = [] }) {
     const initialTab = vehicle?.purchase_source === 'MotorX' ? 'purchases' : 'dispatch';
     const [activeTab, setActiveTab] = useState(initialTab);
 
@@ -17,6 +17,8 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services, disp
         const winningBidAmount = parseFloat(vehicle?.client_base_price) || 0;
         
         let feeMap = { gateFee: 0, brokerFee: 0, commissionFee: 0, wireFee: 0 };
+        
+        // 1. First try to get fees from services (if they exist there)
         if (services?.length > 0) {
             services.forEach(s => {
                 const name = (s.service_name || '').toLowerCase();
@@ -26,6 +28,31 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services, disp
                 else if (name.includes('commission') || name.includes('markup')) feeMap.commissionFee += amount;
                 else if (name.includes('wire')) feeMap.wireFee += amount;
             });
+        }
+
+        // 2. If no fees in services, try to extract them from invoice_line_items belonging to the PURCHASE invoice (or unbilled)
+        if (feeMap.gateFee === 0 && feeMap.brokerFee === 0 && feeMap.commissionFee === 0 && feeMap.wireFee === 0) {
+            const purchaseInvoice = invoices?.find(inv => inv.service_category === 'PURCHASE' && inv.status !== 'void' && inv.status !== 'canceled' && inv.status !== 'deleted');
+            
+            if (invoiceLineItems?.length > 0) {
+                // Filter line items for this specific purchase invoice, OR if none exists, use unbilled items
+                const purchaseItems = invoiceLineItems.filter(item => {
+                    if (purchaseInvoice) return item.invoice_id === purchaseInvoice.id;
+                    return item.invoice_id === null;
+                });
+                
+                purchaseItems.forEach(item => {
+                    const name = (item.description || '').toLowerCase();
+                    const amount = parseFloat(item.amount || 0);
+                    // Avoid counting the base vehicle price or extra charges as fees
+                    if (item.type !== 'PURCHASE' && item.type !== 'EXTRA_CHARGE' && !name.includes('vehicle purchase')) {
+                        if (name.includes('buyer') || name.includes('broker')) feeMap.brokerFee += amount;
+                        else if (name.includes('gate')) feeMap.gateFee += amount;
+                        else if (name.includes('commission') || name.includes('markup')) feeMap.commissionFee += amount;
+                        else if (name.includes('wire')) feeMap.wireFee += amount;
+                    }
+                });
+            }
         }
         
         const totalCost = winningBidAmount + feeMap.gateFee + feeMap.brokerFee + feeMap.commissionFee + feeMap.wireFee;

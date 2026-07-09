@@ -115,11 +115,10 @@ export async function GET(request, { params }) {
         `;
         const titleData = titleServices.length > 0 ? titleServices[0] : null;
 
-        // Fetch Purchase Fees Breakdown (Only Extra Charges, excluding the base PURCHASE type)
-        const fees = await sql`
-            SELECT description, amount FROM invoice_line_items 
-            WHERE vehicle_id = ${vehicle.id} 
-            AND type = 'FEE'
+        // Fetch all invoice line items to rebuild the breakdowns accurately
+        const invoiceLineItems = await sql`
+            SELECT * FROM invoice_line_items 
+            WHERE vehicle_id = ${vehicle.id}
         `;
 
         return Response.json({
@@ -128,7 +127,7 @@ export async function GET(request, { params }) {
             invoices,
             dispatchData,
             titleData,
-            fees
+            invoiceLineItems: invoiceLineItems || []
         }, { status: 200 });
 
     } catch (error) {
