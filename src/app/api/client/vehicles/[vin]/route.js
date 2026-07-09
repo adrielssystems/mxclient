@@ -73,7 +73,7 @@ export async function GET(request, { params }) {
             LEFT JOIN destinations d ON v.destination_id = d.id
             LEFT JOIN auth_users u ON v.client_id = u.id
             LEFT JOIN title_logs t ON v.vin = t.vin
-            WHERE v.vin = ${vin} AND v.client_id = ${clientId}
+            WHERE v.vin = ${vin} AND (v.client_id = ${clientId} OR v.client_id IN (SELECT sub_client_id FROM client_hierarchy WHERE main_client_id = ${clientId}))
         `;
 
         if (vehicles.length === 0) {
@@ -157,7 +157,7 @@ export async function PUT(request, { params }) {
         const body = await request.json();
 
         // Security check: Make sure vehicle belongs to this client
-        const authCheck = await sql`SELECT id, terminal_id FROM vehicles WHERE vin = ${vin} AND client_id = ${clientId}`;
+        const authCheck = await sql`SELECT id, terminal_id FROM vehicles WHERE vin = ${vin} AND (client_id = ${clientId} OR client_id IN (SELECT sub_client_id FROM client_hierarchy WHERE main_client_id = ${clientId}))`;
         if (authCheck.length === 0) {
             return Response.json({ error: "Vehicle not found" }, { status: 404 });
         }

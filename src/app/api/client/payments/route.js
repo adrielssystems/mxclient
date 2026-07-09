@@ -42,7 +42,7 @@ export async function GET(request) {
             FROM invoices i
             LEFT JOIN vehicles v ON i.vehicle_id = v.id
             LEFT JOIN auth_users u ON i.client_id = u.id
-            WHERE i.client_id = ${clientId}
+            WHERE (i.client_id = ${clientId} OR i.client_id IN (SELECT sub_client_id FROM client_hierarchy WHERE main_client_id = ${clientId}))
             ORDER BY i.created_at DESC
         `;
 
@@ -56,7 +56,7 @@ export async function GET(request) {
                 i.invoice_number
             FROM payment_reconciliations pr
             JOIN invoices i ON pr.invoice_id = i.id
-            WHERE i.client_id = ${clientId}
+            WHERE (i.client_id = ${clientId} OR i.client_id IN (SELECT sub_client_id FROM client_hierarchy WHERE main_client_id = ${clientId}))
             ORDER BY pr.reconciliation_date DESC
         `;
 

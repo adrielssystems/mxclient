@@ -198,7 +198,7 @@ export async function GET(request) {
               pr.reconciliation_date as date
             FROM payment_reconciliations pr
             JOIN invoices i ON pr.invoice_id = i.id
-            WHERE i.client_id = ${clientId}
+            WHERE (i.client_id = ${clientId} OR i.client_id IN (SELECT sub_client_id FROM client_hierarchy WHERE main_client_id = ${clientId}))
             ORDER BY pr.reconciliation_date DESC
             LIMIT 5
         `;

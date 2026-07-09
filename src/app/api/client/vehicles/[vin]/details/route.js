@@ -58,7 +58,7 @@ export async function GET(request, { params }) {
             LEFT JOIN auth_users u ON v.client_id = u.id
             LEFT JOIN title_logs t ON v.vin = t.vin
             LEFT JOIN shippers_terminals st ON v.terminal_id = st.id
-            WHERE v.vin = ${vin} AND v.client_id = ${clientId}
+            WHERE v.vin = ${vin} AND (v.client_id = ${clientId} OR v.client_id IN (SELECT sub_client_id FROM client_hierarchy WHERE main_client_id = ${clientId}))
         `;
 
         if (vehicles.length === 0) {
