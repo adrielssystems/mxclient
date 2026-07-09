@@ -351,6 +351,24 @@ export const { auth } = CreateAuth({
       // I will import 'sql' from '@/app/api/utils/sql' at top of file instead of relying on 'adapter' internals.
 
       console.log("[Auth Success] Returning user object for:", email);
+
+      // Audit Log the successful login
+      try {
+        const { logAudit, RESOURCE_TYPES } = await import("@/utils/auditLogger");
+        await logAudit({
+            userId: user.id,
+            userName: user.name,
+            userEmail: user.email,
+            userRole: user.role,
+            action: 'USER_LOGIN',
+            resourceType: RESOURCE_TYPES.USER,
+            resourceId: user.id,
+            details: { message: "Client logged into MXCLIENT Portal" }
+        });
+      } catch (err) {
+        console.error("[Auth Audit Error] Failed to log login:", err);
+      }
+
       return { 
         id: user.id,
         name: user.name,
