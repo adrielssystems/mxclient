@@ -48,10 +48,10 @@ export async function GET(request) {
                 v.purchase_source,
                 v.dl_number,
                 
-                t.lien_holder as has_lien,
+                COALESCE(vt.has_lien, t.lien_holder) as has_lien,
                 t.title_status as title_log_status,
-                st.name as mailing_location,
-                t.client_notes as client_notes_title,
+                COALESCE(vt.mailing_location, st.name) as mailing_location,
+                COALESCE(vt.client_notes, t.client_notes) as client_notes_title,
                 
                 EXISTS (
                   SELECT 1 FROM vehicle_service_details vsd 
@@ -127,6 +127,7 @@ export async function GET(request) {
             LEFT JOIN auth_users u ON v.client_id = u.id
             LEFT JOIN title_logs t ON v.vin = t.vin
             LEFT JOIN shippers_terminals st ON t.mailing_terminal_id = st.id
+            LEFT JOIN vehicle_titles vt ON vt.vehicle_id = v.id
             LEFT JOIN (
               SELECT DISTINCT ON (vehicle_id)
                 vehicle_id,
