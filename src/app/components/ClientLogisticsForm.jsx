@@ -21,7 +21,13 @@ export default function ClientLogisticsForm({
 
     // If vehicle status is actively in transit or processed by MotorX (e.g. loaded, delivered, in_transit, booked), it should be locked.
     // 'pending_dispatch' means the client has submitted it, but they can still edit it before MotorX actually processes it.
-    const isLocked = vehicle.current_status && !['purchased', 'pending', 'pending_dispatch', 'assignment_pending'].includes(vehicle.current_status.toLowerCase());
+    const isLockedBase = vehicle.current_status && !['purchased', 'pending', 'pending_dispatch', 'assignment_pending'].includes(vehicle.current_status.toLowerCase());
+
+    const hasConfiguredTerminal = !!vehicle.terminal_id;
+    const hasConfiguredTitle = !!titleSvc;
+
+    const isTerminalLocked = isLockedBase || hasConfiguredTerminal;
+    const isTitleLocked = isLockedBase || hasConfiguredTitle;
 
     const [loading, setLoading] = useState(false);
 
@@ -108,11 +114,15 @@ export default function ClientLogisticsForm({
                     <h3 className="font-bold text-slate-900 text-base uppercase">SERVICES CONFIGURATION</h3>
                     <p className="text-[11px] text-slate-500">Provide instructions for shipping and handling.</p>
                 </div>
-                {isLocked && (
+                {isLockedBase ? (
                     <div className="bg-amber-50 text-amber-800 text-[10px] font-bold px-3 py-1.5 rounded-lg border border-amber-200">
                         Configuration is locked as logistics are already in progress.
                     </div>
-                )}
+                ) : (hasConfiguredTerminal || hasConfiguredTitle) ? (
+                    <div className="bg-blue-50 text-blue-800 text-[10px] font-bold px-3 py-1.5 rounded-lg border border-blue-200">
+                        Configured services cannot be modified.
+                    </div>
+                ) : null}
             </div>
 
             <div className="p-5">
@@ -141,8 +151,8 @@ export default function ClientLogisticsForm({
                                         setSelectedHub(e.target.value);
                                         handleChange('terminal_id', '');
                                     }}
-                                    disabled={isLocked}
-                                    className={`w-full px-3 py-2.5 border border-slate-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-blue-500 transition-colors ${isLocked ? 'bg-slate-50 text-slate-400 cursor-not-allowed opacity-70' : 'bg-white'}`}
+                                    disabled={isTerminalLocked}
+                                    className={`w-full px-3 py-2.5 border border-slate-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-blue-500 transition-colors ${isTerminalLocked ? 'bg-slate-50 text-slate-400 cursor-not-allowed opacity-70' : 'bg-white'}`}
                                 >
                                     <option value="">Select Hub...</option>
                                     {uniqueHubs.map(h => (
@@ -155,8 +165,8 @@ export default function ClientLogisticsForm({
                                 <select
                                     value={formData.terminal_id}
                                     onChange={(e) => handleChange('terminal_id', e.target.value)}
-                                    disabled={isLocked || !selectedHub}
-                                    className={`w-full px-3 py-2.5 border border-slate-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-blue-500 transition-colors ${isLocked || !selectedHub ? 'bg-slate-50 text-slate-400 cursor-not-allowed opacity-70' : 'bg-white'}`}
+                                    disabled={isTerminalLocked || !selectedHub}
+                                    className={`w-full px-3 py-2.5 border border-slate-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-blue-500 transition-colors ${isTerminalLocked || !selectedHub ? 'bg-slate-50 text-slate-400 cursor-not-allowed opacity-70' : 'bg-white'}`}
                                 >
                                     <option value="">Select Terminal...</option>
                                     {filteredTerminals.map(t => (
@@ -184,8 +194,8 @@ export default function ClientLogisticsForm({
                             <select
                                 value={formData.title_service_id}
                                 onChange={(e) => handleChange('title_service_id', e.target.value)}
-                                disabled={isLocked}
-                                className={`w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 transition-colors ${isLocked ? 'bg-slate-50 text-slate-400 cursor-not-allowed opacity-70' : 'bg-white'}`}
+                                disabled={isTitleLocked}
+                                className={`w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 transition-colors ${isTitleLocked ? 'bg-slate-50 text-slate-400 cursor-not-allowed opacity-70' : 'bg-white'}`}
                             >
                                 <option value="">Standard Title Handling</option>
                                 {titleOptions.map(t => (
@@ -202,7 +212,7 @@ export default function ClientLogisticsForm({
             <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex justify-end">
                 <button
                     onClick={handleSave}
-                    disabled={loading || isLocked}
+                    disabled={loading || isLockedBase || (hasConfiguredTerminal && hasConfiguredTitle)}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {loading ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" /> : <Save size={14} />}

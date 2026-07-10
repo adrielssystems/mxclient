@@ -20,6 +20,7 @@ export default function VehicleTitleTab({ vehicle, onUpdate, isClient = false, i
     const [savingTracking, setSavingTracking] = useState(false);
     const [terminals, setTerminals] = useState([]);
     const [uploadingPdf, setUploadingPdf] = useState(false);
+    const [initiallyConfigured, setInitiallyConfigured] = useState(false);
 
     useEffect(() => {
         fetchTitleTracking();
@@ -41,7 +42,12 @@ export default function VehicleTitleTab({ vehicle, onUpdate, isClient = false, i
             const res = await fetch(`/api/vehicles/${vehicle.vin}/title-tracking`);
             if (res.ok) {
                 const json = await res.json();
-                if (json.data) setTitleTracking(json.data);
+                if (json.data) {
+                    setTitleTracking(json.data);
+                    if (json.data.mailing_location) {
+                        setInitiallyConfigured(true);
+                    }
+                }
             }
         } catch (error) {
             console.error("Failed to fetch title tracking", error);
@@ -152,6 +158,9 @@ export default function VehicleTitleTab({ vehicle, onUpdate, isClient = false, i
     };
     const currentStatusStyle = statusStyle[titleTracking.computed_status] || 'bg-slate-200 text-slate-800';
 
+    const isClientLocked = isClient && initiallyConfigured;
+    const finalIsLocked = isLocked || isClientLocked;
+
     return (
         <div className="space-y-6 p-1">
 
@@ -181,13 +190,15 @@ export default function VehicleTitleTab({ vehicle, onUpdate, isClient = false, i
                             {titleTracking.computed_status}
                         </span>
                         {/* Save */}
-                        <button
-                            onClick={handleSaveTitleTracking}
-                            disabled={savingTracking || isLocked}
-                            className="bg-blue-600 text-white px-4 py-1.5 rounded text-sm font-bold flex items-center gap-1 hover:bg-blue-700 disabled:opacity-50"
-                        >
-                            <Save size={14} /> {savingTracking ? 'Saving...' : 'Save'}
-                        </button>
+                        {!(isClient && initiallyConfigured) && (
+                            <button
+                                onClick={handleSaveTitleTracking}
+                                disabled={savingTracking || finalIsLocked}
+                                className="bg-blue-600 text-white px-4 py-1.5 rounded text-sm font-bold flex items-center gap-1 hover:bg-blue-700 disabled:opacity-50"
+                            >
+                                <Save size={14} /> {savingTracking ? 'Saving...' : 'Save'}
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -205,8 +216,8 @@ export default function VehicleTitleTab({ vehicle, onUpdate, isClient = false, i
                                 name="mailing_location"
                                 value={titleTracking.mailing_location}
                                 onChange={e => setTitleTracking({...titleTracking, mailing_location: e.target.value})}
-                                disabled={isLocked}
-                                className={`w-full p-2 text-sm border rounded focus:ring-2 focus:ring-blue-500 ${isMissingMailingInfo ? 'border-red-500 bg-red-50' : 'border-slate-300'}`}
+                                disabled={finalIsLocked}
+                                className={`w-full p-2 text-sm border rounded focus:ring-2 focus:ring-blue-500 ${isMissingMailingInfo ? 'border-red-500 bg-red-50' : 'border-slate-300'} ${finalIsLocked ? 'bg-slate-50 text-slate-500 cursor-not-allowed opacity-80' : ''}`}
                             >
                                 <option value="">Select Destination...</option>
                                 {terminals.map(t => (
@@ -234,8 +245,8 @@ export default function VehicleTitleTab({ vehicle, onUpdate, isClient = false, i
                                     type="checkbox"
                                     checked={titleTracking.has_lien}
                                     onChange={e => setTitleTracking({...titleTracking, has_lien: e.target.checked})}
-                                    disabled={isLocked}
-                                    className="h-4 w-4 text-blue-600 rounded border-gray-300"
+                                    disabled={finalIsLocked}
+                                    className={`h-4 w-4 text-blue-600 rounded border-gray-300 ${finalIsLocked ? 'cursor-not-allowed opacity-70' : ''}`}
                                 />
                                 <label className="text-sm font-bold text-slate-700">Vehicle has a Lien</label>
                                 {titleTracking.has_lien && (
@@ -259,14 +270,14 @@ export default function VehicleTitleTab({ vehicle, onUpdate, isClient = false, i
                                 name="client_notes"
                                 value={titleTracking.client_notes || ""}
                                 onChange={e => setTitleTracking({...titleTracking, client_notes: e.target.value})}
-                                disabled={isLocked}
+                                disabled={finalIsLocked}
                                 rows={3}
                                 className={`w-full p-2 text-sm border rounded focus:ring-2 focus:ring-blue-500 ${
                                     titleTracking.mailing_location === 'Others' &&
                                     (!titleTracking.client_notes || titleTracking.client_notes.trim().length < 6)
                                         ? 'border-red-400 bg-red-50/30'
                                         : 'border-slate-300'
-                                }`}
+                                } ${finalIsLocked ? 'bg-slate-50 text-slate-500 cursor-not-allowed opacity-80' : ''}`}
                                 placeholder={
                                     titleTracking.mailing_location === 'Others'
                                         ? "Please provide full mailing address..."

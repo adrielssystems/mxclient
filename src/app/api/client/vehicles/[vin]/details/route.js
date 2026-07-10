@@ -116,6 +116,23 @@ export async function GET(request, { params }) {
         `;
         const titleData = titleServices.length > 0 ? titleServices[0] : null;
 
+        // Fetch Master Title Tracking Data
+        const titleTrackingRows = await sql`SELECT * FROM vehicle_titles WHERE vehicle_id = ${vehicle.id}`;
+        if (titleTrackingRows.length > 0) {
+            let row = titleTrackingRows[0];
+            let computed = "Not Received";
+            if (row.date_mailed) computed = "Sent";
+            else if (row.date_received) computed = "Received";
+            else if (row.manual_status) computed = row.manual_status;
+            
+            vehicle.title_tracking = {
+                ...row,
+                computed_status: computed
+            };
+        } else {
+            vehicle.title_tracking = null;
+        }
+
         // Fetch Purchase Fees Breakdown (same query as admin: type=FEE rows)
         const fees = await sql`
             SELECT * FROM invoice_line_items 

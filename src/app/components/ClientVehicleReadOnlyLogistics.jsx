@@ -139,21 +139,21 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [],
                             <div>
                                 <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-1.5 font-bold">Title Status</p>
                                 <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase ${
-                                    (vehicle?.title_log_status || '').toLowerCase() === 'sent' ? 'bg-blue-900 text-white' : 'bg-slate-200 text-slate-700'
+                                    (vehicle?.title_tracking?.computed_status || vehicle?.title_log_status || '').toLowerCase() === 'sent' ? 'bg-blue-900 text-white' : 'bg-slate-200 text-slate-700'
                                 }`}>
-                                    {vehicle?.title_log_status || vehicle?.title_service_status || 'Pending'}
+                                    {vehicle?.title_tracking?.computed_status || vehicle?.title_log_status || vehicle?.title_service_status || 'Pending'}
                                 </span>
                             </div>
                             <div>
                                 <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-1 font-bold">Mailing Title Request</p>
-                                <div className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-700">
-                                    {vehicle?.mailing_location || 'Not Specified'}
+                                <div className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 min-h-[46px] flex items-center">
+                                    {vehicle?.title_tracking?.mailing_location || vehicle?.mailing_location || 'Not Specified'}
                                 </div>
                             </div>
                             <div>
                                 <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-1 font-bold">Client Message For Mailing Titles</p>
-                                <div className="bg-white border border-slate-200 rounded-lg p-3 text-xs text-slate-600 min-h-[60px]">
-                                    {vehicle?.client_notes_title || <span className="italic text-slate-400">No message provided.</span>}
+                                <div className="bg-white border border-slate-200 rounded-lg p-3 text-xs text-slate-600 min-h-[46px]">
+                                    {vehicle?.title_tracking?.client_notes || vehicle?.client_notes_title || <span className="italic text-slate-400">No message provided.</span>}
                                 </div>
                             </div>
                         </div>
