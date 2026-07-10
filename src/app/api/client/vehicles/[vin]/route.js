@@ -239,8 +239,13 @@ export async function PUT(request, { params }) {
 
                 // Also ensure vehicle_title_services record exists (this is what the Admin Panel reads)
                 const existingTitleSvc = await sql`SELECT id FROM vehicle_title_services WHERE vehicle_id = ${vehicleId}`;
+                const svcNameResult = await sql`SELECT name FROM services WHERE id = ${body.title_service_id}`;
+                const titleSvcName = svcNameResult.length > 0 ? svcNameResult[0].name : '';
+
                 if (existingTitleSvc.length === 0) {
-                    await sql`INSERT INTO vehicle_title_services (vehicle_id) VALUES (${vehicleId})`;
+                    await sql`INSERT INTO vehicle_title_services (vehicle_id, service_id, title_service_name) VALUES (${vehicleId}, ${body.title_service_id}, ${titleSvcName})`;
+                } else {
+                    await sql`UPDATE vehicle_title_services SET service_id = ${body.title_service_id}, title_service_name = ${titleSvcName} WHERE id = ${existingTitleSvc[0].id}`;
                 }
                 // Mark vehicle title_status as processing so Admin Panel toggle activates
                 await sql`UPDATE vehicles SET title_status = 'processing' WHERE id = ${vehicleId} AND (title_status IS NULL OR title_status = 'not_applicable')`;
