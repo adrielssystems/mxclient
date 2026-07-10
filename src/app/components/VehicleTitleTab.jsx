@@ -75,6 +75,9 @@ export default function VehicleTitleTab({ vehicle, onUpdate, isClient = false, i
             if (res.ok) {
                 const json = await res.json();
                 setTitleTracking(json.data);
+                if (json.data.mailing_location) {
+                    setInitiallyConfigured(true);
+                }
                 toast.success("Title tracking updated");
                 if (onUpdate) onUpdate();
             } else {
