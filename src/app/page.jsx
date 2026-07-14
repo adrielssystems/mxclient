@@ -10,6 +10,7 @@ export default function ClientDashboard() {
     const [vehicles, setVehicles] = useState([]);
     const [recentPayments, setRecentPayments] = useState([]);
     const [dataLoading, setDataLoading] = useState(true);
+    const [isRightPanelMinimized, setIsRightPanelMinimized] = useState(false);
 
     const fetchVehicles = () => {
         fetch("/api/client/vehicles", { cache: 'no-store' })
@@ -86,16 +87,30 @@ export default function ClientDashboard() {
 
     return (
         <div className="font-sans animate-in fade-in duration-300">
+            {/* MOBILE ONLY: Add Vehicle Button First */}
+            <div className="xl:hidden mb-6">
+                <button onClick={() => navigate('/vehicles/new')} className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:from-blue-700 hover:to-indigo-800 transition-colors shadow-lg active:scale-[0.98]">
+                    <Plus size={20} /> Add New Vehicle
+                </button>
+            </div>
+
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                {/* Active Vehicles List (Takes 2/3 width) */}
-                <div className="xl:col-span-2 space-y-6">
+                {/* Active Vehicles List (Takes 2/3 or full width) */}
+                <div className={`${isRightPanelMinimized ? 'xl:col-span-3' : 'xl:col-span-2'} space-y-6 transition-all duration-300`}>
                     <div className="flex items-center justify-between">
                         <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                             My Active Vehicles
                         </h3>
-                        <a href="/vehicles" className="text-sm font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors">
-                            View All <ChevronRight size={16} />
-                        </a>
+                        <div className="flex items-center gap-4">
+                            {isRightPanelMinimized && (
+                                <button onClick={() => setIsRightPanelMinimized(false)} className="hidden xl:flex text-sm font-bold text-slate-500 hover:text-slate-800 items-center gap-1 transition-colors px-3 py-1 bg-white rounded-full border shadow-sm">
+                                    Show Sidebar
+                                </button>
+                            )}
+                            <a href="/vehicles" className="text-sm font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors">
+                                View All <ChevronRight size={16} />
+                            </a>
+                        </div>
                     </div>
 
                     <div className="space-y-4">
@@ -174,10 +189,18 @@ export default function ClientDashboard() {
                 </div>
 
                 {/* Side Panel: Payments & Actions (Takes 1/3 width) */}
-                <div className="space-y-8">
+                {!isRightPanelMinimized && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                    
+                    {/* Minimize Button */}
+                    <div className="hidden xl:flex justify-end">
+                        <button onClick={() => setIsRightPanelMinimized(true)} className="text-xs font-bold text-slate-400 hover:text-slate-700 transition-colors uppercase tracking-widest flex items-center gap-1">
+                            Minimize Panel <ChevronRight size={14} />
+                        </button>
+                    </div>
 
-                    {/* Quick Actions */}
-                    <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl shadow-md p-6 text-white relative overflow-hidden transition-transform hover:-translate-y-1">
+                    {/* Quick Actions (Hidden on mobile because it's at the top) */}
+                    <div className="hidden xl:block bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl shadow-md p-6 text-white relative overflow-hidden transition-transform hover:-translate-y-1">
                         <div className="relative z-10">
                             <h3 className="font-bold text-lg mb-2">Need to add a vehicle?</h3>
                             <p className="text-blue-100 text-sm mb-6 leading-relaxed">Notify MotorX of a new auction purchase to start the dispatch process.</p>
@@ -219,6 +242,7 @@ export default function ClientDashboard() {
                     </div>
 
                 </div>
+                )}
             </div>
 
 
