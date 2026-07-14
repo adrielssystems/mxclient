@@ -64,13 +64,36 @@ export default function NewClientVehiclePage() {
 
     const handleSubmit = async (formData) => {
         try {
+            // Extract file data before sending the main payload
+            const { auctionReceiptBase64, gatePassBase64, ...vehicleData } = formData;
+
             const response = await fetch('/api/vehicles', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(vehicleData)
             });
 
             if (response.ok) {
+                const createdVehicle = await response.json();
+                
+                // Upload Auction Receipt if present
+                if (auctionReceiptBase64) {
+                    await fetch(`/api/vehicles/${createdVehicle.vin}/ownership-documents`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ base64: auctionReceiptBase64, tag: 'Auction Receipt' })
+                    }).catch(console.error);
+                }
+
+                // Upload Gate Pass if present
+                if (gatePassBase64) {
+                    await fetch(`/api/vehicles/${createdVehicle.vin}/ownership-documents`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ base64: gatePassBase64, tag: 'Gate Pass' })
+                    }).catch(console.error);
+                }
+
                 toast.success('Vehicle created successfully');
                 navigate('/vehicles');
             } else {

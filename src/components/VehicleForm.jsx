@@ -59,6 +59,9 @@ export default function VehicleForm({ initialData, onSubmit, onCancel, clients, 
     const wantsTitleService = useWatch({ control, name: 'wants_title_service' });
     const selectedHub = useWatch({ control, name: 'destination_hub' });
 
+    const [auctionReceipt, setAuctionReceipt] = useState(null);
+    const [gatePass, setGatePass] = useState(null);
+
     // Hubs Logic
     const uniqueHubs = useMemo(() => {
         const hubs = new Set();
@@ -75,7 +78,29 @@ export default function VehicleForm({ initialData, onSubmit, onCancel, clients, 
 
     // Handle form submission
     const onFormSubmit = (data) => {
-        onSubmit(data);
+        if (!initialData?.id && !auctionReceipt) {
+            toast.error('Auction Receipt is mandatory to create a vehicle.');
+            return;
+        }
+        onSubmit({ 
+            ...data, 
+            auctionReceiptBase64: auctionReceipt?.base64,
+            gatePassBase64: gatePass?.base64
+        });
+    };
+
+    const handleFileUpload = (e, setter) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (file.type !== 'application/pdf') {
+            toast.error('Only PDF documents are allowed');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setter({ name: file.name, base64: reader.result });
+        };
+        reader.readAsDataURL(file);
     };
 
     return (
@@ -269,6 +294,63 @@ export default function VehicleForm({ initialData, onSubmit, onCancel, clients, 
                                 </div>
                             </div>
  
+                        </div>
+                    </div>
+
+                    {/* SECTION: UPLOADS (Auction Receipt & Gate Pass) */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                        {/* Auction Receipt */}
+                        <div className="relative bg-white border border-slate-300 rounded shadow-sm p-5">
+                            <label className="block text-[11px] font-black text-slate-600 uppercase tracking-widest mb-3">
+                                Auction Receipt <span className="text-red-500">(Mandatory)</span>
+                            </label>
+                            <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors relative ${auctionReceipt ? 'border-emerald-300 bg-emerald-50' : 'border-blue-200 hover:bg-blue-50'}`}>
+                                <input 
+                                    type="file" 
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    onChange={(e) => handleFileUpload(e, setAuctionReceipt)}
+                                    accept=".pdf"
+                                />
+                                {auctionReceipt ? (
+                                    <div className="flex flex-col items-center gap-2">
+                                        <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+                                        <span className="text-sm font-bold text-slate-700">{auctionReceipt.name}</span>
+                                        <span className="text-xs text-emerald-600 font-bold">Ready to upload</span>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center gap-2">
+                                        <svg className="w-8 h-8 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                                        <span className="text-sm font-bold text-slate-600">Click to upload Auction Receipt (PDF)</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Gate Pass */}
+                        <div className="relative bg-white border border-slate-300 rounded shadow-sm p-5">
+                            <label className="block text-[11px] font-black text-slate-600 uppercase tracking-widest mb-3">
+                                Gate Pass <span className="text-slate-400">(Optional)</span>
+                            </label>
+                            <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors relative ${gatePass ? 'border-emerald-300 bg-emerald-50' : 'border-blue-200 hover:bg-blue-50'}`}>
+                                <input 
+                                    type="file" 
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    onChange={(e) => handleFileUpload(e, setGatePass)}
+                                    accept=".pdf"
+                                />
+                                {gatePass ? (
+                                    <div className="flex flex-col items-center gap-2">
+                                        <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+                                        <span className="text-sm font-bold text-slate-700">{gatePass.name}</span>
+                                        <span className="text-xs text-emerald-600 font-bold">Ready to upload</span>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center gap-2">
+                                        <svg className="w-8 h-8 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                                        <span className="text-sm font-bold text-slate-600">Click to upload Gate Pass (PDF)</span>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
 
