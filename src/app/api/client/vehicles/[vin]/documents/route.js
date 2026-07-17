@@ -46,17 +46,12 @@ export async function GET(request, { params }) {
         `;
 
         const mappedDocs = docs.map(doc => {
-            let finalUrl = doc.file_url;
-            if (doc.drive_file_id) {
-                // We use webViewLink so they can view it in the browser if they prefer, or download it
-                finalUrl = `https://drive.google.com/file/d/${doc.drive_file_id}/view`;
-            }
-            
             return {
                 id: doc.id,
                 doc_type: doc.tag,
                 file_name: doc.filename,
-                file_url: finalUrl
+                file_url: doc.file_url,
+                download_url: doc.file_url
             };
         });
 

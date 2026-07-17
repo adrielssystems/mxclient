@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from 'react';
-import { Calendar, MapPin, Hash, FileText, User, Copy, Check, Download } from 'lucide-react';
+import { Calendar, MapPin, Hash, FileText, User, Copy, Check, Download, Eye } from 'lucide-react';
 import { formatToMDY } from "@/utils/dateUtils";
 
 // A read-only component for vehicle ownership documents
@@ -49,9 +49,24 @@ function ClientReadOnlyOwnershipDocuments({ vehicle }) {
                             <p className="text-[10px] text-slate-400 truncate">{doc.file_name}</p>
                         </div>
                     </div>
-                    <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
-                        <Download size={14} />
-                    </a>
+                    <div className="flex items-center gap-1">
+                        <a 
+                            href={doc.file_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                            title="View Document"
+                        >
+                            <Eye size={14} />
+                        </a>
+                        <a 
+                            href={doc.download_url || doc.file_url} 
+                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                            title="Download Document"
+                        >
+                            <Download size={14} />
+                        </a>
+                    </div>
                 </div>
             ))}
         </div>
