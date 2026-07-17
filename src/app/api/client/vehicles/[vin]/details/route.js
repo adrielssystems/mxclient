@@ -116,6 +116,16 @@ export async function GET(request, { params }) {
         `;
         const titleData = titleServices.length > 0 ? titleServices[0] : null;
 
+        // Fetch Ownership Documents
+        const ownershipDocs = await sql`
+            SELECT * FROM vehicle_ownership_documents 
+            WHERE vehicle_id = ${vehicle.id} 
+            ORDER BY created_at DESC LIMIT 1
+        `;
+        if (ownershipDocs.length > 0) {
+            vehicle.ownership_document_url = ownershipDocs[0].file_url;
+        }
+
         // Fetch Master Title Tracking Data
         const titleTrackingRows = await sql`SELECT * FROM vehicle_titles WHERE vehicle_id = ${vehicle.id}`;
         if (titleTrackingRows.length > 0) {

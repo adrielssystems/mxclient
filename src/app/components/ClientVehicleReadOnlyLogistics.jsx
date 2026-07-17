@@ -313,9 +313,21 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [],
                         </div>
 
                         <div className="border border-green-200 rounded-xl p-4 bg-green-50/30">
-                            <h4 className="text-[10px] font-black text-green-700 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <Clock size={14} /> Operational Status
-                            </h4>
+                            <div className="flex justify-between items-center mb-4">
+                                <h4 className="text-[10px] font-black text-green-700 uppercase tracking-widest flex items-center gap-2">
+                                    <Clock size={14} /> Operational Status
+                                </h4>
+                                {vehicle?.title_tracking?.computed_status && (
+                                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
+                                        vehicle.title_tracking.computed_status === 'Received' ? 'bg-green-500 text-white border-green-600 shadow-sm' :
+                                        vehicle.title_tracking.computed_status === 'Sent' ? 'bg-slate-700 text-white border-slate-800' :
+                                        vehicle.title_tracking.computed_status === 'Missing' ? 'bg-purple-100 text-purple-700 border-purple-200' :
+                                        'bg-slate-100 text-slate-600 border-slate-200'
+                                    }`}>
+                                        {vehicle.title_tracking.computed_status}
+                                    </span>
+                                )}
+                            </div>
                             <div className="grid grid-cols-3 gap-4 mb-4">
                                 <div>
                                     <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Requested</label>
@@ -356,6 +368,21 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [],
                                 {titleData?.client_notes || <span className="text-slate-400 italic">No notes</span>}
                             </div>
                         </div>
+
+                        {/* Title Document Viewer */}
+                        {(vehicle?.ownership_document_url || vehicle?.title_tracking?.title_file_url) && (
+                            <div className="mt-4">
+                                <a
+                                    href={vehicle.ownership_document_url || vehicle.title_tracking.title_file_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-lg text-sm border border-blue-200 transition-colors shadow-sm"
+                                >
+                                    <FileText size={16} />
+                                    View Title Document
+                                </a>
+                            </div>
+                        )}
                     </>
                 )}
             </div>
