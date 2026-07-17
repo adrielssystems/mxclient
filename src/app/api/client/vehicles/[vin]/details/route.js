@@ -119,7 +119,7 @@ export async function GET(request, { params }) {
         // Fetch Ownership Documents
         const ownershipDocs = await sql`
             SELECT * FROM vehicle_ownership_documents 
-            WHERE vehicle_id = ${vehicle.id} 
+            WHERE vin = ${vin} 
             ORDER BY created_at DESC LIMIT 1
         `;
         if (ownershipDocs.length > 0) {
