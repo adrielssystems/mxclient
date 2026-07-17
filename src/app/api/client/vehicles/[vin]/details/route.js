@@ -39,7 +39,6 @@ export async function GET(request, { params }) {
                 d.port_name as destination_port,
                 u.name as buyer_name,
                 st.name as terminal_name,
-                t.lien_holder as has_lien,
                 v.purchase_price as client_base_price,
                 
                 (
@@ -56,7 +55,6 @@ export async function GET(request, { params }) {
             LEFT JOIN locations l ON v.location_id = l.id
             LEFT JOIN destinations d ON v.destination_id = d.id
             LEFT JOIN auth_users u ON v.client_id = u.id
-            LEFT JOIN title_logs t ON v.vin = t.vin
             LEFT JOIN shippers_terminals st ON v.terminal_id = st.id
             WHERE v.vin = ${vin} AND (v.client_id = ${clientId} OR v.client_id IN (SELECT sub_client_id FROM client_hierarchy WHERE main_client_id = ${clientId}))
         `;
@@ -127,13 +125,15 @@ export async function GET(request, { params }) {
         }
 
         // Fetch Master Title Tracking Data
-        const titleTrackingRows = await sql`SELECT * FROM vehicle_titles WHERE vehicle_id = ${vehicle.id}`;
+        const titleTrackingRows = await sql`
+            SELECT tl.*, st.name as mailing_location 
+            FROM title_logs tl
+            LEFT JOIN shippers_terminals st ON tl.mailing_terminal_id = st.id
+            WHERE tl.vin = ${vin}
+        `;
         if (titleTrackingRows.length > 0) {
             let row = titleTrackingRows[0];
-            let computed = "Not Received";
-            if (row.date_mailed) computed = "Sent";
-            else if (row.date_received) computed = "Received";
-            else if (row.manual_status) computed = row.manual_status;
+            let computed = row.title_status || "Not Received";
             
             vehicle.title_tracking = {
                 ...row,
