@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, lazy, Suspense } from "react";
 import useUser from "@/utils/useUser";
+import { formatCurrency } from "@/utils/formatUtils";
 const ReportCharts = lazy(() => import("../reports/components/ReportCharts"));
 import { FileText, Car, DollarSign, TrendingUp, Truck, AlertCircle, Search, Loader2, CheckCircle2 } from "lucide-react";
 
@@ -127,18 +128,18 @@ export default function ClientReportsView({ hideHeader = false }) {
                 </div>
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Invoiced</p>
-                    <h2 className="text-2xl font-black text-slate-800">${kpis.totalInvoiced.toLocaleString("en-US", { minimumFractionDigits: 2 })}</h2>
+                    <h2 className="text-2xl font-black text-slate-800">{formatCurrency(kpis.totalInvoiced)}</h2>
                     <FileText className="text-indigo-500 mt-2" size={20} />
                 </div>
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Paid</p>
-                    <h2 className="text-2xl font-black text-emerald-700">${kpis.totalPaid.toLocaleString("en-US", { minimumFractionDigits: 2 })}</h2>
+                    <h2 className="text-2xl font-black text-emerald-700">{formatCurrency(kpis.totalPaid)}</h2>
                     <DollarSign className="text-emerald-500 mt-2" size={20} />
                 </div>
                 <div className={`p-5 rounded-2xl border shadow-sm hover:shadow-md transition-all ${kpis.outstandingBalance > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-slate-200'}`}>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Outstanding</p>
                     <h2 className={`text-2xl font-black ${kpis.outstandingBalance > 0 ? 'text-red-700' : 'text-slate-800'}`}>
-                        ${kpis.outstandingBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        {formatCurrency(kpis.outstandingBalance)}
                     </h2>
                     <AlertCircle className={`mt-2 ${kpis.outstandingBalance > 0 ? 'text-red-400' : 'text-slate-300'}`} size={20} />
                 </div>

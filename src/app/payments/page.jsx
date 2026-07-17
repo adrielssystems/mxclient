@@ -1,5 +1,7 @@
 "use client";
 import React, { useState, useEffect, useMemo } from "react";
+import { toast } from 'sonner';
+import { formatCurrency } from "@/utils/formatUtils";
 import useUser from "@/utils/useUser";
 import { CreditCard, FileText, CheckCircle, Search, Eye, CalendarDays, Filter } from "lucide-react";
 
@@ -128,7 +130,7 @@ export default function ClientPaymentsPage() {
                                         </div>
                                         <div className="flex items-center gap-3">
                                             <div className="font-black text-slate-800 text-lg">
-                                                ${Number(inv.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                                {formatCurrency(inv.amount)}
                                             </div>
                                             {inv.quickbooks_invoice_id && (
                                                 <a 
@@ -183,7 +185,7 @@ export default function ClientPaymentsPage() {
                             filteredPayments.map(p => (
                                 <div key={p.id} className="p-5 hover:bg-slate-50 transition-colors">
                                     <div className="flex justify-between items-start mb-2">
-                                        <div className="font-bold text-slate-800 text-lg">${Number(p.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                                        <div className="font-bold text-slate-800 text-lg">{formatCurrency(p.amount)}</div>
                                         <div className="text-xs text-slate-500 font-medium">
                                             {new Date(p.date).toLocaleDateString()}
                                         </div>

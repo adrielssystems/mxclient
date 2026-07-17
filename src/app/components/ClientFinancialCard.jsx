@@ -1,11 +1,12 @@
 import React from 'react';
 import { DollarSign, FileText } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatCurrency } from "@/utils/formatUtils";
 
 export default function ClientFinancialCard({ vehicle, pendingFees = [] }) {
     if (!vehicle) return null;
 
-    const fmt = (val) => `$${Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const fmt = (val) => formatCurrency(val);
 
     const totalPending = pendingFees.reduce((sum, fee) => sum + Number(fee.amount || 0), 0);
     const estimatedTotal = Number(vehicle.client_total_price || 0) + totalPending;

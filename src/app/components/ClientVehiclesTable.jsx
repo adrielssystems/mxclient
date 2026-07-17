@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Search, Car, CalendarDays, ChevronDown, Check } from 'lucide-react';
 import { formatToMDY } from "@/utils/dateUtils";
+import { formatCurrency } from "@/utils/formatUtils";
 
 // --- STATUS COLOR HELPERS ---
 const PURCHASE_COLORS = {
@@ -95,7 +96,7 @@ const VehicleRow = React.memo(({ vehicle, activeTab = 'All' }) => {
             <td className="px-2 py-1.5 w-[95px] whitespace-nowrap">
                 <div className="flex flex-col leading-tight">
                     <span className="text-[10px] text-slate-400 font-medium">{formatToMDY(vehicle.purchase_date)}</span>
-                    <span className="text-[11px] font-black text-slate-900">{vehicle.purchase_price ? `$${parseFloat(vehicle.purchase_price).toLocaleString()}` : "—"}</span>
+                    <span className="text-[11px] font-black text-slate-900">{vehicle.purchase_price ? formatCurrency(vehicle.purchase_price) : "—"}</span>
                 </div>
             </td>
             {/* Purchase Status */}

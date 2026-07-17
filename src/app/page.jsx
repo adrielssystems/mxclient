@@ -1,5 +1,8 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { toast } from 'sonner';
+import { formatToMDY } from '@/utils/dateUtils';
+import { formatCurrency } from "@/utils/formatUtils";
 import useUser from "@/utils/useUser";
 import { Car, MapPin, CheckCircle, Clock, AlertCircle, DollarSign, Plus, ChevronRight } from "lucide-react";
 import { useNavigate } from 'react-router';
@@ -176,7 +179,7 @@ export default function ClientDashboard() {
                                                 </a>
                                             ) : (
                                                 <>
-                                                    <p className="font-black text-xl text-slate-800">${Number(v.client_total_price || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                                                    <p className="font-black text-xl text-slate-800">{formatCurrency(v.client_total_price || 0)}</p>
                                                     <a href={`/vehicles/${v.vin}`} className="text-blue-600 font-bold text-sm hover:underline">View Invoice</a>
                                                 </>
                                             )}
@@ -228,7 +231,7 @@ export default function ClientDashboard() {
                                 recentPayments.map((p, i) => (
                                     <div key={i} className="p-5 hover:bg-slate-50 transition-colors">
                                         <div className="flex justify-between items-start mb-1">
-                                            <p className="font-bold text-slate-700">${p.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                                            <p className="font-bold text-slate-700">{formatCurrency(p.amount)}</p>
                                             <span className="text-xs font-semibold text-slate-400">{p.date}</span>
                                         </div>
                                         <div className="flex justify-between items-center text-sm">

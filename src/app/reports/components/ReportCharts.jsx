@@ -3,6 +3,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
     ResponsiveContainer, PieChart, Pie, Cell, Legend
 } from "recharts";
+import { formatCurrency } from "@/utils/formatUtils";
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#F97316'];
 
@@ -32,7 +33,7 @@ const CustomTooltip = ({ active, payload, label }) => {
                     <div key={i} className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color }}></span>
                         <span className="text-slate-300">{entry.name}:</span>
-                        <span className="font-bold">${Number(entry.value).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                        <span className="font-bold">{formatCurrency(entry.value)}</span>
                     </div>
                 ))}
             </div>
