@@ -120,7 +120,7 @@ export async function GET(request, { params }) {
         const ownershipDocs = await sql`
             SELECT * FROM vehicle_ownership_documents 
             WHERE vin = ${vin} 
-            ORDER BY created_at DESC LIMIT 1
+            ORDER BY uploaded_at DESC LIMIT 1
         `;
         if (ownershipDocs.length > 0) {
             vehicle.ownership_document_url = ownershipDocs[0].file_url;
