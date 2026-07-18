@@ -195,11 +195,7 @@ export default function ClientPaymentsPage() {
                                             Invoice: <span className="font-semibold">#{p.invoice_number}</span>
                                         </div>
                                         <div className="flex items-center gap-3">
-                                            {p.ref && !p.ref.includes('QB Sync') && (
-                                                <div className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded font-mono">
-                                                    REF: {p.ref}
-                                                </div>
-                                            )}
+
                                             {p.quickbooks_invoice_id && (
                                                 <a 
                                                     href={`/api/integrations/quickbooks/invoice/${p.quickbooks_invoice_id}/pdf`} 
