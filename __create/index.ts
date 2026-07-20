@@ -355,8 +355,10 @@ const baseApiLimiter = rateLimiter({
 
 app.use('/api/*', async (c, next) => {
   const userAgent = c.req.header('user-agent')?.toLowerCase() || '';
-  // Excepción IPs/UAs de confianza (n8n/QuickBooks)
-  if (userAgent.includes('n8n') || userAgent.includes('intuit') || userAgent.includes('quickbooks')) {
+  const apiKey = c.req.header('X-API-Key');
+  
+  // Excepción IPs/UAs de confianza (n8n/QuickBooks) y Webhooks de Bot Autorizados
+  if (userAgent.includes('n8n') || userAgent.includes('intuit') || userAgent.includes('quickbooks') || apiKey) {
     return next();
   }
   return baseApiLimiter(c, next);
