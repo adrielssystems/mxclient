@@ -66,6 +66,24 @@ export default function ClientVehicleDetailsPage() {
         );
     }
 
+    if (user?.status === 'suspended') {
+        return (
+            <div className="w-full px-4 sm:px-6 lg:px-8 space-y-6 pt-6">
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-8 flex flex-col items-center justify-center text-center space-y-4 min-h-[400px]">
+                    <span className="text-5xl">🟡</span>
+                    <h2 className="text-2xl font-bold text-amber-800">Account Suspended</h2>
+                    <p className="text-amber-700 max-w-md">Your account is currently suspended. You do not have permission to view vehicle details. Please contact the administration to resolve this issue.</p>
+                    <button 
+                        onClick={() => navigate('/vehicles')}
+                        className="mt-4 px-6 py-2 bg-white border border-amber-300 text-amber-700 font-bold rounded-lg hover:bg-amber-100 transition-colors shadow-sm"
+                    >
+                        Return to Vehicles
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="w-full px-4 sm:px-6 lg:px-8 space-y-6">
             {/* Header */}
