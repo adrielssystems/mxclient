@@ -9,6 +9,11 @@ export async function POST(request) {
             return Response.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        // [FEATURE DISABLED] 
+        // Clients are not allowed to change their own password. This must be done by an Admin.
+        return Response.json({ error: "Forbidden. Password changes must be requested through an Administrator." }, { status: 403 });
+
+        /*
         const body = await request.json();
         const { currentPassword, newPassword } = body;
 
@@ -97,6 +102,7 @@ export async function POST(request) {
         });
 
         return Response.json({ success: true, message: "Password updated successfully" });
+        */
 
     } catch (error) {
         console.error("Change password error:", error);
