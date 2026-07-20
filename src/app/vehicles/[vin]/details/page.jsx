@@ -24,6 +24,7 @@ export default function ClientVehicleDetailsPage() {
     const [fees, setFees] = useState([]);
     const [operationalRules, setOperationalRules] = useState(null);
     const [clientCommission, setClientCommission] = useState(0);
+    const [clientStatus, setClientStatus] = useState('active');
 
     const fetchVehicleDetails = useCallback(async () => {
         if (!vin) return;
@@ -40,6 +41,7 @@ export default function ClientVehicleDetailsPage() {
                 setFees(data.fees || []);
                 setOperationalRules(data.operationalRules || null);
                 setClientCommission(data.clientCommission || 0);
+                if (data.clientStatus) setClientStatus(data.clientStatus);
             } else {
                 toast.error("Vehicle not found or unauthorized.");
                 navigate('/vehicles');
@@ -66,7 +68,7 @@ export default function ClientVehicleDetailsPage() {
         );
     }
 
-    if (user?.status === 'suspended') {
+    if (user?.status === 'suspended' || clientStatus === 'suspended') {
         return (
             <div className="w-full px-4 sm:px-6 lg:px-8 space-y-6 pt-6">
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-8 flex flex-col items-center justify-center text-center space-y-4 min-h-[400px]">

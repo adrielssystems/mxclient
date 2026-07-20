@@ -223,7 +223,10 @@ export async function GET(request) {
             };
         });
 
-        return Response.json({ vehicles: mappedVehicles, recentPayments: mappedPayments }, { status: 200 });
+        const clientStatusQuery = await sql`SELECT status FROM auth_users WHERE id = ${clientId}`;
+        const clientStatus = clientStatusQuery[0]?.status || 'active';
+
+        return Response.json({ vehicles: mappedVehicles, clientStatus, recentPayments: mappedPayments }, { status: 200 });
 
     } catch (error) {
         console.error("GET /api/client/vehicles error:", error);

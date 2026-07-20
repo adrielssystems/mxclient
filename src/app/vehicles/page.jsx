@@ -6,6 +6,7 @@ import ClientVehiclesTable from "../components/ClientVehiclesTable";
 export default function ClientVehiclesPage() {
     const { data: user, loading: userLoading } = useUser();
     const [vehicles, setVehicles] = useState([]);
+    const [clientStatus, setClientStatus] = useState('active');
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('Purchases');
 
@@ -14,7 +15,10 @@ export default function ClientVehiclesPage() {
 
         fetch("/api/client/vehicles", { cache: 'no-store' })
             .then(r => r.ok ? r.json() : { vehicles: [] })
-            .then(d => setVehicles(d.vehicles || []))
+            .then(d => {
+                setVehicles(d.vehicles || []);
+                if (d.clientStatus) setClientStatus(d.clientStatus);
+            })
             .catch(err => {
                 console.error("Failed to load vehicles", err);
                 setVehicles([]);
@@ -45,7 +49,7 @@ export default function ClientVehiclesPage() {
 
     return (
         <div className="space-y-6">
-            {user?.status === 'suspended' && (
+            {(user?.status === 'suspended' || clientStatus === 'suspended') && (
                 <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg flex items-center gap-3">
                     <span className="text-2xl">🟡</span>
                     <div>

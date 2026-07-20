@@ -165,6 +165,9 @@ export async function GET(request, { params }) {
         // Client commission comes directly from the vehicle record (same as admin)
         const clientCommission = parseFloat(vehicle.client_markup_fee || 0);
 
+        const clientStatusQuery = await sql`SELECT status FROM auth_users WHERE id = ${clientId}`;
+        const clientStatus = clientStatusQuery[0]?.status || 'active';
+
         return Response.json({
             vehicle,
             services: serviceDetails,
@@ -173,7 +176,8 @@ export async function GET(request, { params }) {
             titleData,
             fees: fees || [],
             operationalRules,
-            clientCommission
+            clientCommission,
+            clientStatus
         }, { status: 200 });
 
     } catch (error) {
