@@ -12,6 +12,19 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [],
     const dispatchSvc = services.find(s => s.service_category === 'DISPATCH');
     const titleSvc = services.find(s => s.service_category === 'TITLE');
 
+    const getTitleStatusColor = (status) => {
+        if (!status) return 'bg-slate-50 text-slate-400 border border-slate-200';
+        const s = status.toLowerCase();
+        if (s === 'sent') return 'bg-slate-900 text-white shadow-sm border border-slate-900';
+        if (s === 'received') return 'bg-emerald-600 text-white shadow-sm border border-emerald-600';
+        if (s === 'mailing in') return 'bg-sky-400 text-white shadow-sm border border-sky-400';
+        if (s === 'pending') return 'bg-orange-500 text-white shadow-sm border border-orange-500';
+        if (s === 'missing') return 'bg-purple-200 text-purple-900 shadow-sm border border-purple-200';
+        if (s === 'lost') return 'bg-red-600 text-white shadow-sm border border-red-600';
+        if (s === 'driver') return 'bg-indigo-600 text-white shadow-sm border border-indigo-600';
+        return 'bg-slate-50 text-slate-400 border border-slate-200';
+    };
+
     const renderPurchasesTab = () => {
         // ── Exact same logic as VehiclePurchaseTab.jsx in Admin ──
         const winningBidAmount = parseFloat(vehicle?.purchase_price || vehicle?.client_base_price || 0);
@@ -139,7 +152,7 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [],
                             <div>
                                 <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-1.5 font-bold">Title Status</p>
                                 <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase ${
-                                    (vehicle?.title_tracking?.computed_status || vehicle?.title_log_status || '').toLowerCase() === 'sent' ? 'bg-blue-900 text-white' : 'bg-slate-200 text-slate-700'
+                                    getTitleStatusColor(vehicle?.title_tracking?.computed_status || vehicle?.title_log_status || vehicle?.title_service_status || 'Pending')
                                 }`}>
                                     {vehicle?.title_tracking?.computed_status || vehicle?.title_log_status || vehicle?.title_service_status || 'Pending'}
                                 </span>
@@ -318,11 +331,8 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [],
                                     <Clock size={14} /> Operational Status
                                 </h4>
                                 {vehicle?.title_tracking?.computed_status && (
-                                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
-                                        vehicle.title_tracking.computed_status === 'Received' ? 'bg-green-500 text-white border-green-600 shadow-sm' :
-                                        vehicle.title_tracking.computed_status === 'Sent' ? 'bg-slate-700 text-white border-slate-800' :
-                                        vehicle.title_tracking.computed_status === 'Missing' ? 'bg-purple-100 text-purple-700 border-purple-200' :
-                                        'bg-slate-100 text-slate-600 border-slate-200'
+                                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                        getTitleStatusColor(vehicle.title_tracking.computed_status)
                                     }`}>
                                         {vehicle.title_tracking.computed_status}
                                     </span>

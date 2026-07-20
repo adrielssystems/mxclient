@@ -129,7 +129,7 @@ export default function ClientReportsView({ hideHeader = false }) {
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Invoiced</p>
                     <h2 className="text-2xl font-black text-slate-800">{formatCurrency(kpis.totalInvoiced)}</h2>
-                    <FileText className="text-indigo-500 mt-2" size={20} />
+                    <FileText className="text-blue-500 mt-2" size={20} />
                 </div>
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Paid</p>

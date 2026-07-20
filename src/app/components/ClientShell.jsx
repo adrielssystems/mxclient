@@ -119,7 +119,7 @@ export default function ClientShell({ children }) {
             <a
                 href={tab.path}
                 className={`${isActive
-                    ? "bg-indigo-600 text-white shadow-md"
+                    ? "bg-blue-600 text-white shadow-sm"
                     : "text-slate-400 hover:bg-slate-800 hover:text-white"
                     } group flex w-full items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200`}
             >
@@ -130,7 +130,7 @@ export default function ClientShell({ children }) {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+        <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
             {/* Impersonation Banner */}
             {impersonating && (
                 <div className="bg-amber-500 text-white px-4 py-2.5 flex items-center justify-between z-50 relative shadow-lg">
@@ -192,7 +192,7 @@ export default function ClientShell({ children }) {
                     {/* Subtle Developer Signature */}
                     <div className="p-4 border-t border-slate-800/50 bg-slate-900/50 mt-auto">
                         <p className="text-[9px] text-slate-600 font-medium tracking-tight text-center leading-tight">
-                            Developed by <a href="https://adrielssystems.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-indigo-400 transition-colors">Adriel's Systems</a>
+                            Developed by <a href="https://adrielssystems.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-blue-400 transition-colors">Adriel's Systems</a>
                             <br />
                             <span className="opacity-40 font-light">The Engine of Your Software</span>
                         </p>
@@ -209,7 +209,7 @@ export default function ClientShell({ children }) {
                                     key={tab.id}
                                     href={tab.path}
                                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap ${isActive
-                                        ? "bg-indigo-600 text-white shadow-sm"
+                                        ? "bg-blue-600 text-white shadow-sm"
                                         : "text-slate-400 hover:text-white bg-slate-800"
                                         }`}
                                 >
@@ -222,7 +222,7 @@ export default function ClientShell({ children }) {
                 </div>
 
                 {/* Main Content Area */}
-                <main className="flex-1 overflow-auto bg-gradient-to-br from-slate-50 via-slate-100 to-indigo-50/30 relative p-4 sm:p-6 lg:p-8 xl:p-10">
+                <main className="flex-1 overflow-auto bg-gradient-to-br from-slate-50 via-slate-100 to-blue-50/30 relative p-4 sm:p-6 lg:p-8 xl:p-10">
                     <div className="w-full">
                         {children}
                     </div>
