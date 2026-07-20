@@ -77,13 +77,14 @@ export async function GET(request) {
         // --- Monthly Spending (last 12 months) ---
         const monthlySpending = await sql`
             SELECT 
-                TO_CHAR(i.created_at, 'YYYY-MM') as month,
+                TO_CHAR(COALESCE(v.purchase_date, i.created_at), 'YYYY-MM') as month,
                 COALESCE(SUM(i.amount), 0) as total
             FROM invoices i
+            LEFT JOIN vehicles v ON i.vehicle_id = v.id
             WHERE (i.client_id = ${clientId}
                OR i.client_id IN (SELECT sub_client_id FROM client_hierarchy WHERE main_client_id = ${clientId}))
-              AND i.created_at >= NOW() - INTERVAL '12 months'
-            GROUP BY TO_CHAR(i.created_at, 'YYYY-MM')
+              AND COALESCE(v.purchase_date, i.created_at) >= NOW() - INTERVAL '12 months'
+            GROUP BY TO_CHAR(COALESCE(v.purchase_date, i.created_at), 'YYYY-MM')
             ORDER BY month ASC
         `;
 
@@ -117,7 +118,7 @@ export async function GET(request) {
             LEFT JOIN auth_users u ON v.client_id = u.id
             WHERE v.client_id = ${clientId}
                OR v.client_id IN (SELECT sub_client_id FROM client_hierarchy WHERE main_client_id = ${clientId})
-            ORDER BY v.created_at DESC
+            ORDER BY COALESCE(v.purchase_date, v.created_at) DESC
         `;
 
         return Response.json({
