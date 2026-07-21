@@ -166,8 +166,8 @@ export default function ClientDashboard() {
                                                 </div>
                                             )}
                                             {(v.has_lien && !v.title_service_requested) && (
-                                                <div className="mt-2 bg-red-50 text-red-800 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 border border-red-200">
-                                                    <AlertCircle size={14} className="text-red-600" /> Lien on Title - Title Service Required
+                                                <div className="mt-2 bg-purple-50 text-purple-800 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 border border-purple-200">
+                                                    <AlertCircle size={14} className="text-purple-600" /> Lien on Title - Title Service Required
                                                 </div>
                                             )}
                                         </div>
