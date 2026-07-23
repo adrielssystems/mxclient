@@ -236,7 +236,9 @@ export default function ClientDashboard() {
                                         </div>
                                         <div className="flex justify-between items-center text-sm">
                                             <p className="text-slate-500 font-medium">{p.method}</p>
-                                            <p className="text-slate-400 font-mono text-[10px] tracking-wider bg-slate-100 px-2 py-0.5 rounded">REF: {p.ref}</p>
+                                            {p.ref && p.ref !== 'N/A' && !p.ref.toLowerCase().includes('qb sync') && (
+                                                <p className="text-slate-400 font-mono text-[10px] tracking-wider bg-slate-100 px-2 py-0.5 rounded">REF: {p.ref}</p>
+                                            )}
                                         </div>
                                     </div>
                                 ))
