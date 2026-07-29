@@ -197,7 +197,8 @@ export async function GET(request) {
               pr.id, 
               pr.amount_received as amount, 
               pr.payment_reference as ref, 
-              pr.reconciliation_date as date
+              pr.reconciliation_date as date,
+              i.invoice_number
             FROM payment_reconciliations pr
             JOIN invoices i ON pr.invoice_id = i.id
             WHERE (i.client_id = ${clientId} OR i.client_id IN (SELECT sub_client_id FROM client_hierarchy WHERE main_client_id = ${clientId}))
@@ -219,7 +220,8 @@ export async function GET(request) {
                 amount: Number(p.amount),
                 ref: p.ref || 'N/A',
                 date: formattedDate,
-                method
+                method,
+                invoiceNumber: p.invoice_number
             };
         });
 

@@ -235,7 +235,14 @@ export default function ClientDashboard() {
                                             <span className="text-xs font-semibold text-slate-400">{p.date}</span>
                                         </div>
                                         <div className="flex justify-between items-center text-sm">
-                                            <p className="text-slate-500 font-medium">{p.method}</p>
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-slate-500 font-medium">{p.method}</p>
+                                                {p.invoiceNumber && (
+                                                    <span className="text-[9px] font-bold bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded border border-blue-100 uppercase tracking-tight">
+                                                        INV #{p.invoiceNumber}
+                                                    </span>
+                                                )}
+                                            </div>
                                             {p.ref && p.ref !== 'N/A' && !p.ref.toLowerCase().includes('qb sync') && (
                                                 <p className="text-slate-400 font-mono text-[10px] tracking-wider bg-slate-100 px-2 py-0.5 rounded">REF: {p.ref}</p>
                                             )}
