@@ -216,16 +216,16 @@ export default function ClientDashboard() {
                         </div>
                     </div>
 
-                    {/* Recent Payments */}
+                    {/* Money Received */}
                     <div className="bg-white/70 backdrop-blur-md rounded-2xl border border-white/20 shadow-xl overflow-hidden flex flex-col h-[500px] xl:h-[800px]">
                         <div className="p-5 border-b border-white/10 bg-white/30 flex justify-between items-center shrink-0">
-                            <h3 className="font-bold text-slate-800">Recent Payments</h3>
+                            <h3 className="font-bold text-slate-800">Money Received</h3>
                             <button className="text-blue-600 text-sm font-bold hover:underline">View All</button>
                         </div>
                         <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
                             {recentPayments.length === 0 ? (
                                 <div className="p-8 text-center text-slate-400 text-sm">
-                                    No recent payments found.
+                                    No payments received found.
                                 </div>
                             ) : (
                                 recentPayments.map((p, i) => (

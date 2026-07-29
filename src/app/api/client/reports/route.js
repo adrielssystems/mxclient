@@ -108,14 +108,76 @@ export async function GET(request) {
                 v.purchase_date,
                 v.current_status,
                 v.purchase_price,
+                v.purchase_status,
                 a.name as auction_name,
                 d.country_name as destination_country,
                 d.port_name as destination_port,
-                u.name as buyer_name
+                u.name as buyer_name,
+                CASE
+                  WHEN v.dispatch_status = 'not_applicable' THEN NULL
+                  WHEN ld.vehicle_id IS NULL THEN 'Pending'
+                  WHEN (
+                    ld.actual_delivery_date IS NOT NULL
+                    AND ld.transporter_payment_date IS NOT NULL
+                  ) THEN 'Completed'
+                  WHEN ld.actual_delivery_date IS NOT NULL THEN 'INVOICE'
+                  WHEN ld.estimated_delivery_date::date < CURRENT_DATE THEN 'Late'
+                  WHEN ld.estimated_delivery_date::date = CURRENT_DATE THEN 'Today'
+                  WHEN (ld.actual_pickup_date IS NOT NULL OR ld.picked_up = TRUE) THEN 'In Transit'
+                  ELSE 'New'
+                END as dispatch_display_status,
+                CASE
+                  WHEN lt.ts_id IS NULL THEN NULL
+                  WHEN lt.ts_manual_status = 'Canceled' THEN 'Canceled'
+                  WHEN (lt.ts_manual_status IS NOT NULL AND lt.ts_manual_status != 'none') THEN lt.ts_manual_status
+                  WHEN (
+                    (lt.ts_date_mailed_out IS NOT NULL OR (lt.ts_mailing_out_tracking IS NOT NULL AND lt.ts_mailing_out_tracking != ''))
+                    AND (lt.ts_invoice_number IS NOT NULL AND lt.ts_invoice_number != '')
+                    AND lt.ts_invoice_payment_status = 'paid'
+                  ) THEN 'Completed'
+                  WHEN (lt.ts_date_mailed_out IS NOT NULL OR (lt.ts_mailing_out_tracking IS NOT NULL AND lt.ts_mailing_out_tracking != '')) THEN 'NOT PAID'
+                  WHEN (lt.ts_date_received IS NOT NULL AND (lt.ts_invoice_number IS NULL OR lt.ts_invoice_number = '')) THEN 'INVOICE'
+                  WHEN lt.ts_date_received IS NOT NULL THEN 'Received'
+                  WHEN (lt.ts_date_mailing_in IS NOT NULL OR (lt.ts_mailing_in_tracking IS NOT NULL AND lt.ts_mailing_in_tracking != '')) THEN 'Mailing IN'
+                  WHEN lt.ts_date_approved IS NOT NULL THEN 'Approved'
+                  WHEN lt.ts_date_requested IS NOT NULL THEN 'Requested'
+                  ELSE 'New'
+                END as title_service_status
             FROM vehicles v
             LEFT JOIN auctions a ON v.auction_id = a.id
             LEFT JOIN destinations d ON v.destination_id = d.id
             LEFT JOIN auth_users u ON v.client_id = u.id
+            LEFT JOIN (
+              SELECT DISTINCT ON (vehicle_id)
+                vehicle_id,
+                actual_delivery_date,
+                transporter_payment_date,
+                actual_pickup_date,
+                picked_up,
+                estimated_delivery_date
+              FROM dispatch_orders
+              ORDER BY vehicle_id, created_at DESC
+            ) ld ON ld.vehicle_id = v.id
+            LEFT JOIN (
+              SELECT DISTINCT ON (vts.vehicle_id)
+                vts.vehicle_id,
+                vts.id as ts_id,
+                vts.manual_status as ts_manual_status,
+                vts.date_requested as ts_date_requested,
+                vts.date_approved as ts_date_approved,
+                vts.date_mailing_in as ts_date_mailing_in,
+                vts.mailing_in_tracking as ts_mailing_in_tracking,
+                vts.date_received as ts_date_received,
+                vts.date_mailed_out as ts_date_mailed_out,
+                vts.mailing_out_tracking as ts_mailing_out_tracking,
+                vts.invoice_number as ts_invoice_number,
+                i.status as ts_invoice_payment_status
+              FROM vehicle_title_services vts
+              LEFT JOIN invoices i ON i.vehicle_id = vts.vehicle_id 
+                AND i.service_category = 'TITLE' 
+                AND (vts.invoice_number IS NOT NULL AND i.invoice_number = vts.invoice_number)
+              ORDER BY vts.vehicle_id, vts.created_at DESC
+            ) lt ON lt.vehicle_id = v.id
             WHERE v.client_id = ${clientId}
                OR v.client_id IN (SELECT sub_client_id FROM client_hierarchy WHERE main_client_id = ${clientId})
             ORDER BY COALESCE(v.purchase_date, v.created_at) DESC

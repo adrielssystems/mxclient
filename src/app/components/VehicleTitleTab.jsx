@@ -298,8 +298,64 @@ export default function VehicleTitleTab({ vehicle, onUpdate, isClient = false, i
                         </div>
                     </div>
 
-                    {/* ── ADMIN FIELDS (Hidden from Client) ── */}
-                    {!isClient && (
+                    {/* ── ADMIN FIELDS OR CLIENT TRACKING INFO ── */}
+                    {isClient ? (
+                        <div className="space-y-4 bg-slate-50/50 p-4 rounded-lg border border-slate-200">
+                            <h4 className="text-xs font-bold text-slate-400 uppercase border-b pb-2">Mailing & Tracking</h4>
+                            
+                            {/* Mailing IN (Incoming) */}
+                            <div className="bg-white p-3.5 rounded-lg border border-slate-100 shadow-sm space-y-2">
+                                <div className="flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                                    <span className="text-[11px] font-black text-blue-900 uppercase tracking-wider">Incoming (Mailing IN)</span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                    <div>
+                                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Tracking Number</p>
+                                        <p className="font-mono text-slate-700 font-semibold mt-0.5 break-all">
+                                            {titleTracking.tracking_in || <span className="text-slate-300 italic font-sans font-normal">Not available</span>}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Date Received</p>
+                                        <p className="text-slate-700 font-bold mt-0.5">
+                                            {titleTracking.date_received ? formatDate(titleTracking.date_received) : <span className="text-slate-300 italic font-normal">Pending</span>}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Mailing OUT (Outgoing) */}
+                            <div className="bg-white p-3.5 rounded-lg border border-slate-100 shadow-sm space-y-2">
+                                <div className="flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
+                                    <span className="text-[11px] font-black text-indigo-900 uppercase tracking-wider">Outgoing (Mailing OUT)</span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                    <div>
+                                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Tracking Number</p>
+                                        <p className="font-mono text-slate-700 font-semibold mt-0.5 break-all">
+                                            {titleTracking.tracking_out || <span className="text-slate-300 italic font-sans font-normal">Not available</span>}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Date Mailed</p>
+                                        <p className="text-slate-700 font-bold mt-0.5">
+                                            {titleTracking.date_mailed ? formatDate(titleTracking.date_mailed) : <span className="text-slate-300 italic font-normal">Pending</span>}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Title Number Info if available */}
+                            {titleTracking.title_number && (
+                                <div className="bg-blue-50/50 p-3 rounded-lg border border-blue-100 flex justify-between items-center text-xs">
+                                    <span className="font-bold text-blue-800">Title Document Number:</span>
+                                    <span className="font-mono font-bold text-blue-900 bg-blue-100/60 px-2 py-0.5 rounded">{titleTracking.title_number}</span>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
                         <div className="space-y-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
                             <div className="flex justify-between items-center border-b pb-2">
                                 <h4 className="text-xs font-bold text-slate-500 uppercase">Internal Tracking (Motor X)</h4>
