@@ -14,6 +14,8 @@ export default function ClientDashboard() {
     const [recentPayments, setRecentPayments] = useState([]);
     const [dataLoading, setDataLoading] = useState(true);
     const [isRightPanelMinimized, setIsRightPanelMinimized] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 20;
 
     const fetchVehicles = () => {
         fetch("/api/client/vehicles", { cache: 'no-store' })
@@ -39,8 +41,12 @@ export default function ClientDashboard() {
         );
     }
 
-    // Active Vehicles: Any vehicle not marked as delivered/canceled
-    const activeVehicles = vehicles.filter(v => !['delivered', 'canceled'].includes(v.current_status));
+    // Action Required Vehicles based on specific client rules
+    const actionRequiredVehicles = vehicles.filter(v => {
+        const isTitleReceivedAndNoLocation = (v.title_log_status === 'Received' || v.title_service_status === 'Received') && !v.mailing_location;
+        const isLienAndNoTitleService = v.has_lien && !v.title_service_requested;
+        return isTitleReceivedAndNoLocation || isLienAndNoTitleService;
+    });
 
     // --- Helper Functions ---
     const getStatusGroup = (v) => {
@@ -83,8 +89,8 @@ export default function ClientDashboard() {
         }
     };
 
-    // Take top 20 active vehicles for the dashboard snippet
-    const displayVehicles = activeVehicles.slice(0, 20);
+    const totalPages = Math.ceil(actionRequiredVehicles.length / itemsPerPage) || 1;
+    const displayVehicles = actionRequiredVehicles.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
     // Using live recentPayments state from API
 
@@ -102,7 +108,7 @@ export default function ClientDashboard() {
                 <div className={`${isRightPanelMinimized ? 'xl:col-span-3' : 'xl:col-span-2'} space-y-6 transition-all duration-300`}>
                     <div className="flex items-center justify-between">
                         <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                            My Active Vehicles
+                            Action Required
                         </h3>
                         <div className="flex items-center gap-4">
                             {isRightPanelMinimized && (
@@ -126,12 +132,12 @@ export default function ClientDashboard() {
                             displayVehicles.map((v, i) => {
                                 const uiStatus = getStatusGroup(v);
                                 return (
-                                    <div key={v.vin || i} className={`bg-white/70 backdrop-blur-md p-5 rounded-2xl border shadow-xl transition-all hover:shadow-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4
-                                        ${uiStatus === 'ACTION_REQUIRED' ? 'border-orange-200/50' : 'border-white/20'}
+                                    <div key={v.vin || i} className={`bg-white/80 backdrop-blur-md p-3 rounded-xl border shadow-sm transition-all hover:shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3
+                                        ${uiStatus === 'ACTION_REQUIRED' ? 'border-orange-200/50' : 'border-slate-200'}
                                     `}>
-                                        <div className="flex-1 min-w-0 space-y-2">
-                                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-2 overflow-hidden">
-                                                <h4 className="font-bold text-slate-800 text-lg sm:text-base truncate sm:w-[220px] shrink-0">{v.year} {v.make} {v.model}</h4>
+                                        <div className="flex-1 min-w-0 space-y-1.5">
+                                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1 overflow-hidden">
+                                                <h4 className="font-bold text-slate-800 text-sm truncate sm:w-[220px] shrink-0">{v.year} {v.make} {v.model}</h4>
                                                 <div className="flex items-center gap-2 flex-wrap">
                                                     <div className="shrink-0 flex items-center">
                                                         {getStatusBadge(uiStatus, v)}
@@ -187,6 +193,28 @@ export default function ClientDashboard() {
                                     </div>
                                 );
                             })
+                        )}
+
+                        {totalPages > 1 && (
+                            <div className="flex items-center justify-between mt-4 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
+                                <button 
+                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1}
+                                    className="px-4 py-1.5 text-sm font-bold text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 rounded-lg transition-colors"
+                                >
+                                    Previous
+                                </button>
+                                <span className="text-xs font-bold text-slate-500">
+                                    Page {currentPage} of {totalPages}
+                                </span>
+                                <button 
+                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={currentPage === totalPages}
+                                    className="px-4 py-1.5 text-sm font-bold text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 rounded-lg transition-colors"
+                                >
+                                    Next
+                                </button>
+                            </div>
                         )}
                     </div>
                 </div>

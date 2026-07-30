@@ -109,10 +109,26 @@ export async function GET(request) {
                 v.current_status,
                 v.purchase_price,
                 v.purchase_status,
+                v.payment_status,
                 a.name as auction_name,
+                v.lot_number,
                 d.country_name as destination_country,
                 d.port_name as destination_port,
                 u.name as buyer_name,
+                -- Amount Paid from payment_reconciliations
+                COALESCE((
+                    SELECT SUM(pr2.amount_received)
+                    FROM payment_reconciliations pr2
+                    JOIN invoices i2 ON pr2.invoice_id = i2.id
+                    WHERE i2.vehicle_id = v.id
+                ), 0) as amount_paid,
+                -- Title Log Status (from title_logs)
+                CASE
+                  WHEN tl.vin IS NULL THEN NULL
+                  WHEN tl.date_received IS NOT NULL THEN 'Received'
+                  WHEN tl.date_mailed IS NOT NULL THEN 'Mailed'
+                  ELSE NULL
+                END as title_log_status,
                 CASE
                   WHEN v.dispatch_status = 'not_applicable' THEN NULL
                   WHEN ld.vehicle_id IS NULL THEN 'Pending'
@@ -147,6 +163,7 @@ export async function GET(request) {
             LEFT JOIN auctions a ON v.auction_id = a.id
             LEFT JOIN destinations d ON v.destination_id = d.id
             LEFT JOIN auth_users u ON v.client_id = u.id
+            LEFT JOIN title_logs tl ON tl.vin = v.vin
             LEFT JOIN (
               SELECT DISTINCT ON (vehicle_id)
                 vehicle_id,

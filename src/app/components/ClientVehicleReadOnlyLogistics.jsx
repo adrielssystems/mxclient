@@ -170,6 +170,45 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [],
                                 </div>
                             </div>
                         </div>
+
+                        {/* MAILING & TRACKING ADDITION */}
+                        <div className="mt-6 border-t border-slate-200 pt-6">
+                            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Mailing & Tracking</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="bg-white border border-slate-200 rounded-lg p-4">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                        <h5 className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Incoming (Mailing IN)</h5>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Tracking Number</p>
+                                            <p className="text-sm font-medium text-slate-800">{titleData?.mailing_in_tracking || <span className="text-slate-400 italic text-xs">Not available</span>}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Date Received</p>
+                                            <p className="text-sm font-medium text-slate-800">{formatToMDY(titleData?.date_received) || <span className="text-slate-400 italic text-xs">Pending</span>}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="bg-white border border-slate-200 rounded-lg p-4">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                                        <h5 className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Outgoing (Mailing OUT)</h5>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Tracking Number</p>
+                                            <p className="text-sm font-medium text-slate-800">{titleData?.mailing_out_tracking || <span className="text-slate-400 italic text-xs">Not available</span>}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Date Mailed</p>
+                                            <p className="text-sm font-medium text-slate-800">{formatToMDY(titleData?.date_mailed_out) || <span className="text-slate-400 italic text-xs">Pending</span>}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -309,8 +348,7 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [],
                 </div>
 
                 {isRequired && (
-                    <>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">Service Type</label>
                                 <div className="bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-700">
@@ -324,8 +362,9 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [],
                                 </div>
                             </div>
                         </div>
+                )}
 
-                        <div className="border border-green-200 rounded-xl p-4 bg-green-50/30">
+                <div className="border border-green-200 rounded-xl p-4 bg-green-50/30">
                             <div className="flex justify-between items-center mb-4">
                                 <h4 className="text-[10px] font-black text-green-700 uppercase tracking-widest flex items-center gap-2">
                                     <Clock size={14} /> Operational Status
@@ -393,8 +432,6 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [],
                                 </a>
                             </div>
                         )}
-                    </>
-                )}
             </div>
         );
     };
