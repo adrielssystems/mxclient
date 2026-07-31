@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm, useWatch, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { ArrowLeft, CheckCircle2, AlertCircle, Briefcase } from 'lucide-react';
+import LocationCombobox from './LocationCombobox';
 
 const getVehicleSchema = (isAdmin) => z.object({
     dealer: isAdmin
@@ -42,6 +43,7 @@ export default function VehicleForm({ initialData, onSubmit, onCancel, clients, 
         handleSubmit,
         control,
         setValue,
+        getValues,
         formState: { errors, isSubmitting, isValid }
     } = useForm({
         resolver: zodResolver(getVehicleSchema(isAdmin)),
@@ -58,6 +60,23 @@ export default function VehicleForm({ initialData, onSubmit, onCancel, clients, 
     const wantsDispatch = useWatch({ control, name: 'wants_dispatch' });
     const wantsTitleService = useWatch({ control, name: 'wants_title_service' });
     const selectedHub = useWatch({ control, name: 'destination_hub' });
+    const selectedAuctionId = useWatch({ control, name: 'auction_id' });
+
+    const filteredLocations = useMemo(() => {
+        if (!selectedAuctionId) return locations || [];
+        return (locations || []).filter(l => l.auction_id == selectedAuctionId);
+    }, [locations, selectedAuctionId]);
+
+    // Reset location if the selected auction changes and the current location doesn't match
+    React.useEffect(() => {
+        const currentLocation = getValues('location_id');
+        if (currentLocation && selectedAuctionId) {
+            const loc = locations?.find(l => l.id == currentLocation);
+            if (loc && loc.auction_id != selectedAuctionId) {
+                setValue('location_id', null, { shouldValidate: true });
+            }
+        }
+    }, [selectedAuctionId, locations, setValue, getValues]);
 
     const [auctionReceipt, setAuctionReceipt] = useState(null);
     const [gatePass, setGatePass] = useState(null);
@@ -216,10 +235,19 @@ export default function VehicleForm({ initialData, onSubmit, onCancel, clients, 
                                 </div>
                                 <div>
                                     <label htmlFor="location_id" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Current Location <span className="text-red-500">*</span></label>
-                                    <select id="location_id" {...register('location_id')} className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none">
-                                        <option value="">Select Location...</option>
-                                        {locations?.map(l => <option key={l.id} value={l.id}>{l.name} - {l.state_code}</option>)}
-                                    </select>
+                                    <Controller
+                                        name="location_id"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <LocationCombobox
+                                                items={filteredLocations}
+                                                value={field.value}
+                                                onChange={field.onChange}
+                                                hasError={!!errors.location_id}
+                                            />
+                                        )}
+                                    />
+                                    {errors.location_id && <p className="mt-1 text-[10px] text-red-500">{errors.location_id.message}</p>}
                                 </div>
                             </div>
                         </div>

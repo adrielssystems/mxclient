@@ -40,7 +40,7 @@
 		"cross-env": "^10.1.0",
 		"date-fns": "^4.1.0",
 		"dotenv": "^17.3.1",
-		"downshift": "^9.0.9",
+		"downshift": "^9.3.3",
 		"fast-glob": "^3.3.3",
 		"google-auth-library": "^10.6.2",
 		"hono": "^4.12.18",
