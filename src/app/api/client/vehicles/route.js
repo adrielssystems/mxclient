@@ -208,7 +208,7 @@ export async function GET(request) {
                 const { accessToken, realmId } = await getValidTokens();
                 const baseUrl = getQuickBooksBaseUrl();
                 const customerRefs = qbIds.map(id => `'${id}'`).join(',');
-                const query = `SELECT * FROM Payment WHERE CustomerRef IN (${customerRefs}) ORDER BY TxnDate DESC MAXRESULTS 5`;
+                const query = `SELECT * FROM Payment WHERE CustomerRef IN (${customerRefs}) ORDER BY TxnDate DESC MAXRESULTS 20`;
                 
                 const response = await fetch(`${baseUrl}/v3/company/${realmId}/query?query=${encodeURIComponent(query)}&minorversion=65`, {
                     headers: {
@@ -292,16 +292,20 @@ export async function GET(request) {
         if (!fetchedFromQb) {
             const recentPayments = await sql`
                 SELECT 
-                  pr.id, 
-                  pr.amount_received as amount, 
-                  pr.payment_reference as ref, 
-                  pr.reconciliation_date as date,
-                  i.invoice_number
+                  MIN(pr.id) as id, 
+                  SUM(pr.amount_received) as amount, 
+                  COALESCE(pr.payment_reference, 'N/A') as ref, 
+                  pr.reconciliation_date::date as date,
+                  CASE 
+                    WHEN COUNT(DISTINCT i.invoice_number) > 1 THEN 'Multiple'
+                    ELSE MIN(i.invoice_number::text)
+                  END as invoice_number
                 FROM payment_reconciliations pr
                 JOIN invoices i ON pr.invoice_id = i.id
                 WHERE (i.client_id = ${clientId} OR i.client_id IN (SELECT sub_client_id FROM client_hierarchy WHERE main_client_id = ${clientId}))
-                ORDER BY pr.reconciliation_date DESC
-                LIMIT 5
+                GROUP BY pr.reconciliation_date::date, COALESCE(pr.payment_reference, 'N/A')
+                ORDER BY pr.reconciliation_date::date DESC
+                LIMIT 20
             `;
 
             mappedPayments = recentPayments.map(p => {

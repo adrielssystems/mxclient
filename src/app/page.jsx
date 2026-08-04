@@ -248,7 +248,7 @@ export default function ClientDashboard() {
                     <div className="bg-white/70 backdrop-blur-md rounded-2xl border border-white/20 shadow-xl overflow-hidden flex flex-col h-[500px] xl:h-[800px]">
                         <div className="p-5 border-b border-white/10 bg-white/30 flex justify-between items-center shrink-0">
                             <h3 className="font-bold text-slate-800">Money Received</h3>
-                            <button className="text-blue-600 text-sm font-bold hover:underline">View All</button>
+                            <button onClick={() => navigate('/payments')} className="text-blue-600 text-sm font-bold hover:underline cursor-pointer">View All</button>
                         </div>
                         <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
                             {recentPayments.length === 0 ? (
@@ -267,7 +267,7 @@ export default function ClientDashboard() {
                                                 <p className="text-slate-500 font-medium">{p.method}</p>
                                                 {p.invoiceNumber && (
                                                     <span className="text-[9px] font-bold bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded border border-blue-100 uppercase tracking-tight">
-                                                        INV #{p.invoiceNumber}
+                                                        {p.invoiceNumber === 'Multiple' ? 'Multiple Invoices' : `INV #${p.invoiceNumber}`}
                                                     </span>
                                                 )}
                                             </div>
