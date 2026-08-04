@@ -41,9 +41,16 @@ export default function ClientReportsView({ hideHeader = false }) {
 
     // --- KPI Calculations ---
 
-    // NOT PAID: Purchase invoice pending or late
+    // NOT PAID: Purchase invoice pending or late (Excluding External vehicles as they don't have purchase invoices)
     // purchase_status in DB: 'paid', 'payment_pending', 'late', 'not_applicable', 'unpaid'
     const notPaidVehicles = (vehicleHistory || []).filter(v => {
+        const isMotorXDealer = v.dl_number === 'AR' || v.dl_number === 'WI';
+        if (!isMotorXDealer) return false;
+
+        const payStatus = (v.payment_status || '').toLowerCase();
+        const currStatus = (v.current_status || '').toLowerCase();
+        if (payStatus === 'paid' || payStatus === 'canceled' || currStatus === 'canceled') return false;
+
         const ps = (v.purchase_status || '').toLowerCase();
         // 'payment_pending' = has invoice but not yet paid, 'late' = overdue
         return ps === 'payment_pending' || ps === 'late' || ps === 'unpaid';

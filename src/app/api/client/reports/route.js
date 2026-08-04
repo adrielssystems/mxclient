@@ -109,6 +109,7 @@ export async function GET(request) {
                 v.current_status,
                 v.purchase_price,
                 v.purchase_status,
+                v.dl_number,
                 v.payment_status,
                 a.name as auction_name,
                 v.lot_number,

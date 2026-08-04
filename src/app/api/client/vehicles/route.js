@@ -1,6 +1,7 @@
 import sql from "@/app/api/utils/sql";
 import { auth } from "@/auth";
 import { resolveClientId } from "@/app/api/utils/impersonate";
+import { getValidTokens, getQuickBooksBaseUrl } from "@/app/api/integrations/quickbooks/quickbooksUtils";
 
 export const dynamic = "force-dynamic";
 
@@ -192,38 +193,136 @@ export async function GET(request) {
             };
         });
 
-        const recentPayments = await sql`
-            SELECT 
-              pr.id, 
-              pr.amount_received as amount, 
-              pr.payment_reference as ref, 
-              pr.reconciliation_date as date,
-              i.invoice_number
-            FROM payment_reconciliations pr
-            JOIN invoices i ON pr.invoice_id = i.id
-            WHERE (i.client_id = ${clientId} OR i.client_id IN (SELECT sub_client_id FROM client_hierarchy WHERE main_client_id = ${clientId}))
-            ORDER BY pr.reconciliation_date DESC
-            LIMIT 5
-        `;
+        let mappedPayments = [];
+        let fetchedFromQb = false;
 
-        const mappedPayments = recentPayments.map(p => {
-            const dateObj = new Date(p.date);
-            const formattedDate = !isNaN(dateObj) ? dateObj.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }) : 'N/A';
-            const refStr = (p.ref || '').toUpperCase();
-            let method = 'Wire Transfer';
-            if (refStr.includes('ZELLE')) method = 'Zelle';
-            else if (refStr.includes('CASH')) method = 'Cash';
-            else if (refStr.includes('ACH')) method = 'ACH';
-            
-            return {
-                id: p.id,
-                amount: Number(p.amount),
-                ref: p.ref || 'N/A',
-                date: formattedDate,
-                method,
-                invoiceNumber: p.invoice_number
-            };
-        });
+        try {
+            const qbIdsQuery = await sql`
+                SELECT quickbooks_id FROM auth_users 
+                WHERE (id = ${clientId} OR id IN (SELECT sub_client_id FROM client_hierarchy WHERE main_client_id = ${clientId}))
+                AND quickbooks_id IS NOT NULL
+            `;
+            const qbIds = qbIdsQuery.map(row => row.quickbooks_id).filter(id => id);
+
+            if (qbIds.length > 0) {
+                const { accessToken, realmId } = await getValidTokens();
+                const baseUrl = getQuickBooksBaseUrl();
+                const customerRefs = qbIds.map(id => `'${id}'`).join(',');
+                const query = `SELECT * FROM Payment WHERE CustomerRef IN (${customerRefs}) ORDER BY TxnDate DESC MAXRESULTS 5`;
+                
+                const response = await fetch(`${baseUrl}/v3/company/${realmId}/query?query=${encodeURIComponent(query)}&minorversion=65`, {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const qbPayments = data.QueryResponse?.Payment || [];
+                    
+                    const invoiceIds = [];
+                    qbPayments.forEach(p => {
+                        if (p.Line) {
+                            p.Line.forEach(l => {
+                                if (l.LinkedTxn) {
+                                    l.LinkedTxn.forEach(tx => {
+                                        if (tx.TxnType === 'Invoice') {
+                                            invoiceIds.push(tx.TxnId);
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+
+                    let localInvoices = [];
+                    if (invoiceIds.length > 0) {
+                        localInvoices = await sql`SELECT quickbooks_invoice_id, invoice_number FROM invoices WHERE quickbooks_invoice_id = ANY(${invoiceIds})`;
+                    }
+                    const invoiceMap = new Map(localInvoices.map(i => [i.quickbooks_invoice_id, i.invoice_number]));
+
+                    mappedPayments = qbPayments.map(p => {
+                        const dateObj = new Date(p.TxnDate);
+                        const formattedDate = !isNaN(dateObj) ? dateObj.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }) : 'N/A';
+                        
+                        let method = 'Wire Transfer';
+                        const refStr = (p.PaymentRefNum || '').toUpperCase();
+                        if (refStr.includes('ZELLE')) method = 'Zelle';
+                        else if (refStr.includes('CASH')) method = 'Cash';
+                        else if (refStr.includes('ACH')) method = 'ACH';
+                        else if (p.PaymentMethodRef?.name) method = p.PaymentMethodRef.name;
+
+                        let invNumbers = [];
+                        if (p.Line) {
+                            p.Line.forEach(l => {
+                                if (l.LinkedTxn) {
+                                    l.LinkedTxn.forEach(tx => {
+                                        if (tx.TxnType === 'Invoice') {
+                                            const localNumber = invoiceMap.get(tx.TxnId);
+                                            if (localNumber) invNumbers.push(localNumber);
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                        
+                        let finalInvoiceStr = undefined;
+                        if (invNumbers.length === 1) finalInvoiceStr = invNumbers[0];
+                        else if (invNumbers.length > 1) finalInvoiceStr = "Multiple";
+
+                        return {
+                            id: p.Id,
+                            amount: Number(p.TotalAmt),
+                            ref: p.PaymentRefNum || 'N/A',
+                            date: formattedDate,
+                            method,
+                            invoiceNumber: finalInvoiceStr
+                        };
+                    });
+                    fetchedFromQb = true;
+                } else {
+                    console.error("[QB Payments Fetch Error]", await response.text());
+                }
+            }
+        } catch (qbErr) {
+            console.error("[QB Payments Exception]", qbErr);
+        }
+
+        if (!fetchedFromQb) {
+            const recentPayments = await sql`
+                SELECT 
+                  pr.id, 
+                  pr.amount_received as amount, 
+                  pr.payment_reference as ref, 
+                  pr.reconciliation_date as date,
+                  i.invoice_number
+                FROM payment_reconciliations pr
+                JOIN invoices i ON pr.invoice_id = i.id
+                WHERE (i.client_id = ${clientId} OR i.client_id IN (SELECT sub_client_id FROM client_hierarchy WHERE main_client_id = ${clientId}))
+                ORDER BY pr.reconciliation_date DESC
+                LIMIT 5
+            `;
+
+            mappedPayments = recentPayments.map(p => {
+                const dateObj = new Date(p.date);
+                const formattedDate = !isNaN(dateObj) ? dateObj.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }) : 'N/A';
+                const refStr = (p.ref || '').toUpperCase();
+                let method = 'Wire Transfer';
+                if (refStr.includes('ZELLE')) method = 'Zelle';
+                else if (refStr.includes('CASH')) method = 'Cash';
+                else if (refStr.includes('ACH')) method = 'ACH';
+                
+                return {
+                    id: p.id,
+                    amount: Number(p.amount),
+                    ref: p.ref || 'N/A',
+                    date: formattedDate,
+                    method,
+                    invoiceNumber: p.invoice_number
+                };
+            });
+        }
 
         const clientStatusQuery = await sql`SELECT status FROM auth_users WHERE id = ${clientId}`;
         const clientStatus = clientStatusQuery[0]?.status || 'active';
