@@ -92,7 +92,7 @@ export default function ClientReportsView({ hideHeader = false }) {
             {!hideHeader && (
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                        <TrendingUp className="text-blue-600" /> Reports &amp; Analytics
+                        <TrendingUp className="text-blue-600" /> Overview &amp; Analytics
                     </h1>
                     <p className="text-slate-500 mt-1">
                         {isMainClient ? "Consolidated view including all sub-client activity." : "Your vehicle and financial activity summary."}

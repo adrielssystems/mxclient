@@ -183,11 +183,11 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [],
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Tracking Number</p>
-                                            <p className="text-sm font-medium text-slate-800">{titleData?.mailing_in_tracking || <span className="text-slate-400 italic text-xs">Not available</span>}</p>
+                                            <p className="text-sm font-medium text-slate-800">{vehicle?.title_tracking?.tracking_in || titleData?.mailing_in_tracking || <span className="text-slate-400 italic text-xs">Not available</span>}</p>
                                         </div>
                                         <div>
                                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Date Received</p>
-                                            <p className="text-sm font-medium text-slate-800">{formatToMDY(titleData?.date_received) || <span className="text-slate-400 italic text-xs">Pending</span>}</p>
+                                            <p className="text-sm font-medium text-slate-800">{formatToMDY(vehicle?.title_tracking?.date_received || titleData?.date_received) || <span className="text-slate-400 italic text-xs">Pending</span>}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -199,11 +199,11 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [],
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Tracking Number</p>
-                                            <p className="text-sm font-medium text-slate-800">{titleData?.mailing_out_tracking || <span className="text-slate-400 italic text-xs">Not available</span>}</p>
+                                            <p className="text-sm font-medium text-slate-800">{vehicle?.title_tracking?.tracking_out || titleData?.mailing_out_tracking || <span className="text-slate-400 italic text-xs">Not available</span>}</p>
                                         </div>
                                         <div>
                                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Date Mailed</p>
-                                            <p className="text-sm font-medium text-slate-800">{formatToMDY(titleData?.date_mailed_out) || <span className="text-slate-400 italic text-xs">Pending</span>}</p>
+                                            <p className="text-sm font-medium text-slate-800">{formatToMDY(vehicle?.title_tracking?.date_mailed || titleData?.date_mailed_out) || <span className="text-slate-400 italic text-xs">Pending</span>}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -393,18 +393,18 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [],
                                 <div>
                                     <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Received</label>
                                     <div className="bg-white px-3 py-2 rounded border border-slate-200 text-xs font-bold text-slate-700">
-                                        {formatToMDY(titleData?.date_received) || '-'}
+                                        {formatToMDY(vehicle?.title_tracking?.date_received || titleData?.date_received) || '-'}
                                     </div>
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="bg-slate-900 rounded-lg p-3 text-white">
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Mailing IN (TRK)</label>
-                                    <div className="font-bold text-sm truncate">{titleData?.mailing_in_tracking || '-'}</div>
+                                    <div className="font-bold text-sm truncate">{vehicle?.title_tracking?.tracking_in || titleData?.mailing_in_tracking || '-'}</div>
                                 </div>
                                 <div className="bg-blue-600 rounded-lg p-3 text-white">
                                     <label className="text-[9px] font-black text-blue-200 uppercase tracking-widest block mb-1">Mailed OUT (TRK)</label>
-                                    <div className="font-bold text-sm truncate">{titleData?.mailing_out_tracking || '-'}</div>
+                                    <div className="font-bold text-sm truncate">{vehicle?.title_tracking?.tracking_out || titleData?.mailing_out_tracking || '-'}</div>
                                 </div>
                             </div>
                         </div>

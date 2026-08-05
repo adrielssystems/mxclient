@@ -2,13 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import useUser from "@/utils/useUser";
 import useAuth from "@/utils/useAuth";
-import { LogOut, Home, Car, CreditCard, FileText, ArrowLeft, Eye, AlertTriangle } from "lucide-react";
+import { LogOut, Home, Car, CreditCard, FileText, ArrowLeft, Eye, AlertTriangle, CheckSquare } from "lucide-react";
 
 const CLIENT_TABS = [
     { id: "overview", path: "/", name: "Overview", icon: Home },
+    { id: "actions", path: "/actions", name: "Actions", icon: CheckSquare },
     { id: "vehicles", path: "/vehicles", name: "My Vehicles", icon: Car },
     { id: "payments", path: "/payments", name: "Payments", icon: CreditCard },
-    { id: "reports", path: "/reports", name: "Reports", icon: FileText },
 ];
 
 export default function ClientShell({ children }) {
