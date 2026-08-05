@@ -11,12 +11,7 @@ import crypto from "crypto";
  * @returns {{ clientId: string, isImpersonating: boolean, adminId: string|null }}
  */
 export async function resolveClientId(request) {
-    const session = await auth();
-    if (!session || !session.user?.id) {
-        return { clientId: null, isImpersonating: false, adminId: null, error: "Unauthorized" };
-    }
-
-    // Parse cookies from the request Cookie header
+    // 1. Verificar primero si existe una cookie de personificación válida
     const cookieHeader = request?.headers?.get?.("cookie") || "";
     const cookies = Object.fromEntries(
         cookieHeader.split(";").map(c => {
@@ -32,42 +27,45 @@ export async function resolveClientId(request) {
             const data = JSON.parse(decodeURIComponent(impersonateCookie));
             const { payload, signature } = data;
 
-            if (payload && signature) {
-                // Verify signature using shared secret key
+            if (payload && signature && payload.adminId) {
                 const payloadStr = JSON.stringify(payload);
                 const secret = process.env.IMPERSONATION_SIGNING_KEY || "fallback-secret-key-123456";
                 const expectedSignature = crypto.createHmac("sha256", secret).update(payloadStr).digest("hex");
 
                 if (signature === expectedSignature) {
-                    // Verify the real user is an admin in DB
-                    const userRows = await sql`SELECT role FROM auth_users WHERE id = ${session.user.id}`;
-                    if (userRows[0]?.role === "admin" && payload.adminId === session.user.id) {
+                    const userRows = await sql`SELECT role FROM auth_users WHERE id = ${payload.adminId}`;
+                    if (userRows[0]?.role === "admin") {
                         return {
                             clientId: payload.clientId,
                             isImpersonating: true,
-                            adminId: session.user.id,
+                            adminId: payload.adminId,
                             clientName: payload.clientName
                         };
                     }
                 } else {
                     console.warn("[Security Alert] Impersonation cookie signature verification failed (tampered cookie).");
                 }
-            } else {
-                // Legacy unsigned format compatibility fallback
-                const legacyData = data;
-                const userRows = await sql`SELECT role FROM auth_users WHERE id = ${session.user.id}`;
-                if (userRows[0]?.role === "admin" && legacyData.adminId === session.user.id) {
+            } else if (data.clientId && data.adminId) {
+                // Soporte legacy / desarrollo sin firma
+                const userRows = await sql`SELECT role FROM auth_users WHERE id = ${data.adminId}`;
+                if (userRows[0]?.role === "admin") {
                     return {
-                        clientId: legacyData.clientId,
+                        clientId: data.clientId,
                         isImpersonating: true,
-                        adminId: session.user.id,
-                        clientName: legacyData.clientName
+                        adminId: data.adminId,
+                        clientName: data.clientName
                     };
                 }
             }
         } catch (e) {
             console.error("Invalid impersonation cookie:", e);
         }
+    }
+
+    // 2. Si no hay personificación, autenticar vía sesión estándar de NextAuth
+    const session = await auth();
+    if (!session || !session.user?.id) {
+        return { clientId: null, isImpersonating: false, adminId: null, error: "Unauthorized" };
     }
 
     return {

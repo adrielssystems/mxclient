@@ -200,7 +200,11 @@ export async function GET(request) {
             const qbIdsQuery = await sql`
                 SELECT quickbooks_id FROM auth_users 
                 WHERE (id = ${clientId} OR id IN (SELECT sub_client_id FROM client_hierarchy WHERE main_client_id = ${clientId}))
-                AND quickbooks_id IS NOT NULL
+                AND quickbooks_id IS NOT NULL AND quickbooks_id != ''
+                UNION
+                SELECT quickbooks_id FROM client_service_config 
+                WHERE (client_id = ${clientId} OR client_id IN (SELECT sub_client_id FROM client_hierarchy WHERE main_client_id = ${clientId}))
+                AND quickbooks_id IS NOT NULL AND quickbooks_id != ''
             `;
             const qbIds = qbIdsQuery.map(row => row.quickbooks_id).filter(id => id);
 
@@ -292,7 +296,7 @@ export async function GET(request) {
         if (!fetchedFromQb) {
             const recentPayments = await sql`
                 SELECT 
-                  MIN(pr.id) as id, 
+                  MIN(pr.id::text) as id, 
                   SUM(pr.amount_received) as amount, 
                   COALESCE(pr.payment_reference, 'N/A') as ref, 
                   pr.reconciliation_date::date as date,

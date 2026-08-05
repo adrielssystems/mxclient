@@ -49,7 +49,7 @@ export async function GET(request) {
         // Fetch Payments
         const payments = await sql`
             SELECT 
-                MIN(pr.id) as id,
+                MIN(pr.id::text) as id,
                 SUM(pr.amount_received) as amount,
                 COALESCE(pr.payment_reference, 'N/A') as ref,
                 pr.reconciliation_date::date as date,
