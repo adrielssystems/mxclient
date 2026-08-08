@@ -116,13 +116,15 @@ export async function GET(request) {
                 d.country_name as destination_country,
                 d.port_name as destination_port,
                 u.name as buyer_name,
-                -- Amount Paid from payment_reconciliations
+                -- Amount Paid from payment_reconciliations (reconciled)
                 COALESCE((
                     SELECT SUM(pr2.amount_received)
                     FROM payment_reconciliations pr2
                     JOIN invoices i2 ON pr2.invoice_id = i2.id
                     WHERE i2.vehicle_id = v.id
                 ), 0) as amount_paid,
+                -- Raw amount_paid from vehicles table (same source as Purchase Board)
+                COALESCE(v.amount_paid, 0) as vehicles_amount_paid,
                 -- Title Log Status (from title_logs)
                 CASE
                   WHEN tl.vin IS NULL THEN NULL

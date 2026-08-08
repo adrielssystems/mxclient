@@ -67,9 +67,10 @@ export default function ClientReportsView({ hideHeader = false }) {
         !['Completed', 'Canceled', 'NOT PAID'].includes(v.title_service_status)
     );
 
-    // RELIST DANGER: >= 7 days since purchase AND amount_paid = 0 (nothing paid yet)
+    // RELIST DANGER: >= 7 days since purchase AND $0 paid (using vehicles.amount_paid — same as Purchase Board)
     const relistDangerAll = (vehicleHistory || []).filter(v => {
-        const amountPaid = parseFloat(v.amount_paid) || 0;
+        // Use vehicles.amount_paid (raw) — matches Purchase Board display
+        const vehiclesAmountPaid = parseFloat(v.vehicles_amount_paid) || 0;
         const payStatus = (v.payment_status || '').toLowerCase();
         const currStatus = (v.current_status || '').toLowerCase();
         
@@ -83,7 +84,7 @@ export default function ClientReportsView({ hideHeader = false }) {
             daysSince = Math.floor((now - pDate) / (1000 * 60 * 60 * 24));
         }
         
-        return daysSince >= 7 && amountPaid === 0;
+        return daysSince >= 7 && vehiclesAmountPaid === 0;
     });
 
     // Filter Relist Danger table by search
