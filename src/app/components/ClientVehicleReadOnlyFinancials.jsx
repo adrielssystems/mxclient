@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from 'react';
-import { DollarSign, FileText, CreditCard, Download, AlertCircle, Eye, Loader2 } from 'lucide-react';
+import { DollarSign, FileText, CreditCard, Download, AlertCircle, Eye, Loader2, Ban } from 'lucide-react';
 import { formatToMDY } from "@/utils/dateUtils";
 import { formatCurrency } from "@/utils/formatUtils";
 
@@ -62,6 +62,17 @@ export default function ClientVehicleReadOnlyFinancials({ vehicle, invoices = []
                     Financial Overview
                 </h3>
             </div>
+
+            {/* DO NOT PAY Warning Banner */}
+            {vehicle?.do_not_pay && (
+                <div className="mx-5 my-4 flex items-center gap-3 bg-orange-50 border-2 border-orange-400 text-orange-800 px-4 py-3 rounded-xl shadow-md">
+                    <Ban className="w-5 h-5 text-orange-500 shrink-0" />
+                    <div className="flex-1">
+                        <p className="font-black text-[11px] uppercase tracking-widest">⚠ DO NOT PAY — Payment On Hold</p>
+                        <p className="text-[10px] mt-0.5 font-medium">This vehicle has been flagged by administration. Please contact MotorX support for more details before making any payments.</p>
+                    </div>
+                </div>
+            )}
 
             {/* LEDGER HEADER */}
             <div className="bg-slate-900 p-5 text-white">
