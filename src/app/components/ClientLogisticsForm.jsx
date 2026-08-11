@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Package, FileText, Save, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from "react-i18next";
 
 export default function ClientLogisticsForm({
     vehicle,
@@ -13,6 +14,7 @@ export default function ClientLogisticsForm({
     onDraftChange,
     onUpdate
 }) {
+    const { t } = useTranslation();
     if (!vehicle) return null;
 
     // Find current active Terminal/Title/Dismantling
@@ -111,16 +113,16 @@ export default function ClientLogisticsForm({
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="px-5 py-3 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
                 <div>
-                    <h3 className="font-bold text-slate-900 text-base uppercase">SERVICES CONFIGURATION</h3>
-                    <p className="text-[11px] text-slate-500">Provide instructions for shipping and handling.</p>
+                    <h3 className="font-bold text-slate-900 text-base uppercase">{t('configure_services.services_configuration')}</h3>
+                    <p className="text-[11px] text-slate-500">{t('configure_services.provide_instructions')}</p>
                 </div>
                 {isLockedBase ? (
                     <div className="bg-amber-50 text-amber-800 text-[10px] font-bold px-3 py-1.5 rounded-lg border border-amber-200">
-                        Configuration is locked as logistics are already in progress.
+                        {t('configure_services.config_locked_in_progress')}
                     </div>
                 ) : (hasConfiguredTerminal || hasConfiguredTitle) ? (
                     <div className="bg-blue-50 text-blue-800 text-[10px] font-bold px-3 py-1.5 rounded-lg border border-blue-200">
-                        Configured services cannot be modified.
+                        {t('configure_services.config_locked_configured')}
                     </div>
                 ) : null}
             </div>
@@ -131,7 +133,7 @@ export default function ClientLogisticsForm({
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                                <Package size={16} className="text-blue-500" /> Dispatch Terminal
+                                <Package size={16} className="text-blue-500" /> {t('configure_services.dispatch_terminal')}
                             </label>
                             {selectedHub && (
                                 <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 animate-in fade-in zoom-in duration-200">
@@ -144,7 +146,7 @@ export default function ClientLogisticsForm({
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Hub</label>
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">{t('configure_services.hub')}</label>
                                 <select
                                     value={selectedHub}
                                     onChange={(e) => {
@@ -154,21 +156,21 @@ export default function ClientLogisticsForm({
                                     disabled={isTerminalLocked}
                                     className={`w-full px-3 py-2.5 border border-slate-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-blue-500 transition-colors ${isTerminalLocked ? 'bg-slate-50 text-slate-400 cursor-not-allowed opacity-70' : 'bg-white'}`}
                                 >
-                                    <option value="">Select Hub...</option>
+                                    <option value="">{t('configure_services.select_hub')}</option>
                                     {uniqueHubs.map(h => (
                                         <option key={h} value={h}>{h}</option>
                                     ))}
                                 </select>
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Terminal</label>
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">{t('configure_services.terminal')}</label>
                                 <select
                                     value={formData.terminal_id}
                                     onChange={(e) => handleChange('terminal_id', e.target.value)}
                                     disabled={isTerminalLocked || !selectedHub}
                                     className={`w-full px-3 py-2.5 border border-slate-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-blue-500 transition-colors ${isTerminalLocked || !selectedHub ? 'bg-slate-50 text-slate-400 cursor-not-allowed opacity-70' : 'bg-white'}`}
                                 >
-                                    <option value="">Select Terminal...</option>
+                                    <option value="">{t('configure_services.select_terminal')}</option>
                                     {filteredTerminals.map(t => (
                                         <option key={t.id} value={t.id}>{t.name}</option>
                                     ))}
@@ -182,7 +184,7 @@ export default function ClientLogisticsForm({
                     <div className="space-y-4 md:border-l md:border-slate-100 md:pl-8">
                         <div className="flex items-center justify-between">
                             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                                <FileText size={16} className="text-orange-500" /> Title Services
+                                <FileText size={16} className="text-orange-500" /> {t('configure_services.title_services_form')}
                             </label>
                             {formData.title_service_id && (
                                 <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
@@ -197,26 +199,34 @@ export default function ClientLogisticsForm({
                                 disabled={isTitleLocked}
                                 className={`w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 transition-colors ${isTitleLocked ? 'bg-slate-50 text-slate-400 cursor-not-allowed opacity-70' : 'bg-white'}`}
                             >
-                                <option value="">Standard Title Handling</option>
-                                {titleOptions.map(t => (
-                                    <option key={t.service_id} value={t.service_id}>{t.service_name}</option>
+                                <option value="">{t('configure_services.standard_title_handling')}</option>
+                                {titleOptions.map(o => (
+                                    <option key={o.service_id} value={o.service_id}>{o.service_name}</option>
                                 ))}
                             </select>
-                            <p className="text-[10px] text-slate-400 italic">Select if you need special title services like Lien Release or Duplicates.</p>
+                            <p className="text-[10px] text-slate-400 italic">{t('configure_services.select_if_you_need_special')}</p>
                         </div>
                     </div>
                 </div>
 
             </div>
 
-            <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex justify-end">
+            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50 flex justify-end">
                 <button
                     onClick={handleSave}
-                    disabled={loading || isLockedBase || (hasConfiguredTerminal && hasConfiguredTitle)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={loading || (isTerminalLocked && isTitleLocked)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-bold text-[11px] uppercase tracking-widest flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 >
-                    {loading ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" /> : <Save size={14} />}
-                    Save Configuration
+                    {loading ? (
+                        <span className="flex items-center gap-2">
+                            <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            {t('configure_services.saving')}
+                        </span>
+                    ) : (
+                        <>
+                            <Save size={14} /> {t('configure_services.save_configuration')}
+                        </>
+                    )}
                 </button>
             </div>
         </div>

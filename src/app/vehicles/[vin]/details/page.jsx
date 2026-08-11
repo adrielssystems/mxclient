@@ -4,12 +4,14 @@ import { useParams, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { ArrowLeft } from 'lucide-react';
 import useUser from "@/utils/useUser";
+import { useTranslation } from "react-i18next";
 
 import ClientVehicleReadOnlyInfo from "../../../components/ClientVehicleReadOnlyInfo";
 import ClientVehicleReadOnlyFinancials from "../../../components/ClientVehicleReadOnlyFinancials";
 import ClientVehicleReadOnlyLogistics from "../../../components/ClientVehicleReadOnlyLogistics";
 
 export default function ClientVehicleDetailsPage() {
+    const { t } = useTranslation();
     const params = useParams();
     const navigate = useNavigate();
     const { data: user, loading: userLoading } = useUser();
@@ -73,13 +75,13 @@ export default function ClientVehicleDetailsPage() {
             <div className="w-full px-4 sm:px-6 lg:px-8 space-y-6 pt-6">
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-8 flex flex-col items-center justify-center text-center space-y-4 min-h-[400px]">
                     <span className="text-5xl">🟡</span>
-                    <h2 className="text-2xl font-bold text-amber-800">Account Suspended</h2>
-                    <p className="text-amber-700 max-w-md">Your account is currently suspended. You do not have permission to view vehicle details. Please contact the administration to resolve this issue.</p>
+                    <h2 className="text-2xl font-bold text-amber-800">{t('vehicle_details.account_suspended_title')}</h2>
+                    <p className="text-amber-700 max-w-md">{t('vehicle_details.account_suspended_desc')}</p>
                     <button 
                         onClick={() => navigate('/vehicles')}
                         className="mt-4 px-6 py-2 bg-white border border-amber-300 text-amber-700 font-bold rounded-lg hover:bg-amber-100 transition-colors shadow-sm"
                     >
-                        Return to Vehicles
+                        {t('vehicle_details.return_to_vehicles')}
                     </button>
                 </div>
             </div>
@@ -109,7 +111,7 @@ export default function ClientVehicleDetailsPage() {
                         onClick={() => navigate(`/vehicles/${vin}`)}
                         className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm transition-colors"
                     >
-                        Configure Services
+                        {t('vehicle_details.configure_services')}
                     </button>
                 </div>
             </div>

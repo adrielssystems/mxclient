@@ -4,25 +4,13 @@ import {
     ResponsiveContainer, PieChart, Pie, Cell, Legend
 } from "recharts";
 import { formatCurrency } from "@/utils/formatUtils";
+import { useTranslation } from "react-i18next";
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#F97316'];
 
-const STATUS_LABELS = {
-    purchased: "Purchased",
-    at_warehouse: "At Warehouse",
-    assignment_pending: "Pending Dispatch",
-    dispatched: "Dispatched",
-    in_transit: "In Transit",
-    at_terminal: "At Terminal",
-    booked: "Booked",
-    loaded: "Loaded",
-    in_transit_ocean: "In Transit (Ocean)",
-    shipped: "Shipped",
-    arrived: "Arrived",
-    customs_cleared: "Customs Cleared",
-    delivered: "Delivered",
-    canceled: "Canceled"
-};
+// Status labels now handled via i18n
+// Keeping keys just in case we need to map them back to original format, 
+// but we will use t(`status.${s.status}`) directly.
 
 const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -43,24 +31,30 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 export default function ReportCharts({ statusDistribution, monthlySpending }) {
+    const { t, i18n } = useTranslation();
+
     // Format status distribution for PieChart
     const pieData = statusDistribution.map(s => ({
-        name: STATUS_LABELS[s.status] || s.status?.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase()) || "Unknown",
+        name: t(`status.${s.status}`, s.status?.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase()) || "Unknown"),
         value: Number(s.count)
     }));
 
     // Format monthly spending for BarChart
-    const barData = monthlySpending.map(m => ({
-        name: new Date(m.month + "-01").toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
-        total: Number(m.total)
-    }));
+    const barData = monthlySpending.map(m => {
+        // use 'ar-SA' to ensure proper formatting for Arabic, or let i18n.language fallback
+        const locale = i18n.language === 'ar' ? 'ar-EG' : i18n.language || "en-US";
+        return {
+            name: new Date(m.month + "-01").toLocaleDateString(locale, { month: "short", year: "2-digit" }),
+            total: Number(m.total)
+        };
+    });
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Monthly Spending Bar Chart */}
             <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                 <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4">
-                    Monthly Spending (Last 12 Months)
+                    {t('dashboard.monthly_spending')}
                 </h3>
                 <div className="h-72">
                     {barData.length > 0 ? (
@@ -74,7 +68,7 @@ export default function ReportCharts({ statusDistribution, monthlySpending }) {
                             </BarChart>
                         </ResponsiveContainer>
                     ) : (
-                        <div className="flex items-center justify-center h-full text-slate-400 text-sm">No invoice data for this period.</div>
+                        <div className="flex items-center justify-center h-full text-slate-400 text-sm">{t('dashboard.no_invoice_data')}</div>
                     )}
                 </div>
             </div>
@@ -82,7 +76,7 @@ export default function ReportCharts({ statusDistribution, monthlySpending }) {
             {/* Vehicle Status Pie  */}
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                 <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4">
-                    Vehicle Status Distribution
+                    {t('dashboard.vehicle_status_distribution')}
                 </h3>
                 <div className="h-72">
                     {pieData.length > 0 ? (
@@ -106,7 +100,7 @@ export default function ReportCharts({ statusDistribution, monthlySpending }) {
                             </PieChart>
                         </ResponsiveContainer>
                     ) : (
-                        <div className="flex items-center justify-center h-full text-slate-400 text-sm">No vehicles found.</div>
+                        <div className="flex items-center justify-center h-full text-slate-400 text-sm">{t('dashboard.no_vehicles_found', { defaultValue: 'No vehicles found.' })}</div>
                     )}
                 </div>
             </div>

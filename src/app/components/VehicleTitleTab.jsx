@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Save, AlertTriangle, Upload, Calendar, Clock } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from "react-i18next";
 
 export default function VehicleTitleTab({ vehicle, onUpdate, isClient = false, isLocked = false }) {
+    const { t } = useTranslation();
     const [titleTracking, setTitleTracking] = useState({
         mailing_location: "",
         has_lien: false,
@@ -172,25 +174,25 @@ export default function VehicleTitleTab({ vehicle, onUpdate, isClient = false, i
                 <div className="flex flex-wrap justify-between items-center mb-4 gap-3">
                     <h3 className="text-lg font-black text-blue-900 flex items-center gap-2">
                         <FileText size={20} className="text-blue-600" />
-                        Master Title Tracking
+                        {t('configure_services.master_title_tracking')}
                     </h3>
 
                     <div className="flex items-center gap-2 flex-wrap">
                         {/* ENTER banner — missing mailing location */}
                         {isMissingMailingInfo && (
                             <div className="bg-red-600 text-yellow-300 font-black px-4 py-1.5 rounded uppercase flex items-center gap-2 animate-pulse shadow-md border-2 border-red-700 text-xs">
-                                <AlertTriangle size={14} /> ENTER MAILING LOCATION
+                                <AlertTriangle size={14} /> {t('configure_services.enter_mailing_location')}
                             </div>
                         )}
                         {/* FILE missing warning */}
                         {isFileMissing && (
                             <div className="bg-amber-500 text-white font-black px-3 py-1.5 rounded uppercase flex items-center gap-1.5 text-[10px] shadow-sm border border-amber-600">
-                                <Upload size={12} /> TITLE PDF REQUIRED
+                                <Upload size={12} /> {t('configure_services.title_pdf_required')}
                             </div>
                         )}
                         {/* Status badge */}
                         <span className={`px-3 py-1 rounded-full font-bold text-xs ${currentStatusStyle}`}>
-                            {titleTracking.computed_status}
+                            {t(`status.${(titleTracking.computed_status || '').toLowerCase().replace(/ /g, '_')}`, { defaultValue: titleTracking.computed_status })}
                         </span>
                         {/* Save */}
                         {!(isClient && initiallyConfigured) && (
@@ -199,7 +201,7 @@ export default function VehicleTitleTab({ vehicle, onUpdate, isClient = false, i
                                 disabled={savingTracking || finalIsLocked}
                                 className="bg-blue-600 text-white px-4 py-1.5 rounded text-sm font-bold flex items-center gap-1 hover:bg-blue-700 disabled:opacity-50"
                             >
-                                <Save size={14} /> {savingTracking ? 'Saving...' : 'Save'}
+                                <Save size={14} /> {savingTracking ? t('configure_services.saving') : t('configure_services.save')}
                             </button>
                         )}
                     </div>
@@ -209,11 +211,11 @@ export default function VehicleTitleTab({ vehicle, onUpdate, isClient = false, i
 
                     {/* ── CLIENT / GENERAL FIELDS ── */}
                     <div className="space-y-4 bg-white p-4 rounded-lg border border-slate-200">
-                        <h4 className="text-xs font-bold text-slate-400 uppercase border-b pb-2">Client Details</h4>
+                        <h4 className="text-xs font-bold text-slate-400 uppercase border-b pb-2">{t('configure_services.client_details')}</h4>
 
                         {/* Mailing Location */}
                         <div>
-                            <label className="text-xs font-bold text-slate-700 mb-1 block">Mailing Location *</label>
+                            <label className="text-xs font-bold text-slate-700 mb-1 block">{t('configure_services.mailing_location')}</label>
                             <select
                                 id="title-mailing-location"
                                 name="mailing_location"
@@ -222,11 +224,11 @@ export default function VehicleTitleTab({ vehicle, onUpdate, isClient = false, i
                                 disabled={finalIsLocked}
                                 className={`w-full p-2 text-sm border rounded focus:ring-2 focus:ring-blue-500 ${isMissingMailingInfo ? 'border-red-500 bg-red-50' : 'border-slate-300'} ${finalIsLocked ? 'bg-slate-50 text-slate-500 cursor-not-allowed opacity-80' : ''}`}
                             >
-                                <option value="">Select Destination...</option>
+                                <option value="">{t('configure_services.select_destination')}</option>
                                 {terminals.map(t => (
                                     <option key={t.id} value={t.name}>{t.name}</option>
                                 ))}
-                                <option value="Others">Others (Specify in notes)</option>
+                                <option value="Others">{t('configure_services.others_specify')}</option>
                             </select>
                         </div>
 
@@ -236,7 +238,7 @@ export default function VehicleTitleTab({ vehicle, onUpdate, isClient = false, i
                                 <div className="mt-4 bg-purple-50 border border-purple-200 p-3 rounded-lg flex items-center gap-2 shadow-sm">
                                     <AlertTriangle size={16} className="text-purple-600 flex-shrink-0" />
                                     <span className="text-xs font-black text-purple-800 uppercase tracking-widest">
-                                        ⚠️ THIS TITLE HAS A LIEN
+                                        ⚠️ {t('configure_services.this_title_has_lien')}
                                     </span>
                                 </div>
                             )
@@ -251,10 +253,10 @@ export default function VehicleTitleTab({ vehicle, onUpdate, isClient = false, i
                                     disabled={finalIsLocked}
                                     className={`h-4 w-4 text-blue-600 rounded border-gray-300 ${finalIsLocked ? 'cursor-not-allowed opacity-70' : ''}`}
                                 />
-                                <label className="text-sm font-bold text-slate-700">Vehicle has a Lien</label>
+                                <label className="text-sm font-bold text-slate-700">{t('configure_services.vehicle_has_lien')}</label>
                                 {titleTracking.has_lien && (
                                     <span className="ml-auto text-[10px] font-black bg-purple-100 text-purple-800 px-2 py-0.5 rounded uppercase border border-purple-200">
-                                        This title has a Lien
+                                        {t('configure_services.this_title_has_lien')}
                                     </span>
                                 )}
                             </div>
@@ -263,9 +265,9 @@ export default function VehicleTitleTab({ vehicle, onUpdate, isClient = false, i
                         {/* Client Notes */}
                         <div>
                             <label className="text-xs font-bold text-slate-700 mb-1 block">
-                                Client Notes{' '}
+                                {t('configure_services.client_notes')}{' '}
                                 {titleTracking.mailing_location === 'Others' && (
-                                    <span className="text-red-500">* (Required — min. 6 chars)</span>
+                                    <span className="text-red-500">{t('configure_services.client_notes_required')}</span>
                                 )}
                             </label>
                             <textarea
@@ -283,8 +285,8 @@ export default function VehicleTitleTab({ vehicle, onUpdate, isClient = false, i
                                 } ${finalIsLocked ? 'bg-slate-50 text-slate-500 cursor-not-allowed opacity-80' : ''}`}
                                 placeholder={
                                     titleTracking.mailing_location === 'Others'
-                                        ? "Please provide full mailing address..."
-                                        : "Any special title instructions..."
+                                        ? t('configure_services.client_notes_placeholder_others')
+                                        : t('configure_services.client_notes_placeholder_default')
                                 }
                             />
                             {/* Inline char counter when Others + short */}
@@ -292,7 +294,7 @@ export default function VehicleTitleTab({ vehicle, onUpdate, isClient = false, i
                                 titleTracking.client_notes &&
                                 titleTracking.client_notes.trim().length < 6 && (
                                 <p className="text-[10px] text-red-500 font-bold mt-1 flex items-center gap-1">
-                                    <AlertTriangle size={10} /> Minimum 6 characters required
+                                    <AlertTriangle size={10} /> {t('configure_services.min_chars_required')}
                                 </p>
                             )}
                         </div>
@@ -301,25 +303,25 @@ export default function VehicleTitleTab({ vehicle, onUpdate, isClient = false, i
                     {/* ── ADMIN FIELDS OR CLIENT TRACKING INFO ── */}
                     {isClient ? (
                         <div className="space-y-4 bg-slate-50/50 p-4 rounded-lg border border-slate-200">
-                            <h4 className="text-xs font-bold text-slate-400 uppercase border-b pb-2">Mailing & Tracking</h4>
+                            <h4 className="text-xs font-bold text-slate-400 uppercase border-b pb-2">{t('configure_services.mailing_and_tracking')}</h4>
                             
                             {/* Mailing IN (Incoming) */}
                             <div className="bg-white p-3.5 rounded-lg border border-slate-100 shadow-sm space-y-2">
                                 <div className="flex items-center gap-2">
                                     <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-                                    <span className="text-[11px] font-black text-blue-900 uppercase tracking-wider">Incoming (Mailing IN)</span>
+                                    <span className="text-[11px] font-black text-blue-900 uppercase tracking-wider">{t('configure_services.incoming_mailing_in')}</span>
                                 </div>
                                 <div className="grid grid-cols-2 gap-2 text-xs">
                                     <div>
-                                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Tracking Number</p>
+                                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">{t('configure_services.tracking_number')}</p>
                                         <p className="font-mono text-slate-700 font-semibold mt-0.5 break-all">
-                                            {titleTracking.tracking_in || <span className="text-slate-300 italic font-sans font-normal">Not available</span>}
+                                            {titleTracking.tracking_in || <span className="text-slate-300 italic font-sans font-normal">{t('configure_services.not_available')}</span>}
                                         </p>
                                     </div>
                                     <div>
-                                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Date Received</p>
+                                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">{t('configure_services.date_received')}</p>
                                         <p className="text-slate-700 font-bold mt-0.5">
-                                            {titleTracking.date_received ? formatDate(titleTracking.date_received) : <span className="text-slate-300 italic font-normal">Pending</span>}
+                                            {titleTracking.date_received ? formatDate(titleTracking.date_received) : <span className="text-slate-300 italic font-normal">{t('configure_services.pending')}</span>}
                                         </p>
                                     </div>
                                 </div>
@@ -329,19 +331,19 @@ export default function VehicleTitleTab({ vehicle, onUpdate, isClient = false, i
                             <div className="bg-white p-3.5 rounded-lg border border-slate-100 shadow-sm space-y-2">
                                 <div className="flex items-center gap-2">
                                     <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
-                                    <span className="text-[11px] font-black text-indigo-900 uppercase tracking-wider">Outgoing (Mailing OUT)</span>
+                                    <span className="text-[11px] font-black text-indigo-900 uppercase tracking-wider">{t('configure_services.outgoing_mailing_out')}</span>
                                 </div>
                                 <div className="grid grid-cols-2 gap-2 text-xs">
                                     <div>
-                                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Tracking Number</p>
+                                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">{t('configure_services.tracking_number')}</p>
                                         <p className="font-mono text-slate-700 font-semibold mt-0.5 break-all">
-                                            {titleTracking.tracking_out || <span className="text-slate-300 italic font-sans font-normal">Not available</span>}
+                                            {titleTracking.tracking_out || <span className="text-slate-300 italic font-sans font-normal">{t('configure_services.not_available')}</span>}
                                         </p>
                                     </div>
                                     <div>
-                                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Date Mailed</p>
+                                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">{t('configure_services.date_mailed')}</p>
                                         <p className="text-slate-700 font-bold mt-0.5">
-                                            {titleTracking.date_mailed ? formatDate(titleTracking.date_mailed) : <span className="text-slate-300 italic font-normal">Pending</span>}
+                                            {titleTracking.date_mailed ? formatDate(titleTracking.date_mailed) : <span className="text-slate-300 italic font-normal">{t('configure_services.pending')}</span>}
                                         </p>
                                     </div>
                                 </div>
@@ -350,7 +352,7 @@ export default function VehicleTitleTab({ vehicle, onUpdate, isClient = false, i
                             {/* Title Number Info if available */}
                             {titleTracking.title_number && (
                                 <div className="bg-blue-50/50 p-3 rounded-lg border border-blue-100 flex justify-between items-center text-xs">
-                                    <span className="font-bold text-blue-800">Title Document Number:</span>
+                                    <span className="font-bold text-blue-800">{t('configure_services.title_document_number')}</span>
                                     <span className="font-mono font-bold text-blue-900 bg-blue-100/60 px-2 py-0.5 rounded">{titleTracking.title_number}</span>
                                 </div>
                             )}

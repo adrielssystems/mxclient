@@ -272,15 +272,6 @@ export async function PUT(request, { params }) {
             }
         }
 
-        // Handling Payment Toggles (BP / MX Payment & DO NOT PAY)
-        if (body.do_not_pay !== undefined) {
-            await sql`UPDATE vehicles SET do_not_pay = ${body.do_not_pay} WHERE id = ${vehicleId}`;
-        }
-        
-        if (body.buyer_pays_auction !== undefined) {
-            await sql`UPDATE vehicles SET buyer_pays_auction = ${body.buyer_pays_auction} WHERE id = ${vehicleId}`;
-        }
-
         // Handling Dismantling Services
         if (body.dismantling_service_id !== undefined) {
             const existingDismantling = await sql`

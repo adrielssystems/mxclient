@@ -1,40 +1,14 @@
 "use client";
 import React, { useState } from 'react';
-import { DollarSign, Truck, FileText, CheckCircle, Clock, Ban, AlertTriangle } from 'lucide-react';
+import { useTranslation } from "react-i18next";
+import { DollarSign, Truck, FileText, CheckCircle, Clock } from 'lucide-react';
 import { formatToMDY } from "@/utils/dateUtils";
 import { formatCurrency } from "@/utils/formatUtils";
-import { toast } from 'sonner';
 
-export default function ClientVehicleReadOnlyLogistics({ vehicle: initialVehicle, services = [], dispatchData, titleData, fees: initialFees = [], operationalRules = null, clientCommission = 0, invoices = [] }) {
-    const initialTab = initialVehicle?.purchase_source === 'MotorX' ? 'purchases' : 'dispatch';
+export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [], dispatchData, titleData, fees: initialFees = [], operationalRules = null, clientCommission = 0, invoices = [] }) {
+    const { t } = useTranslation();
+    const initialTab = vehicle?.purchase_source === 'MotorX' ? 'purchases' : 'dispatch';
     const [activeTab, setActiveTab] = useState(initialTab);
-    const [vehicle, setVehicle] = useState(initialVehicle || {});
-    const [savingDoNotPay, setSavingDoNotPay] = useState(false);
-
-    const handleToggleDoNotPay = async () => {
-        const newVal = !vehicle.do_not_pay;
-        setSavingDoNotPay(true);
-        try {
-            const res = await fetch(`/api/client/vehicles/${vehicle.vin}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ do_not_pay: newVal })
-            });
-            if (res.ok) {
-                setVehicle({ ...vehicle, do_not_pay: newVal });
-                toast[newVal ? 'warning' : 'success'](
-                    newVal ? '⚠ DO NOT PAY flag activated for this vehicle.' : '✓ DO NOT PAY flag removed.'
-                );
-            } else {
-                const data = await res.json();
-                toast.error(data.error || 'Failed to update flag.');
-            }
-        } catch (error) {
-            toast.error("Network error.");
-        } finally {
-            setSavingDoNotPay(false);
-        }
-    };
 
     // Filter services
     const dispatchSvc = services.find(s => s.service_category === 'DISPATCH');
@@ -91,16 +65,16 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle: initialVehicle
             <div className="space-y-6">
                 <div className="flex justify-between items-start border-b border-slate-100 pb-4">
                     <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
-                        <DollarSign size={16} className="text-blue-500" /> Purchase Breakdown
+                        <DollarSign size={16} className="text-blue-500" /> {t('vehicle_details.purchase_breakdown')}
                     </h3>
                     <div className="text-right">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Total Invoice</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{t('vehicle_details.total_invoice')}</p>
                         <p className="text-lg font-black text-slate-900">{formatCurrency(totalCost)}</p>
                         {vehicle?.payment_status && (
                             <span className={`inline-flex px-2 py-0.5 mt-1 rounded-full text-[9px] font-bold uppercase tracking-widest border ${
                                 vehicle.payment_status === 'paid' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'
                             }`}>
-                                {vehicle.payment_status.replace('_', ' ')}
+                                {t(`status.${vehicle.payment_status.toLowerCase()}`, { defaultValue: vehicle.payment_status.replace('_', ' ') })}
                             </span>
                         )}
                     </div>
@@ -109,154 +83,129 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle: initialVehicle
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                     {/* Source Details */}
                     <div className="md:col-span-5 bg-slate-50 rounded-xl p-5 border border-slate-100 h-fit space-y-5">
-                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Auction Details (Source)</h4>
+                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('vehicle_details.auction_details_source')}</h4>
                         <div>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Winning Bid Amount</p>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">{t('vehicle_details.winning_bid_amount')}</p>
                             <p className="text-2xl font-black text-slate-900">{formatCurrency(winningBidAmount)}</p>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-0.5 font-bold">Auction House</p>
+                                <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-0.5 font-bold">{t('vehicle_details.auction_house')}</p>
                                 <p className="text-sm font-bold text-slate-700">{vehicle?.auction_name || 'N/A'}</p>
                             </div>
                             <div>
-                                <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-0.5 font-bold">Date</p>
+                                <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-0.5 font-bold">{t('vehicle_details.date')}</p>
                                 <p className="text-sm font-bold text-slate-700">{formatToMDY(vehicle?.purchase_date) || 'N/A'}</p>
                             </div>
-                        </div>
-
-                        {/* DO NOT PAY Toggle */}
-                        <div className="border-t border-slate-200/60 pt-3 mt-1 flex items-center justify-between">
-                            <span className="text-[10px] text-orange-600 font-black uppercase tracking-wider flex items-center gap-1.5">
-                                <Ban size={11} /> Do Not Pay
-                            </span>
-                            <button
-                                onClick={handleToggleDoNotPay}
-                                disabled={savingDoNotPay}
-                                className="focus:outline-none disabled:opacity-40 relative"
-                                title="Flag this vehicle to prevent payment processing"
-                            >
-                                {savingDoNotPay ? (
-                                    <span className="text-[9px] text-slate-400 animate-pulse">Saving...</span>
-                                ) : vehicle.do_not_pay ? (
-                                    <span className="inline-flex items-center gap-1 text-[9px] font-black bg-orange-100 text-orange-700 px-3 py-1 rounded-full border-2 border-orange-400 shadow-sm uppercase tracking-wide cursor-pointer hover:bg-orange-200 transition-colors">
-                                        <AlertTriangle size={10} /> YES
-                                    </span>
-                                ) : (
-                                    <span className="inline-flex items-center gap-1 text-[9px] font-black bg-slate-100 text-slate-500 px-3 py-1 rounded-full border border-slate-200 shadow-sm uppercase tracking-wide cursor-pointer hover:bg-slate-200 transition-colors">
-                                        NO
-                                    </span>
-                                )}
-                            </button>
                         </div>
                     </div>
 
                     {/* Breakdown */}
                     <div className="md:col-span-7 bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                         <div className="px-6 py-3 border-b border-slate-100 bg-slate-50 flex justify-between items-center text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                            <span>Description</span>
-                            <span>Amount</span>
+                            <span>{t('vehicle_details.description')}</span>
+                            <span>{t('vehicle_details.amount')}</span>
                         </div>
                         <div className="p-6 space-y-4">
                             <div className="flex items-end gap-2 w-full">
-                                <span className="text-sm font-bold text-slate-700">Purchase Price</span>
+                                <span className="text-sm font-bold text-slate-700">{t('vehicle_details.purchase_price')}</span>
                                 <div className="flex-1 border-b-2 border-dotted border-slate-200 mb-1.5 mx-1"></div>
                                 <span className="text-sm font-black text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(winningBidAmount)}</span>
                             </div>
                             {feeMap.gateFee > 0 && (
                                 <div className="flex items-end gap-2 w-full group">
-                                    <span className="text-sm font-bold text-slate-500 leading-snug group-hover:text-slate-700 transition-colors">Gate Fee</span>
+                                    <span className="text-sm font-bold text-slate-500 leading-snug group-hover:text-slate-700 transition-colors">{t('vehicle_details.gate_fee')}</span>
                                     <div className="flex-1 border-b-2 border-dotted border-slate-200 mb-1.5 mx-1 group-hover:border-slate-300 transition-colors"></div>
                                     <span className="text-sm font-black text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(feeMap.gateFee)}</span>
                                 </div>
                             )}
                             {feeMap.brokerFee > 0 && (
                                 <div className="flex items-end gap-2 w-full group">
-                                    <span className="text-sm font-bold text-slate-500 leading-snug group-hover:text-slate-700 transition-colors">Broker Fee</span>
+                                    <span className="text-sm font-bold text-slate-500 leading-snug group-hover:text-slate-700 transition-colors">{t('vehicle_details.broker_fee')}</span>
                                     <div className="flex-1 border-b-2 border-dotted border-slate-200 mb-1.5 mx-1 group-hover:border-slate-300 transition-colors"></div>
                                     <span className="text-sm font-black text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(feeMap.brokerFee)}</span>
                                 </div>
                             )}
                             {feeMap.commissionFee > 0 && (
                                 <div className="flex items-end gap-2 w-full group">
-                                    <span className="text-sm font-bold text-slate-500 leading-snug group-hover:text-slate-700 transition-colors">Markup Fee</span>
+                                    <span className="text-sm font-bold text-slate-500 leading-snug group-hover:text-slate-700 transition-colors">{t('vehicle_details.markup_fee')}</span>
                                     <div className="flex-1 border-b-2 border-dotted border-slate-200 mb-1.5 mx-1 group-hover:border-slate-300 transition-colors"></div>
                                     <span className="text-sm font-black text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(feeMap.commissionFee)}</span>
                                 </div>
                             )}
                             {feeMap.wireFee > 0 && (
                                 <div className="flex items-end gap-2 w-full group">
-                                    <span className="text-sm font-bold text-slate-500 leading-snug group-hover:text-slate-700 transition-colors">Wire Fee</span>
+                                    <span className="text-sm font-bold text-slate-500 leading-snug group-hover:text-slate-700 transition-colors">{t('vehicle_details.wire_fee')}</span>
                                     <div className="flex-1 border-b-2 border-dotted border-slate-200 mb-1.5 mx-1 group-hover:border-slate-300 transition-colors"></div>
                                     <span className="text-sm font-black text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(feeMap.wireFee)}</span>
                                 </div>
                             )}
                         </div>
                         <div className="px-6 pt-4 pb-6 border-t border-slate-200 flex justify-between items-center">
-                            <span className="text-xs font-black text-slate-600 uppercase tracking-widest">Total Purchase Cost</span>
+                            <span className="text-xs font-black text-slate-600 uppercase tracking-widest">{t('vehicle_details.total_purchase_cost')}</span>
                             <span className="text-xl font-black text-slate-900">{formatCurrency(totalCost)}</span>
                         </div>
                     </div>
 
                     {/* Logistics & Request (Full Width Bottom) */}
                     <div className="md:col-span-12 bg-slate-50 rounded-xl p-5 border border-slate-100">
-                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Logistics & Request</h4>
+                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">{t('vehicle_details.logistics_request')}</h4>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div>
-                                <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-1.5 font-bold">Title Status</p>
+                                <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-1.5 font-bold">{t('vehicle_details.title_status')}</p>
                                 <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase ${
                                     getTitleStatusColor(vehicle?.title_tracking?.computed_status || vehicle?.title_log_status || vehicle?.title_service_status || 'Pending')
                                 }`}>
-                                    {vehicle?.title_tracking?.computed_status || vehicle?.title_log_status || vehicle?.title_service_status || 'Pending'}
+                                    {vehicle?.title_tracking?.computed_status || vehicle?.title_log_status || vehicle?.title_service_status || t('vehicle_details.pending')}
                                 </span>
                             </div>
                             <div>
-                                <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-1 font-bold">Mailing Title Request</p>
+                                <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-1 font-bold">{t('vehicle_details.mailing_title_request')}</p>
                                 <div className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 min-h-[46px] flex items-center">
-                                    {vehicle?.title_tracking?.mailing_location || vehicle?.mailing_location || 'Not Specified'}
+                                    {vehicle?.title_tracking?.mailing_location || vehicle?.mailing_location || t('vehicle_details.not_specified')}
                                 </div>
                             </div>
                             <div>
-                                <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-1 font-bold">Client Message For Mailing Titles</p>
+                                <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-1 font-bold">{t('vehicle_details.client_message_mailing')}</p>
                                 <div className="bg-white border border-slate-200 rounded-lg p-3 text-xs text-slate-600 min-h-[46px]">
-                                    {vehicle?.title_tracking?.client_notes || vehicle?.client_notes_title || <span className="italic text-slate-400">No message provided.</span>}
+                                    {vehicle?.title_tracking?.client_notes || vehicle?.client_notes_title || <span className="italic text-slate-400">{t('vehicle_details.no_message_provided')}</span>}
                                 </div>
                             </div>
                         </div>
 
                         {/* MAILING & TRACKING ADDITION */}
                         <div className="mt-6 border-t border-slate-200 pt-6">
-                            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Mailing & Tracking</h4>
+                            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">{t('vehicle_details.mailing_tracking')}</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="bg-white border border-slate-200 rounded-lg p-4">
                                     <div className="flex items-center gap-2 mb-3">
                                         <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                                        <h5 className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Incoming (Mailing IN)</h5>
+                                        <h5 className="text-[10px] font-black text-slate-700 uppercase tracking-widest">{t('vehicle_details.incoming_mailing_in')}</h5>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Tracking Number</p>
-                                            <p className="text-sm font-medium text-slate-800">{vehicle?.title_tracking?.tracking_in || titleData?.mailing_in_tracking || <span className="text-slate-400 italic text-xs">Not available</span>}</p>
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{t('vehicle_details.tracking_number')}</p>
+                                            <p className="text-sm font-medium text-slate-800">{vehicle?.title_tracking?.tracking_in || titleData?.mailing_in_tracking || <span className="text-slate-400 italic text-xs">{t('vehicle_details.not_available')}</span>}</p>
                                         </div>
                                         <div>
-                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Date Received</p>
-                                            <p className="text-sm font-medium text-slate-800">{formatToMDY(vehicle?.title_tracking?.date_received || titleData?.date_received) || <span className="text-slate-400 italic text-xs">Pending</span>}</p>
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{t('vehicle_details.date_received')}</p>
+                                            <p className="text-sm font-medium text-slate-800">{formatToMDY(vehicle?.title_tracking?.date_received || titleData?.date_received) || <span className="text-slate-400 italic text-xs">{t('vehicle_details.pending')}</span>}</p>
                                         </div>
                                     </div>
                                 </div>
                                 <div className="bg-white border border-slate-200 rounded-lg p-4">
                                     <div className="flex items-center gap-2 mb-3">
                                         <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                                        <h5 className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Outgoing (Mailing OUT)</h5>
+                                        <h5 className="text-[10px] font-black text-slate-700 uppercase tracking-widest">{t('vehicle_details.outgoing_mailing_out')}</h5>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Tracking Number</p>
-                                            <p className="text-sm font-medium text-slate-800">{vehicle?.title_tracking?.tracking_out || titleData?.mailing_out_tracking || <span className="text-slate-400 italic text-xs">Not available</span>}</p>
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{t('vehicle_details.tracking_number')}</p>
+                                            <p className="text-sm font-medium text-slate-800">{vehicle?.title_tracking?.tracking_out || titleData?.mailing_out_tracking || <span className="text-slate-400 italic text-xs">{t('vehicle_details.not_available')}</span>}</p>
                                         </div>
                                         <div>
-                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Date Mailed</p>
-                                            <p className="text-sm font-medium text-slate-800">{formatToMDY(vehicle?.title_tracking?.date_mailed || titleData?.date_mailed_out) || <span className="text-slate-400 italic text-xs">Pending</span>}</p>
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{t('vehicle_details.date_mailed')}</p>
+                                            <p className="text-sm font-medium text-slate-800">{formatToMDY(vehicle?.title_tracking?.date_mailed || titleData?.date_mailed) || <span className="text-slate-400 italic text-xs">{t('vehicle_details.pending')}</span>}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -498,7 +447,7 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle: initialVehicle
                         activeTab === 'purchases' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
                     }`}
                 >
-                    <DollarSign size={14} /> Purchases
+                    <DollarSign size={14} /> {t('vehicle_details.purchases_tab')}
                 </button>
                 <button
                     onClick={() => setActiveTab('dispatch')}
@@ -506,7 +455,7 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle: initialVehicle
                         activeTab === 'dispatch' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
                     }`}
                 >
-                    <Truck size={14} /> Dispatch
+                    <Truck size={14} /> {t('vehicle_details.dispatch_tab')}
                 </button>
                 <button
                     onClick={() => setActiveTab('title')}
@@ -514,7 +463,7 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle: initialVehicle
                         activeTab === 'title' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
                     }`}
                 >
-                    <FileText size={14} /> Title Services
+                    <FileText size={14} /> {t('vehicle_details.title_services_tab')}
                 </button>
             </div>
 

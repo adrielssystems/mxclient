@@ -1,8 +1,10 @@
 
 import { useState } from "react";
 import useAuth from "@/utils/useAuth";
+import { useTranslation } from "react-i18next";
 
 function MainComponent() {
+  const { t } = useTranslation();
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
@@ -16,7 +18,7 @@ function MainComponent() {
     setError(null);
 
     if (!email || !password) {
-      setError("Please fill in all fields");
+      setError(t('signin.fill_all_fields'));
       setLoading(false);
       return;
     }
@@ -29,7 +31,7 @@ function MainComponent() {
       });
 
       if (result?.error) {
-        setError("Invalid credentials or sign-in failed.");
+        setError(t('signin.invalid_credentials'));
         setLoading(false);
       } else {
         // Fetch session to determine role for routing
@@ -44,23 +46,23 @@ function MainComponent() {
             } else {
               // Sign out immediately as this is client-only portal
               await signOut({ redirect: false });
-              setError("This portal is exclusively for client accounts");
+              setError(t('signin.client_portal_only'));
               setLoading(false);
             }
           } else {
             await signOut({ redirect: false });
-            setError("Failed to verify user profile access.");
+            setError(t('signin.verify_access_failed'));
             setLoading(false);
           }
         } catch (e) {
           await signOut({ redirect: false });
-          setError("Failed to verify user profile access.");
+          setError(t('signin.verify_access_failed'));
           setLoading(false);
         }
       }
     } catch (err) {
       console.error("Login error:", err);
-      setError("An unexpected error occurred.");
+      setError(t('signin.unexpected_error'));
       setLoading(false);
     }
   };
@@ -86,13 +88,13 @@ function MainComponent() {
           </div>
 
           <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Welcome Back</h1>
-            <p className="text-gray-400 text-sm">Enter your credentials to access the portal</p>
+            <h1 className="text-3xl font-bold tracking-tight text-white mb-2">{t('signin.welcome_back')}</h1>
+            <p className="text-gray-400 text-sm">{t('signin.enter_credentials')}</p>
           </div>
 
           <form onSubmit={onSubmit} className="space-y-6">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-300 ml-1">Email</label>
+              <label className="text-sm font-medium text-gray-300 ml-1">{t('signin.email')}</label>
               <div className="relative group">
                 <input
                   type="email"
@@ -106,7 +108,7 @@ function MainComponent() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-300 ml-1">Password</label>
+              <label className="text-sm font-medium text-gray-300 ml-1">{t('signin.password')}</label>
               <div className="relative group">
                 <input
                   type="password"
@@ -136,17 +138,17 @@ function MainComponent() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Signing in...
+                  {t('signin.signing_in')}
                 </span>
               ) : (
-                "Sign In"
+                t('signin.sign_in')
               )}
             </button>
           </form>
 
           {/* Footer / Links */}
           <div className="mt-8 text-center text-sm text-gray-500">
-            <p>&copy; {new Date().getFullYear()} MotorX LLC. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} MotorX LLC. {t('signin.all_rights_reserved')}</p>
           </div>
         </div>
       </div>

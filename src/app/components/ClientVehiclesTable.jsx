@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Search, Car, CalendarDays, ChevronDown, Check } from 'lucide-react';
 import { formatToMDY } from "@/utils/dateUtils";
 import { formatCurrency } from "@/utils/formatUtils";
@@ -32,14 +33,20 @@ const TITLE_COLORS = {
     'New':        'bg-slate-100 text-slate-400 border-slate-200',
 };
 
-const StatusBadge = ({ label, colorClass }) => (
-    <span className={`px-1 py-0.5 text-[9px] font-black rounded border uppercase tracking-widest block text-center leading-tight ${colorClass}`}>
-        {label}
-    </span>
-);
+const StatusBadge = ({ label, colorClass, t }) => {
+    // Attempt to translate the label if it matches our status keys, else display as is
+    const translationKey = `status.${label.toLowerCase().replace(/ /g, '_')}`;
+    const translatedLabel = t ? t(translationKey, { defaultValue: label }) : label;
+
+    return (
+        <span className={`px-1 py-0.5 text-[9px] font-black rounded border uppercase tracking-widest block text-center leading-tight ${colorClass}`}>
+            {translatedLabel}
+        </span>
+    );
+};
 
 // --- MEMOIZED ROW COMPONENT ---
-const VehicleRow = React.memo(({ vehicle, activeTab = 'All' }) => {
+const VehicleRow = React.memo(({ vehicle, activeTab = 'All', t }) => {
     const isLate = vehicle.payment_status === 'late';
 
     // Purchase badge
@@ -102,14 +109,14 @@ const VehicleRow = React.memo(({ vehicle, activeTab = 'All' }) => {
             {/* Purchase Status */}
             { (activeTab === 'All' || activeTab === 'Purchases') && (
                 <td className="px-2 py-1.5 w-[82px]">
-                    <StatusBadge label={purchaseLabel} colorClass={purchaseColor} />
+                    <StatusBadge label={purchaseLabel} colorClass={purchaseColor} t={t} />
                 </td>
             )}
             {/* Dispatch Status */}
             { (activeTab === 'All' || activeTab === 'Dispatch') && (
                 <td className="px-2 py-1.5 w-[82px]">
                     {dispatchStatus
-                        ? <StatusBadge label={dispatchStatus} colorClass={dispatchColor} />
+                        ? <StatusBadge label={dispatchStatus} colorClass={dispatchColor} t={t} />
                         : <span className="text-slate-200 text-[11px] block text-center">—</span>
                     }
                 </td>
@@ -118,7 +125,7 @@ const VehicleRow = React.memo(({ vehicle, activeTab = 'All' }) => {
             { (activeTab === 'All' || activeTab === 'Title SVC') && (
                 <td className="px-2 py-1.5 w-[82px]">
                     {titleStatus
-                        ? <StatusBadge label={titleStatus} colorClass={titleColor} />
+                        ? <StatusBadge label={titleStatus} colorClass={titleColor} t={t} />
                         : <span className="text-slate-200 text-[11px] block text-center">—</span>
                     }
                 </td>
@@ -128,6 +135,7 @@ const VehicleRow = React.memo(({ vehicle, activeTab = 'All' }) => {
 });
 
 export default function ClientVehiclesTable({ vehicles = [], activeTab = 'All' }) {
+    const { t } = useTranslation();
     const startPickerRef = useRef(null);
     const endPickerRef   = useRef(null);
 
@@ -246,12 +254,12 @@ export default function ClientVehiclesTable({ vehicles = [], activeTab = 'All' }
                 <div className="p-3 bg-slate-50 border-b border-slate-200 flex flex-wrap gap-3 items-end">
                     {/* Search */}
                     <div className="flex-1 min-w-[200px]">
-                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Search (VIN, Lot, Desc)</label>
+                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">{t('vehicles.search_label')}</label>
                         <div className="relative group">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={14} />
                             <input 
                                 type="text" 
-                                placeholder="Search vehicles..." 
+                                placeholder={t('vehicles.search_placeholder')}
                                 className="w-full pl-9 pr-4 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all shadow-sm"
                                 value={localSearch}
                                 onChange={(e) => setLocalSearch(e.target.value)}
@@ -261,13 +269,13 @@ export default function ClientVehiclesTable({ vehicles = [], activeTab = 'All' }
 
                     {/* Auction Filter */}
                     <div className="w-[160px]">
-                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Auction</label>
+                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">{t('vehicles.auction')}</label>
                         <select 
                             value={auctionFilter}
                             onChange={(e) => setAuctionFilter(e.target.value)}
                             className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
                         >
-                            <option value="all">All Auctions</option>
+                            <option value="all">{t('vehicles.all_auctions')}</option>
                             {uniqueAuctions.map(a => <option key={a} value={a}>{a}</option>)}
                         </select>
                     </div>
@@ -276,13 +284,13 @@ export default function ClientVehiclesTable({ vehicles = [], activeTab = 'All' }
 
                     {/* Location Filter */}
                     <div className="w-[160px]">
-                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Location</label>
+                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">{t('vehicles.location')}</label>
                         <select 
                             value={locationFilter}
                             onChange={(e) => setLocationFilter(e.target.value)}
                             className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] font-bold focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
                         >
-                            <option value="all">All Locations</option>
+                            <option value="all">{t('vehicles.all_locations')}</option>
                             {uniqueLocations.map(l => <option key={l} value={l}>{l}</option>)}
                         </select>
                     </div>
@@ -290,7 +298,7 @@ export default function ClientVehiclesTable({ vehicles = [], activeTab = 'All' }
                     {/* Sub-Client Filter (Only visible if there are multiple clients) */}
                     {uniqueClients.length > 1 && (
                         <div className="w-[160px]" ref={clientDropdownRef}>
-                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Clients</label>
+                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">{t('vehicles.clients')}</label>
                             <div className="relative">
                                 <button
                                     onClick={() => setIsClientDropdownOpen(!isClientDropdownOpen)}
@@ -298,10 +306,10 @@ export default function ClientVehiclesTable({ vehicles = [], activeTab = 'All' }
                                 >
                                     <span className="truncate">
                                         {clientFilter.length === 0 
-                                            ? "All Clients" 
+                                            ? t('vehicles.all_clients')
                                             : clientFilter.length === 1 
                                                 ? clientFilter[0] 
-                                                : `${clientFilter.length} Selected`}
+                                                : `${clientFilter.length} ${t('vehicles.selected')}`}
                                     </span>
                                     <ChevronDown size={14} className={`text-slate-400 transition-transform ${isClientDropdownOpen ? 'rotate-180' : ''}`} />
                                 </button>
@@ -315,7 +323,7 @@ export default function ClientVehiclesTable({ vehicles = [], activeTab = 'All' }
                                             <div className={`w-4 h-4 rounded border flex items-center justify-center ${clientFilter.length === 0 ? 'bg-blue-500 border-blue-500' : 'border-slate-300'}`}>
                                                 {clientFilter.length === 0 && <Check size={10} className="text-white" />}
                                             </div>
-                                            <span className="text-[11px] font-bold text-slate-700">All Clients</span>
+                                            <span className="text-[11px] font-bold text-slate-700">{t('vehicles.all_clients')}</span>
                                         </div>
                                         {uniqueClients.map(c => (
                                             <div 
@@ -345,7 +353,7 @@ export default function ClientVehiclesTable({ vehicles = [], activeTab = 'All' }
                     <div className="flex gap-2 items-end">
                         {/* FROM */}
                         <div>
-                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">From</label>
+                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">{t('vehicles.from')}</label>
                             <div className="relative flex items-center">
                                 <input 
                                     type="text"
@@ -374,7 +382,7 @@ export default function ClientVehiclesTable({ vehicles = [], activeTab = 'All' }
                         </div>
                         {/* TO */}
                         <div>
-                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">To</label>
+                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">{t('vehicles.to')}</label>
                             <div className="relative flex items-center">
                                 <input 
                                     type="text"
@@ -415,7 +423,7 @@ export default function ClientVehiclesTable({ vehicles = [], activeTab = 'All' }
                         }}
                         className="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-[11px] rounded-lg transition-colors border border-slate-200"
                     >
-                        Reset
+                        {t('vehicles.reset')}
                     </button>
                 </div>
 
@@ -424,20 +432,20 @@ export default function ClientVehiclesTable({ vehicles = [], activeTab = 'All' }
                     <table className="min-w-full divide-y divide-slate-200 table-fixed">
                         <thead className="bg-slate-100 sticky top-0 z-10 border-b border-slate-200">
                             <tr>
-                                <th className="px-2 py-2 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest w-[150px]">VIN</th>
-                                <th className="px-2 py-2 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest w-[68px]">Lot #</th>
-                                <th className="px-2 py-2 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest w-[190px]">Description</th>
-                                <th className="px-2 py-2 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest w-[160px]">Auction / Location</th>
-                                <th className="px-2 py-2 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest w-[130px]">Client</th>
-                                <th className="px-2 py-2 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest w-[95px]">Date / Price</th>
+                                <th className="px-2 py-2 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest w-[150px]">{t('vehicles.col_vin')}</th>
+                                <th className="px-2 py-2 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest w-[68px]">{t('vehicles.col_lot')}</th>
+                                <th className="px-2 py-2 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest w-[190px]">{t('vehicles.col_description')}</th>
+                                <th className="px-2 py-2 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest w-[160px]">{t('vehicles.col_auction_location')}</th>
+                                <th className="px-2 py-2 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest w-[130px]">{t('vehicles.col_client')}</th>
+                                <th className="px-2 py-2 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest w-[95px]">{t('vehicles.col_date_price')}</th>
                                 { (activeTab === 'All' || activeTab === 'Purchases') && (
-                                    <th className="px-2 py-2 text-center text-[10px] font-black text-slate-500 uppercase tracking-widest w-[82px]">Purchase</th>
+                                    <th className="px-2 py-2 text-center text-[10px] font-black text-slate-500 uppercase tracking-widest w-[82px]">{t('vehicles.col_purchase')}</th>
                                 )}
                                 { (activeTab === 'All' || activeTab === 'Dispatch') && (
-                                    <th className="px-2 py-2 text-center text-[10px] font-black text-blue-500 uppercase tracking-widest w-[82px]">Dispatch</th>
+                                    <th className="px-2 py-2 text-center text-[10px] font-black text-blue-500 uppercase tracking-widest w-[82px]">{t('vehicles.col_dispatch')}</th>
                                 )}
                                 { (activeTab === 'All' || activeTab === 'Title SVC') && (
-                                    <th className="px-2 py-2 text-center text-[10px] font-black text-violet-500 uppercase tracking-widest w-[82px]">Title Svc</th>
+                                    <th className="px-2 py-2 text-center text-[10px] font-black text-violet-500 uppercase tracking-widest w-[82px]">{t('vehicles.col_title_svc')}</th>
                                 )}
                             </tr>
                         </thead>
@@ -447,13 +455,13 @@ export default function ClientVehiclesTable({ vehicles = [], activeTab = 'All' }
                                     <td colSpan="9" className="px-6 py-24 text-center text-slate-500">
                                         <div className="flex flex-col items-center gap-2">
                                             <Search className="h-8 w-8 text-slate-300" />
-                                            <p className="font-medium">No vehicles found matching your criteria.</p>
+                                            <p className="font-medium">{t('vehicles.no_vehicles')}</p>
                                         </div>
                                     </td>
                                 </tr>
                             ) : (
                                 paginatedVehicles.map((vehicle) => (
-                                    <VehicleRow key={vehicle.vin || vehicle.id} vehicle={vehicle} activeTab={activeTab} />
+                                    <VehicleRow key={vehicle.vin || vehicle.id} vehicle={vehicle} activeTab={activeTab} t={t} />
                                 ))
                             )}
                         </tbody>
@@ -464,7 +472,7 @@ export default function ClientVehiclesTable({ vehicles = [], activeTab = 'All' }
                 {totalPages > 1 && (
                     <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
                         <div className="text-sm text-slate-500 text-center sm:text-left">
-                            Showing <span className="font-bold text-slate-900">{totalCount > 0 ? ((currentPage - 1) * ITEMS_PER_PAGE) + 1 : 0}</span> to <span className="font-bold text-slate-900">{Math.min(currentPage * ITEMS_PER_PAGE, totalCount)}</span> of <span className="font-bold text-slate-900">{totalCount}</span> vehicles
+                            {t('vehicles.showing')} <span className="font-bold text-slate-900">{totalCount > 0 ? ((currentPage - 1) * ITEMS_PER_PAGE) + 1 : 0}</span> {t('vehicles.to_lowercase')} <span className="font-bold text-slate-900">{Math.min(currentPage * ITEMS_PER_PAGE, totalCount)}</span> {t('vehicles.of')} <span className="font-bold text-slate-900">{totalCount}</span> {t('vehicles.vehicles_lowercase')}
                         </div>
                         <div className="flex gap-2">
                             <button
@@ -472,17 +480,17 @@ export default function ClientVehiclesTable({ vehicles = [], activeTab = 'All' }
                                 disabled={currentPage === 1}
                                 className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
-                                Previous
+                                {t('actions.previous')}
                             </button>
                             <div className="flex items-center px-4 text-sm font-bold text-slate-600">
-                                Page {currentPage} of {totalPages}
+                                {t('actions.page_x_of_y', { current: currentPage, total: totalPages })}
                             </div>
                             <button
                                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                                 disabled={currentPage === totalPages}
                                 className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
-                                Next
+                                {t('actions.next')}
                             </button>
                         </div>
                     </div>

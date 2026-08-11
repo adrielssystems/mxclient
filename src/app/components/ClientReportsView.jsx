@@ -4,9 +4,11 @@ import useUser from "@/utils/useUser";
 import { formatCurrency } from "@/utils/formatUtils";
 const ReportCharts = lazy(() => import("../reports/components/ReportCharts"));
 import { FileText, Car, DollarSign, TrendingUp, AlertCircle, Search, Loader2, CheckCircle2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function ClientReportsView({ hideHeader = false }) {
     const { data: user, loading: userLoading } = useUser();
+    const { t } = useTranslation();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [searchFilter, setSearchFilter] = useState("");
@@ -105,10 +107,10 @@ export default function ClientReportsView({ hideHeader = false }) {
             {!hideHeader && (
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                        <TrendingUp className="text-blue-600" /> Overview &amp; Analytics
+                        <TrendingUp className="text-blue-600" /> {t('dashboard.overview_analytics')}
                     </h1>
                     <p className="text-slate-500 mt-1">
-                        {isMainClient ? "Consolidated view including all sub-client activity." : "Your vehicle and financial activity summary."}
+                        {isMainClient ? t('dashboard.overview_desc_main') : t('dashboard.overview_desc')}
                     </p>
                 </div>
             )}
@@ -116,34 +118,34 @@ export default function ClientReportsView({ hideHeader = false }) {
             {/* KPI Cards — Row 1: Operational metrics */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {/* NOT PAID */}
-                <div className={`p-5 rounded-2xl border shadow-sm hover:shadow-md transition-all ${notPaidVehicles.length > 0 ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-200'}`}>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Not Paid</p>
+                <div className={`p-5 rounded-2xl border shadow-sm hover:shadow-md transition-all ${notPaidVehicles.length > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-slate-200'}`}>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t('dashboard.not_paid')}</p>
                     <h2 className={`text-2xl font-black ${notPaidVehicles.length > 0 ? 'text-amber-700' : 'text-slate-800'}`}>{notPaidVehicles.length}</h2>
-                    <p className="text-[9px] text-slate-400 mt-0.5">Purchase invoice pending/late</p>
+                    <p className="text-[9px] text-slate-400 mt-0.5">{t('dashboard.not_paid_desc')}</p>
                     <DollarSign className={`mt-2 ${notPaidVehicles.length > 0 ? 'text-amber-500' : 'text-slate-300'}`} size={20} />
                 </div>
 
                 {/* TITLES RECEIVED */}
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Titles Received</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t('dashboard.titles_received')}</p>
                     <h2 className="text-2xl font-black text-slate-800">{titlesReceivedVehicles.length}</h2>
-                    <p className="text-[9px] text-slate-400 mt-0.5">Title in hand at MotorX</p>
+                    <p className="text-[9px] text-slate-400 mt-0.5">{t('dashboard.titles_received_desc')}</p>
                     <CheckCircle2 className="text-emerald-500 mt-2" size={20} />
                 </div>
 
                 {/* TITLE SVC (Active) */}
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Title SVC (Active)</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t('dashboard.title_svc_active')}</p>
                     <h2 className="text-2xl font-black text-slate-800">{activeTitleSvcVehicles.length}</h2>
-                    <p className="text-[9px] text-slate-400 mt-0.5">Title service in progress</p>
+                    <p className="text-[9px] text-slate-400 mt-0.5">{t('dashboard.title_svc_active_desc')}</p>
                     <FileText className="text-violet-500 mt-2" size={20} />
                 </div>
 
                 {/* RELIST DANGER */}
                 <div className={`p-5 rounded-2xl border shadow-sm hover:shadow-md transition-all ${relistDangerAll.length > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-slate-200'}`}>
-                    <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${relistDangerAll.length > 0 ? 'text-red-500' : 'text-slate-400'}`}>Relist Danger</p>
+                    <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${relistDangerAll.length > 0 ? 'text-red-500' : 'text-slate-400'}`}>{t('dashboard.relist_danger')}</p>
                     <h2 className={`text-2xl font-black ${relistDangerAll.length > 0 ? 'text-red-700' : 'text-slate-800'}`}>{relistDangerAll.length}</h2>
-                    <p className="text-[9px] text-slate-400 mt-0.5">Late &amp; $0 paid</p>
+                    <p className="text-[9px] text-slate-400 mt-0.5">{t('dashboard.relist_danger_desc')}</p>
                     <AlertCircle className={`mt-2 ${relistDangerAll.length > 0 ? 'text-red-500' : 'text-slate-300'}`} size={20} />
                 </div>
             </div>
@@ -151,22 +153,22 @@ export default function ClientReportsView({ hideHeader = false }) {
             {/* KPI Cards — Row 2: Financial summary */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Vehicles</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t('dashboard.total_vehicles')}</p>
                     <h2 className="text-2xl font-black text-slate-800">{kpis.totalVehicles}</h2>
                     <Car className="text-blue-500 mt-2" size={20} />
                 </div>
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Invoiced</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t('dashboard.total_invoiced')}</p>
                     <h2 className="text-2xl font-black text-slate-800">{formatCurrency(kpis.totalInvoiced)}</h2>
                     <FileText className="text-blue-500 mt-2" size={20} />
                 </div>
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Paid</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t('dashboard.total_paid')}</p>
                     <h2 className="text-2xl font-black text-emerald-700">{formatCurrency(kpis.totalPaid)}</h2>
                     <DollarSign className="text-emerald-500 mt-2" size={20} />
                 </div>
                 <div className={`p-5 rounded-2xl border shadow-sm hover:shadow-md transition-all ${kpis.outstandingBalance > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-slate-200'}`}>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Outstanding</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t('dashboard.outstanding')}</p>
                     <h2 className={`text-2xl font-black ${kpis.outstandingBalance > 0 ? 'text-red-700' : 'text-slate-800'}`}>
                         {formatCurrency(kpis.outstandingBalance)}
                     </h2>
@@ -179,7 +181,7 @@ export default function ClientReportsView({ hideHeader = false }) {
                 <div className="h-80 bg-white rounded-2xl border border-slate-200 shadow-sm flex items-center justify-center">
                     <div className="flex flex-col items-center gap-2 text-slate-400">
                         <Loader2 className="animate-spin" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest">Loading Analytics...</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest">{t('dashboard.loading_analytics')}</span>
                     </div>
                 </div>
             }>
@@ -194,15 +196,15 @@ export default function ClientReportsView({ hideHeader = false }) {
                 <div className="p-5 border-b border-slate-100 bg-red-50/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div>
                         <h3 className="text-sm font-bold text-red-700 uppercase tracking-widest flex items-center gap-2">
-                            <AlertCircle size={16} /> Relist Danger ({filteredRelist.length})
+                            <AlertCircle size={16} /> {t('dashboard.relist_danger_table')} ({filteredRelist.length})
                         </h3>
-                        <p className="text-[11px] text-red-400 mt-0.5">Vehicles with LATE status and $0 paid — at risk of auction relist</p>
+                        <p className="text-[11px] text-red-400 mt-0.5">{t('dashboard.relist_danger_table_desc')}</p>
                     </div>
                     <div className="relative w-full sm:w-64">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                         <input
                             type="text"
-                            placeholder="Search VIN, description, auction..."
+                            placeholder={t('dashboard.search_placeholder')}
                             value={searchFilter}
                             onChange={e => setSearchFilter(e.target.value)}
                             className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-400 focus:border-red-400 outline-none"
@@ -213,12 +215,12 @@ export default function ClientReportsView({ hideHeader = false }) {
                     <table className="min-w-full text-sm">
                         <thead className="bg-slate-50 sticky top-0 z-10 shadow-sm">
                             <tr>
-                                <th className="px-5 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">Auction</th>
-                                <th className="px-5 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">Description</th>
-                                <th className="px-5 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">VIN</th>
-                                <th className="px-5 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">Lot #</th>
-                                <th className="px-5 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">Purchase Price</th>
-                                <th className="px-5 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">Days Since Purchase</th>
+                                <th className="px-5 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('dashboard.col_auction')}</th>
+                                <th className="px-5 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('dashboard.col_description')}</th>
+                                <th className="px-5 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('dashboard.col_vin')}</th>
+                                <th className="px-5 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('dashboard.col_lot')}</th>
+                                <th className="px-5 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('dashboard.col_purchase_price')}</th>
+                                <th className="px-5 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('dashboard.col_days_since_purchase')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -226,7 +228,7 @@ export default function ClientReportsView({ hideHeader = false }) {
                                 <tr>
                                     <td colSpan={6} className="px-5 py-10 text-center text-slate-400">
                                         <CheckCircle2 className="mx-auto mb-2 text-emerald-300" size={28} />
-                                        No vehicles in Relist Danger. 
+                                        {t('dashboard.no_vehicles_relist')}
                                     </td>
                                 </tr>
                             ) : (

@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import useUser from "@/utils/useUser";
 import useAuth from "@/utils/useAuth";
 import { LogOut, Home, Car, CreditCard, FileText, ArrowLeft, Eye, AlertTriangle, CheckSquare } from "lucide-react";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useTranslation } from "react-i18next";
 
 const CLIENT_TABS = [
     { id: "overview", path: "/", name: "Overview", icon: Home },
@@ -14,6 +16,7 @@ const CLIENT_TABS = [
 export default function ClientShell({ children }) {
     const { data: user, loading } = useUser();
     const { signOut } = useAuth();
+    const { t } = useTranslation();
 
     const [currentPath, setCurrentPath] = useState('');
     const [impersonating, setImpersonating] = useState(null);
@@ -124,7 +127,7 @@ export default function ClientShell({ children }) {
                     } group flex w-full items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200`}
             >
                 <tab.icon className={`${isActive ? "text-white" : "text-slate-500 group-hover:text-slate-300"} mr-3 h-5 w-5 flex-shrink-0 transition-colors`} />
-                <span className="truncate tracking-wide">{tab.name}</span>
+                <span className="truncate tracking-wide">{t(`sidebar.${tab.id === 'overview' ? 'dashboard' : tab.id}`)}</span>
             </a>
         );
     };
@@ -137,7 +140,7 @@ export default function ClientShell({ children }) {
                     <div className="flex items-center gap-2">
                         <Eye size={18} className="animate-pulse" />
                         <span className="text-sm font-bold">
-                            Viewing as: {impersonating.clientName} ({impersonating.clientEmail})
+                            {t('shell.viewing_as')} {impersonating.clientName} ({impersonating.clientEmail})
                         </span>
                     </div>
                     <button
@@ -145,7 +148,7 @@ export default function ClientShell({ children }) {
                         className="flex items-center gap-1.5 bg-white text-amber-700 px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-amber-50 transition-colors shadow-sm"
                     >
                         <ArrowLeft size={14} />
-                        Return to Admin
+                        {t('shell.return_to_admin')}
                     </button>
                 </div>
             )}
@@ -156,7 +159,7 @@ export default function ClientShell({ children }) {
                         <div className="flex items-center">
                             <a href="/" className="flex items-center">
                                 <img src="/images/logo-new.png" alt="MotorX" className="h-8 w-auto object-contain mr-3" />
-                                <h1 className="text-xl font-bold text-white tracking-tight hidden sm:block">Client Portal</h1>
+                                <h1 className="text-xl font-bold text-white tracking-tight hidden sm:block">{t('shell.client_portal')}</h1>
                             </a>
                         </div>
                         <div className="flex items-center gap-2 sm:gap-4">
@@ -165,15 +168,16 @@ export default function ClientShell({ children }) {
                             </span>
                             {user.role === 'admin' && (
                                 <span className="hidden sm:inline-block px-2.5 py-0.5 bg-red-900/50 text-red-200 text-xs font-semibold rounded-full border border-red-700">
-                                    Masquerading Admin
+                                    {t('shell.masquerading_admin')}
                                 </span>
                             )}
+                            <LanguageSwitcher />
                             <button
                                 onClick={() => window.location.href = '/account/logout'}
                                 className="flex items-center text-slate-400 hover:text-red-400 transition-colors sm:ml-4 text-sm font-medium"
                             >
                                 <LogOut className="h-4 w-4 mr-1.5" />
-                                <span className="hidden sm:inline-block">Sign Out</span>
+                                <span className="hidden sm:inline-block">{t('sidebar.logout')}</span>
                             </button>
                         </div>
                     </div>
@@ -192,9 +196,9 @@ export default function ClientShell({ children }) {
                     {/* Subtle Developer Signature */}
                     <div className="p-4 border-t border-slate-800/50 bg-slate-900/50 mt-auto">
                         <p className="text-[9px] text-slate-600 font-medium tracking-tight text-center leading-tight">
-                            Developed by <a href="https://adrielssystems.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-blue-400 transition-colors">Adriel's Systems</a>
+                            {t('shell.developed_by')} <a href="https://adrielssystems.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-blue-400 transition-colors">Adriel's Systems</a>
                             <br />
-                            <span className="opacity-40 font-light">The Engine of Your Software</span>
+                            <span className="opacity-40 font-light">{t('shell.engine_of_software')}</span>
                         </p>
                     </div>
                 </aside>
@@ -214,7 +218,7 @@ export default function ClientShell({ children }) {
                                         }`}
                                 >
                                     <tab.icon size={14} />
-                                    <span>{tab.name}</span>
+                                    <span>{t(`sidebar.${tab.id === 'overview' ? 'dashboard' : tab.id}`)}</span>
                                 </a>
                             );
                         })}

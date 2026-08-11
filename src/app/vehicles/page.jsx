@@ -1,9 +1,11 @@
 "use client";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import useUser from "@/utils/useUser";
 import ClientVehiclesTable from "../components/ClientVehiclesTable";
 
 export default function ClientVehiclesPage() {
+    const { t } = useTranslation();
     const { data: user, loading: userLoading } = useUser();
     const [vehicles, setVehicles] = useState([]);
     const [clientStatus, setClientStatus] = useState('active');
@@ -53,15 +55,15 @@ export default function ClientVehiclesPage() {
                 <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg flex items-center gap-3">
                     <span className="text-2xl">🟡</span>
                     <div>
-                        <h3 className="font-bold text-amber-900">Account Suspended</h3>
-                        <p className="text-sm">Your account is currently suspended. You cannot view vehicle details. Please contact support.</p>
+                        <h3 className="font-bold text-amber-900">{t('vehicles.account_suspended')}</h3>
+                        <p className="text-sm">{t('vehicles.account_suspended_desc')}</p>
                     </div>
                 </div>
             )}
             
             <div>
-                <h1 className="text-2xl font-bold text-slate-900">My Vehicles</h1>
-                <p className="text-slate-500 mt-1">Track the transport and payment status of your purchases.</p>
+                <h1 className="text-2xl font-bold text-slate-900">{t('vehicles.my_vehicles')}</h1>
+                <p className="text-slate-500 mt-1">{t('vehicles.track_purchases')}</p>
             </div>
 
 
@@ -78,7 +80,7 @@ export default function ClientVehiclesPage() {
                                 : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                         }`}
                     >
-                        {tab}
+                        {tab === 'Purchases' ? t('vehicles.tab_purchases') : tab === 'Dispatch' ? t('vehicles.tab_dispatch') : t('vehicles.tab_title_svc')}
                     </button>
                 ))}
             </div>

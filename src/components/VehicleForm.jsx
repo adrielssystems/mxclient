@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { ArrowLeft, CheckCircle2, AlertCircle, Briefcase } from 'lucide-react';
 import LocationCombobox from './LocationCombobox';
+import { useTranslation } from 'react-i18next';
 
 const getVehicleSchema = (isAdmin) => z.object({
     dealer: isAdmin
@@ -35,6 +36,7 @@ const getVehicleSchema = (isAdmin) => z.object({
 });
 
 export default function VehicleForm({ initialData, onSubmit, onCancel, clients, auctions, locations, terminals, destinations, titleServices, userRole, isClientView = false }) {
+    const { t } = useTranslation();
     const isAdmin = userRole?.toUpperCase() === 'ADMIN';
     const isClient = userRole?.toUpperCase() === 'CLIENT' || isClientView;
 
@@ -136,7 +138,7 @@ export default function VehicleForm({ initialData, onSubmit, onCancel, clients, 
                     </button>
                     <div>
                         <h2 className="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
-                            {initialData?.id ? 'Edit Vehicle' : 'Add New Vehicle'}
+                            {initialData?.id ? t('add_vehicle.edit_vehicle') : t('add_vehicle.add_new_vehicle')}
                         </h2>
                     </div>
                 </div>
@@ -151,7 +153,7 @@ export default function VehicleForm({ initialData, onSubmit, onCancel, clients, 
                         <div className="px-5 py-2.5 border-b border-slate-200 bg-slate-100/80 flex items-center justify-between">
                             <h3 className="text-[11px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2">
                                 <Briefcase className="h-3.5 w-3.5" />
-                                Mandatory Vehicle Data
+                                {t('add_vehicle.mandatory_vehicle_data')}
                             </h3>
                         </div>
                         
@@ -160,9 +162,9 @@ export default function VehicleForm({ initialData, onSubmit, onCancel, clients, 
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 {isAdmin && (
                                     <div>
-                                        <label htmlFor="dealer" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Dealer License <span className="text-red-500">*</span></label>
+                                        <label htmlFor="dealer" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">{t('add_vehicle.dealer_license')} <span className="text-red-500">*</span></label>
                                         <select id="dealer" {...register('dealer')} className={`w-full px-3 py-1.5 bg-white border rounded text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${errors.dealer ? 'border-red-400' : 'border-slate-300'}`}>
-                                            <option value="">Select Dealer...</option>
+                                            <option value="">{t('add_vehicle.select_dealer')}</option>
                                             <option value="AR">AR — MotorX (Arkansas)</option>
                                             <option value="WI">WI — MotorX (Wisconsin)</option>
                                             <option value="">N/A — External Vehicle</option>
@@ -171,70 +173,70 @@ export default function VehicleForm({ initialData, onSubmit, onCancel, clients, 
                                     </div>
                                 )}
                                 <div className={isAdmin ? "" : "md:col-span-2"}>
-                                    <label htmlFor="vin" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">VIN <span className="text-red-500">*</span></label>
+                                    <label htmlFor="vin" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">{t('add_vehicle.vin')} <span className="text-red-500">*</span></label>
                                     <input 
                                         id="vin"
                                         {...register('vin')} 
-                                        placeholder="17 CHARACTERS" 
+                                        placeholder={t('add_vehicle.vin_placeholder')} 
                                         className={`w-full px-3 py-1.5 bg-white border rounded text-sm font-mono font-bold uppercase focus:ring-2 focus:ring-blue-500 outline-none transition-all ${errors.vin ? 'border-red-400' : 'border-slate-300'}`}
                                         maxLength={17}
                                     />
                                 </div>
                                 <div>
-                                    <label htmlFor="purchase_date" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Purchase Date <span className="text-red-500">*</span></label>
+                                    <label htmlFor="purchase_date" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">{t('add_vehicle.purchase_date')} <span className="text-red-500">*</span></label>
                                     <input id="purchase_date" {...register('purchase_date')} type="date" className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                                 <div className={isAdmin ? "" : "md:col-span-1"}>
-                                    <label htmlFor="purchase_price" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Purchase Price <span className="text-red-500">*</span></label>
+                                    <label htmlFor="purchase_price" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">{t('add_vehicle.purchase_price')} <span className="text-red-500">*</span></label>
                                     <input id="purchase_price" {...register('purchase_price')} type="number" step="0.01" placeholder="0.00" className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                             </div>
 
                             {/* Row 2: Description */}
                             <div>
-                                <label htmlFor="description" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Description <span className="text-red-500">*</span></label>
-                                <input id="description" {...register('description')} placeholder="YEAR MAKE MODEL (e.g. 2020 TOYOTA CAMRY)" className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded text-sm font-bold uppercase focus:ring-2 focus:ring-blue-500 outline-none" />
+                                <label htmlFor="description" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">{t('add_vehicle.description')} <span className="text-red-500">*</span></label>
+                                <input id="description" {...register('description')} placeholder={t('add_vehicle.description_placeholder')} className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded text-sm font-bold uppercase focus:ring-2 focus:ring-blue-500 outline-none" />
                             </div>
 
                             {/* Row 3: Client, Buyer #, Lot #, PIN # */}
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <div>
-                                    <label htmlFor="client_id" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Client <span className="text-red-500">*</span></label>
+                                    <label htmlFor="client_id" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">{t('add_vehicle.client')} <span className="text-red-500">*</span></label>
                                     <select 
                                         id="client_id"
                                         {...register('client_id')} 
                                         disabled={isClient}
                                         className={`w-full px-3 py-1.5 text-sm font-bold border rounded focus:ring-2 focus:ring-blue-500 outline-none ${isClient ? 'bg-slate-100 text-slate-500 border-slate-200 cursor-not-allowed' : 'bg-white border-slate-300'}`}
                                     >
-                                        <option value="">Select...</option>
+                                        <option value="">{t('add_vehicle.select_client')}</option>
                                         {clients?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                     </select>
                                 </div>
                                 <div>
-                                    <label htmlFor="buyer_number" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Buyer # <span className="text-red-500">*</span></label>
-                                    <input id="buyer_number" {...register('buyer_number')} placeholder="BUYER ID" className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    <label htmlFor="buyer_number" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">{t('add_vehicle.buyer_number')} <span className="text-red-500">*</span></label>
+                                    <input id="buyer_number" {...register('buyer_number')} placeholder={t('add_vehicle.buyer_placeholder')} className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                                 <div>
-                                    <label htmlFor="lot_number" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Lot Number</label>
-                                    <input id="lot_number" {...register('lot_number')} placeholder="OPTIONAL" className="w-full px-3 py-1.5 bg-slate-50/50 border border-slate-300 rounded text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    <label htmlFor="lot_number" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">{t('add_vehicle.lot_number')}</label>
+                                    <input id="lot_number" {...register('lot_number')} placeholder={t('add_vehicle.optional')} className="w-full px-3 py-1.5 bg-slate-50/50 border border-slate-300 rounded text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                                 <div>
-                                    <label htmlFor="pin_number" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">PIN #</label>
-                                    <input id="pin_number" {...register('pin_number')} placeholder="OPTIONAL" className="w-full px-3 py-1.5 bg-slate-50/50 border border-slate-300 rounded text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    <label htmlFor="pin_number" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">{t('add_vehicle.pin_number')}</label>
+                                    <input id="pin_number" {...register('pin_number')} placeholder={t('add_vehicle.optional')} className="w-full px-3 py-1.5 bg-slate-50/50 border border-slate-300 rounded text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                             </div>
 
                             {/* Row 4: Auction & Current Location */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label htmlFor="auction_id" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Auction <span className="text-red-500">*</span></label>
+                                    <label htmlFor="auction_id" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">{t('add_vehicle.auction')} <span className="text-red-500">*</span></label>
                                     <select id="auction_id" {...register('auction_id')} className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none">
-                                        <option value="">Select Auction...</option>
+                                        <option value="">{t('add_vehicle.select_auction')}</option>
                                         {auctions?.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                                     </select>
                                 </div>
                                 <div>
-                                    <label htmlFor="location_id" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Current Location <span className="text-red-500">*</span></label>
+                                    <label htmlFor="location_id" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">{t('add_vehicle.current_location')} <span className="text-red-500">*</span></label>
                                     <Controller
                                         name="location_id"
                                         control={control}
@@ -258,7 +260,7 @@ export default function VehicleForm({ initialData, onSubmit, onCancel, clients, 
                         <div className="px-5 py-2.5 border-b border-slate-200 bg-slate-100/80">
                             <h3 className="text-[11px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2">
                                 <CheckCircle2 className="h-3.5 w-3.5 text-blue-500" />
-                                Additional Services
+                                {t('add_vehicle.documents_and_services')}
                             </h3>
                         </div>
                         
@@ -275,18 +277,18 @@ export default function VehicleForm({ initialData, onSubmit, onCancel, clients, 
                                             className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" 
                                         />
                                         <label htmlFor="transport-check" className="text-xs font-bold text-slate-700 cursor-pointer select-none">
-                                            {isClient ? "Do you want MOTOR X to transport the vehicle for you?" : "Dispatch Service"}
+                                            {isClient ? t('configure_services.do_you_want_motorx_to_transport') || "Do you want MOTOR X to transport the vehicle for you?" : t('configure_services.dispatch_service') || "Dispatch Service"}
                                         </label>
                                     </div>
                                     <div className="md:col-span-7">
                                         {wantsDispatch && (
                                             <div className="flex flex-row items-center gap-3 animate-in fade-in slide-in-from-left-2 duration-300">
                                                 <select id="destination_hub" {...register('destination_hub')} className="flex-1 px-4 py-2 text-xs font-bold bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all">
-                                                    <option value="">Destination Hub...</option>
+                                                    <option value="">{t('add_vehicle.destination_hub')}...</option>
                                                     {uniqueHubs.map(h => <option key={h} value={h}>{h}</option>)}
                                                 </select>
                                                 <select id="specific_terminal_id" {...register('specific_terminal_id')} className="flex-1 px-4 py-2 text-xs font-bold bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" disabled={!selectedHub}>
-                                                    <option value="">Specific Terminal...</option>
+                                                    <option value="">{t('configure_services.select_terminal')}</option>
                                                     {filteredTerminals.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                                                 </select>
                                             </div>
@@ -306,14 +308,14 @@ export default function VehicleForm({ initialData, onSubmit, onCancel, clients, 
                                             className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" 
                                         />
                                         <label htmlFor="titles-check" className="text-xs font-bold text-slate-700 cursor-pointer select-none">
-                                            {isClient ? "Do you have a problem with documents? Select what you need" : "Title Services"}
+                                            {isClient ? t('configure_services.do_you_have_problem_with_documents') || "Do you have a problem with documents? Select what you need" : t('configure_services.title_services_form')}
                                         </label>
                                     </div>
                                     <div className="md:col-span-7">
                                         {wantsTitleService && (
                                             <div className="animate-in fade-in slide-in-from-left-2 duration-300">
                                                 <select id="title_service_id" {...register('title_service_id')} className="w-full px-4 py-2 text-xs font-bold bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
-                                                    <option value="">Select Title Service...</option>
+                                                    <option value="">{t('add_vehicle.select_title_service')}</option>
                                                     {titleServices?.map(s => <option key={s.service_id} value={s.service_id}>{s.service_name}</option>)}
                                                 </select>
                                             </div>
@@ -330,7 +332,7 @@ export default function VehicleForm({ initialData, onSubmit, onCancel, clients, 
                         {/* Auction Receipt */}
                         <div className="relative bg-white border border-slate-300 rounded shadow-sm p-5">
                             <label className="block text-[11px] font-black text-slate-600 uppercase tracking-widest mb-3">
-                                Auction Receipt <span className="text-red-500">(Mandatory)</span>
+                                {t('add_vehicle.upload_auction_receipt')} <span className="text-red-500">({t('add_vehicle.required_to_create')})</span>
                             </label>
                             <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors relative ${auctionReceipt ? 'border-emerald-300 bg-emerald-50' : 'border-blue-200 hover:bg-blue-50'}`}>
                                 <input 
@@ -348,7 +350,7 @@ export default function VehicleForm({ initialData, onSubmit, onCancel, clients, 
                                 ) : (
                                     <div className="flex flex-col items-center gap-2">
                                         <svg className="w-8 h-8 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                                        <span className="text-sm font-bold text-slate-600">Click to upload Auction Receipt (PDF)</span>
+                                        <span className="text-sm font-bold text-slate-600">{t('add_vehicle.upload_auction_receipt')} ({t('add_vehicle.pdf_only')})</span>
                                     </div>
                                 )}
                             </div>
@@ -357,7 +359,7 @@ export default function VehicleForm({ initialData, onSubmit, onCancel, clients, 
                         {/* Gate Pass */}
                         <div className="relative bg-white border border-slate-300 rounded shadow-sm p-5">
                             <label className="block text-[11px] font-black text-slate-600 uppercase tracking-widest mb-3">
-                                Gate Pass <span className="text-slate-400">(Optional)</span>
+                                {t('add_vehicle.upload_gate_pass')} <span className="text-slate-400">({t('add_vehicle.optional')})</span>
                             </label>
                             <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors relative ${gatePass ? 'border-emerald-300 bg-emerald-50' : 'border-blue-200 hover:bg-blue-50'}`}>
                                 <input 
@@ -375,7 +377,7 @@ export default function VehicleForm({ initialData, onSubmit, onCancel, clients, 
                                 ) : (
                                     <div className="flex flex-col items-center gap-2">
                                         <svg className="w-8 h-8 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                                        <span className="text-sm font-bold text-slate-600">Click to upload Gate Pass (PDF)</span>
+                                        <span className="text-sm font-bold text-slate-600">{t('add_vehicle.upload_gate_pass')} ({t('add_vehicle.pdf_only')})</span>
                                     </div>
                                 )}
                             </div>
@@ -400,7 +402,7 @@ export default function VehicleForm({ initialData, onSubmit, onCancel, clients, 
                     onClick={onCancel}
                     className="px-6 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors uppercase tracking-widest"
                 >
-                    Cancel
+                    {t('add_vehicle.cancel')}
                 </button>
                 <button
                     form="vehicle-form"
@@ -412,7 +414,7 @@ export default function VehicleForm({ initialData, onSubmit, onCancel, clients, 
                             : 'bg-slate-800 hover:bg-slate-900 shadow-md'}
                     `}
                 >
-                    {isSubmitting ? 'Processing...' : (initialData?.id ? 'Update Vehicle' : 'Create Vehicle')}
+                    {isSubmitting ? t('add_vehicle.saving') : (initialData?.id ? t('add_vehicle.edit_vehicle') : t('add_vehicle.create_vehicle'))}
                 </button>
             </div>
         </div>

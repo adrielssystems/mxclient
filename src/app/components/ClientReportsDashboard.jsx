@@ -2,10 +2,12 @@ import React, { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { DollarSign, FileText, Truck, CheckCircle2, Car } from 'lucide-react';
 import { format, subMonths, isAfter, startOfMonth } from 'date-fns';
+import { useTranslation } from "react-i18next";
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316'];
 
 export default function ClientReportsDashboard({ vehicles = [] }) {
+    const { t } = useTranslation();
     // 1. Calculate Metrics (Moved to page.jsx)
 
     // 2. Prepare 12-Month Bar Chart Data
@@ -57,7 +59,7 @@ export default function ClientReportsDashboard({ vehicles = [] }) {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Bar Chart */}
                 <div className="lg:col-span-2 bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-                    <h3 className="text-xs font-black text-slate-700 uppercase tracking-widest mb-6">Purchases - Last 12 Months</h3>
+                    <h3 className="text-xs font-black text-slate-700 uppercase tracking-widest mb-6">{t('dashboard.purchases_last_12')}</h3>
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -78,7 +80,7 @@ export default function ClientReportsDashboard({ vehicles = [] }) {
 
                 {/* Donut Chart */}
                 <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-                    <h3 className="text-xs font-black text-slate-700 uppercase tracking-widest mb-6">Purchases by Auction</h3>
+                    <h3 className="text-xs font-black text-slate-700 uppercase tracking-widest mb-6">{t('dashboard.purchases_by_auction')}</h3>
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>

@@ -34,6 +34,8 @@ import { HotReloadIndicator } from '../__create/HotReload';
 import { useSandboxStore } from '../__create/hmr-sandbox-store';
 import type { Route } from './+types/root';
 import { useDevServerHeartbeat } from '../__create/useDevServerHeartbeat';
+import { useTranslation } from 'react-i18next';
+import '../i18n';
 
 export const links = () => [];
 
@@ -476,8 +478,9 @@ export function Layout({ children }: { children: ReactNode }) {
       );
     }
   }, [pathname]);
+  const { i18n } = useTranslation();
   return (
-    <html lang="en">
+    <html lang={i18n.language || 'en'} dir={i18n.dir()}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
