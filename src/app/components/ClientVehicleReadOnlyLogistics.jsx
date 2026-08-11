@@ -1,12 +1,40 @@
 "use client";
 import React, { useState } from 'react';
-import { DollarSign, Truck, FileText, CheckCircle, Clock } from 'lucide-react';
+import { DollarSign, Truck, FileText, CheckCircle, Clock, Ban, AlertTriangle } from 'lucide-react';
 import { formatToMDY } from "@/utils/dateUtils";
 import { formatCurrency } from "@/utils/formatUtils";
+import { toast } from 'sonner';
 
-export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [], dispatchData, titleData, fees: initialFees = [], operationalRules = null, clientCommission = 0, invoices = [] }) {
-    const initialTab = vehicle?.purchase_source === 'MotorX' ? 'purchases' : 'dispatch';
+export default function ClientVehicleReadOnlyLogistics({ vehicle: initialVehicle, services = [], dispatchData, titleData, fees: initialFees = [], operationalRules = null, clientCommission = 0, invoices = [] }) {
+    const initialTab = initialVehicle?.purchase_source === 'MotorX' ? 'purchases' : 'dispatch';
     const [activeTab, setActiveTab] = useState(initialTab);
+    const [vehicle, setVehicle] = useState(initialVehicle || {});
+    const [savingDoNotPay, setSavingDoNotPay] = useState(false);
+
+    const handleToggleDoNotPay = async () => {
+        const newVal = !vehicle.do_not_pay;
+        setSavingDoNotPay(true);
+        try {
+            const res = await fetch(`/api/client/vehicles/${vehicle.vin}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ do_not_pay: newVal })
+            });
+            if (res.ok) {
+                setVehicle({ ...vehicle, do_not_pay: newVal });
+                toast[newVal ? 'warning' : 'success'](
+                    newVal ? '⚠ DO NOT PAY flag activated for this vehicle.' : '✓ DO NOT PAY flag removed.'
+                );
+            } else {
+                const data = await res.json();
+                toast.error(data.error || 'Failed to update flag.');
+            }
+        } catch (error) {
+            toast.error("Network error.");
+        } finally {
+            setSavingDoNotPay(false);
+        }
+    };
 
     // Filter services
     const dispatchSvc = services.find(s => s.service_category === 'DISPATCH');
@@ -95,6 +123,31 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [],
                                 <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-0.5 font-bold">Date</p>
                                 <p className="text-sm font-bold text-slate-700">{formatToMDY(vehicle?.purchase_date) || 'N/A'}</p>
                             </div>
+                        </div>
+
+                        {/* DO NOT PAY Toggle */}
+                        <div className="border-t border-slate-200/60 pt-3 mt-1 flex items-center justify-between">
+                            <span className="text-[10px] text-orange-600 font-black uppercase tracking-wider flex items-center gap-1.5">
+                                <Ban size={11} /> Do Not Pay
+                            </span>
+                            <button
+                                onClick={handleToggleDoNotPay}
+                                disabled={savingDoNotPay}
+                                className="focus:outline-none disabled:opacity-40 relative"
+                                title="Flag this vehicle to prevent payment processing"
+                            >
+                                {savingDoNotPay ? (
+                                    <span className="text-[9px] text-slate-400 animate-pulse">Saving...</span>
+                                ) : vehicle.do_not_pay ? (
+                                    <span className="inline-flex items-center gap-1 text-[9px] font-black bg-orange-100 text-orange-700 px-3 py-1 rounded-full border-2 border-orange-400 shadow-sm uppercase tracking-wide cursor-pointer hover:bg-orange-200 transition-colors">
+                                        <AlertTriangle size={10} /> YES
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center gap-1 text-[9px] font-black bg-slate-100 text-slate-500 px-3 py-1 rounded-full border border-slate-200 shadow-sm uppercase tracking-wide cursor-pointer hover:bg-slate-200 transition-colors">
+                                        NO
+                                    </span>
+                                )}
+                            </button>
                         </div>
                     </div>
 
