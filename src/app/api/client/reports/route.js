@@ -128,9 +128,10 @@ export async function GET(request) {
                 -- Title Log Status (from title_logs)
                 CASE
                   WHEN tl.vin IS NULL THEN NULL
+                  WHEN (tl.title_status IS NOT NULL AND tl.title_status NOT IN ('', 'none')) THEN tl.title_status
+                  WHEN tl.date_mailed IS NOT NULL THEN 'Sent'
                   WHEN tl.date_received IS NOT NULL THEN 'Received'
-                  WHEN tl.date_mailed IS NOT NULL THEN 'Mailed'
-                  ELSE NULL
+                  ELSE 'Not Received'
                 END as title_log_status,
                 CASE
                   WHEN v.dispatch_status = 'not_applicable' THEN NULL

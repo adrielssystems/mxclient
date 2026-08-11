@@ -49,8 +49,13 @@ export async function GET(request) {
                 v.purchase_source,
                 v.dl_number,
                 
-                COALESCE(vt.has_lien, t.lien_holder) as has_lien,
-                t.title_status as title_log_status,
+                CASE
+                  WHEN t.vin IS NULL THEN NULL
+                  WHEN (t.title_status IS NOT NULL AND t.title_status NOT IN ('', 'none')) THEN t.title_status
+                  WHEN t.date_mailed IS NOT NULL THEN 'Sent'
+                  WHEN t.date_received IS NOT NULL THEN 'Received'
+                  ELSE 'Not Received'
+                END as title_log_status,
                 COALESCE(vt.mailing_location, st.name) as mailing_location,
                 COALESCE(vt.client_notes, t.client_notes) as client_notes_title,
                 
