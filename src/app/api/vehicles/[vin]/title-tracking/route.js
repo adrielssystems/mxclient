@@ -188,6 +188,39 @@ export async function PUT(request, { params }) {
             finalRecord = insertRes[0];
         }
 
+        // 6. Synchronize with title_logs table (used by Title Log Board)
+        const terminalIdResult = mailing_location && mailing_location.toLowerCase() !== 'others'
+            ? await sql`SELECT id FROM shippers_terminals WHERE name = ${mailing_location} LIMIT 1`
+            : [];
+        const resolvedTerminalId = terminalIdResult[0]?.id || null;
+
+        await sql`
+            INSERT INTO title_logs (
+                vin, title_status, mailing_terminal_id, title_number, 
+                lien_holder, date_received, date_mailed, tracking_out, 
+                client_notes, employee_notes
+            ) VALUES (
+                ${vin}, 
+                ${manual_status || (date_mailed ? 'Sent' : (date_received ? 'Received' : 'Not Received'))}, 
+                ${resolvedTerminalId}, 
+                ${title_number || null}, ${has_lien}, 
+                ${date_received || null}, ${date_mailed || null}, 
+                ${tracking_number || null}, 
+                ${client_notes || null}, ${employee_notes || null}
+            )
+            ON CONFLICT (vin) DO UPDATE SET
+                mailing_terminal_id = EXCLUDED.mailing_terminal_id,
+                title_number = EXCLUDED.title_number,
+                lien_holder = EXCLUDED.lien_holder,
+                date_received = EXCLUDED.date_received,
+                date_mailed = EXCLUDED.date_mailed,
+                tracking_out = EXCLUDED.tracking_out,
+                client_notes = EXCLUDED.client_notes,
+                employee_notes = EXCLUDED.employee_notes,
+                title_status = EXCLUDED.title_status,
+                updated_at = CURRENT_TIMESTAMP
+        `;
+
         return Response.json({
             success: true,
             data: {
