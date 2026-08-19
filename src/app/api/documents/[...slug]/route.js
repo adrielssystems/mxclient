@@ -42,16 +42,33 @@ export async function GET(request, { params }) {
             return new Response("Invalid path", { status: 400 });
         }
 
-        // Try primary storage path first, then fallback
-        const STORAGE_DIR = process.env.UPLOAD_DIR || "/data/documents";
+        // Determine storage directories - must match how ownership-documents/route.js saves files
+        let PRIMARY_DIR;
+        if (process.env.UPLOAD_DIR) {
+            PRIMARY_DIR = process.env.UPLOAD_DIR;
+        } else {
+            try {
+                await fs.access("/data");
+                PRIMARY_DIR = "/data/documents";
+            } catch {
+                PRIMARY_DIR = path.join(process.cwd(), "uploads");
+            }
+        }
         const FALLBACK_DIR = path.join(process.cwd(), "uploads");
 
-        let filePath = path.join(STORAGE_DIR, relativePath);
+        let filePath = path.join(PRIMARY_DIR, relativePath);
+        console.log(`[Documents] Attempting path: ${filePath}`);
         try {
             await fs.access(filePath);
         } catch {
             filePath = path.join(FALLBACK_DIR, relativePath);
-            await fs.access(filePath);
+            console.log(`[Documents] Primary not found, trying fallback: ${filePath}`);
+            try {
+                await fs.access(filePath);
+            } catch {
+                console.error(`[Documents] File not found in either location. Primary: ${path.join(PRIMARY_DIR, relativePath)}, Fallback: ${path.join(FALLBACK_DIR, relativePath)}`);
+                return new Response("File not found", { status: 404 });
+            }
         }
 
         const fileBuffer = await fs.readFile(filePath);
