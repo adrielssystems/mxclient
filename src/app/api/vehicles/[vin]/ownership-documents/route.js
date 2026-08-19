@@ -164,31 +164,18 @@ export async function POST(request, { params }) {
 
         // User requested format: "VIN - Tag"
         const filename = `${vin} - ${tag}.pdf`; 
-
         let fileUrl = "";
-        let driveFileId = null;
 
-        try {
-            // --- NEW: Google Drive Storage ---
-            console.log(`[Upload] Attempting to save to Google Drive: ${filename}`);
-            const driveResult = await driveService.uploadFileToVINPath(vin, filename, fileData, mimeType, 'Ownership');
-            fileUrl = driveResult.webViewLink;
-            driveFileId = driveResult.id;
-            console.log(`[Drive] Saved successfully. ID: ${driveFileId}`);
-        } catch (driveError) {
-            console.error("[Drive Error] Falling back to local storage:", driveError.message);
-            
-            // --- Fallback: Local Storage ---
-            const storageDir = await getStorageDir(vin);
-            const filePath = path.join(storageDir, filename);
-            await fs.writeFile(filePath, fileData);
-            fileUrl = `/api/documents/${vin}/${filename}`;
-        }
+        // --- Save to Local Storage ---
+        const storageDir = await getStorageDir(vin);
+        const filePath = path.join(storageDir, filename);
+        await fs.writeFile(filePath, fileData);
+        fileUrl = `/api/documents/${vin}/${filename}`;
 
         // Save metadata to DB
         const result = await sql`
-            INSERT INTO vehicle_ownership_documents (vin, tag, filename, file_url, drive_file_id, uploaded_by)
-            VALUES (${vin}, ${tag}, ${filename}, ${fileUrl}, ${driveFileId}, ${session.user.id})
+            INSERT INTO vehicle_ownership_documents (vin, tag, filename, file_url, uploaded_by)
+            VALUES (${vin}, ${tag}, ${filename}, ${fileUrl}, ${session.user.id})
             RETURNING id
         `;
 
@@ -197,7 +184,7 @@ export async function POST(request, { params }) {
             documentId: result[0].id,
             filename,
             fileUrl,
-            storage: driveFileId ? 'google_drive' : 'local'
+            storage: 'local'
         }, { status: 201 });
 
     } catch (error) {
