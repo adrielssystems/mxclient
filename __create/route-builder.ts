@@ -31,7 +31,7 @@ function getHonoPath(routeFile: string): { name: string; pattern: string }[] {
     if (match) {
       const [_, dots, param] = match;
       return dots === '...'
-        ? { name: param, pattern: `*` }
+        ? { name: param, pattern: `:${param}{.+}` }
         : { name: param, pattern: `:${param}` };
     }
     return { name: segment, pattern: segment };
@@ -69,13 +69,6 @@ async function registerRoutes() {
             const honoPath = `/${parts.map(({ pattern }) => pattern).join('/')}`;
             const handler: Handler = async (c) => {
               const params = c.req.param();
-              
-              // If there's a catch-all route, Hono populates params['*']
-              // We need to map it back to the original parameter name (e.g., 'slug')
-              const catchAllPart = parts.find(p => p.pattern === '*');
-              if (catchAllPart && params['*']) {
-                  params[catchAllPart.name] = params['*'];
-              }
 
               // In PROD/Build, we use the bundled module.
               // In DEV, we might want hot reload, but eager glob is static.
