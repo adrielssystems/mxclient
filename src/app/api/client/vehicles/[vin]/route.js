@@ -201,8 +201,9 @@ export async function PUT(request, { params }) {
                         }
                     }
 
-                    // Update dispatch_status so admin can see it's pending
-                    await sql`UPDATE vehicles SET dispatch_status = 'assignment_pending' WHERE id = ${vehicleId} AND (dispatch_status IS NULL OR dispatch_status = 'not_applicable')`;
+                    // FIX: Always update dispatch_status to 'assignment_pending' — remove
+                    // the restrictive condition that silently failed if status had another value.
+                    await sql`UPDATE vehicles SET dispatch_status = 'assignment_pending' WHERE id = ${vehicleId} AND dispatch_status NOT IN ('dispatched', 'completed', 'picked_up')`;
                 }
             } else {
                 // Terminal removed — remove dispatch service detail
@@ -247,8 +248,9 @@ export async function PUT(request, { params }) {
                 } else {
                     await sql`UPDATE vehicle_title_services SET service_id = ${body.title_service_id}, title_service_name = ${titleSvcName} WHERE id = ${existingTitleSvc[0].id}`;
                 }
-                // Mark vehicle title_status as processing so Admin Panel toggle activates
-                await sql`UPDATE vehicles SET title_status = 'processing' WHERE id = ${vehicleId} AND (title_status IS NULL OR title_status = 'not_applicable')`;
+                // FIX: Always set title_status to 'processing' — remove the restrictive
+                // condition that silently failed if the vehicle already had another status.
+                await sql`UPDATE vehicles SET title_status = 'processing' WHERE id = ${vehicleId} AND title_status NOT IN ('completed', 'sent')`;
 
                 // Insert invoice_line_item for title if not already present and price provided
                 if (body.title_price) {

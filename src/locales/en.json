@@ -240,6 +240,9 @@
     "all_rights_reserved": "All rights reserved."
   },
   "configure_services": {
+    "do_you_want_motorx_to_transport": "Do you want MOTOR X to transport the vehicle for you?",
+    "dispatch_service": "Dispatch Service",
+    "do_you_have_problem_with_documents": "Do you have a problem with documents? Select what you need",
     "services_configuration": "SERVICES CONFIGURATION",
     "provide_instructions": "Provide instructions for shipping and handling.",
     "config_locked_in_progress": "Configuration is locked as logistics are already in progress.",

@@ -410,6 +410,12 @@ export async function POST(request) {
     // N/A dealer = null dl_number (external vehicle, not MotorX property)
     const dl_number = dealer && dealer !== '' ? dealer : null;
 
+    // OVERRIDE: If an admin is impersonating a client, the frontend might send the Admin's ID as client_id.
+    // Force it to be the impersonated client's ID.
+    if (resolved.isImpersonating && effectiveClientId) {
+        client_id = effectiveClientId;
+    }
+
     // 2. Client Resolution Logic (Legacy/Conditional)
     // Note: If client_id is provided directly from frontend (Admin choice), we use it.
     // The previous purchase_source logic is kept ONLY if client_id was empty, but now it's required.
@@ -546,13 +552,19 @@ export async function POST(request) {
       }
     }
 
+    if (external_service && !wants_dispatch && !wants_title_service) {
+      return Response.json(
+        { error: "Validation Error", details: { _errors: ["External vehicles must request either Dispatch or Title Services."] } },
+        { status: 400 }
+      );
+    }
+
     // FORCE Initial Statuses
     let masterStatus = 'entered';
-    let purchaseStatus = 'payment_pending';
+    let purchaseStatus = external_service ? 'not_applicable' : 'payment_pending';
     let dispatchStatus = wants_dispatch ? 'assignment_pending' : 'not_applicable';
     let titleStatus = wants_title_service ? 'processing' : 'waiting_documents';
     let shippingStatus = wants_shipping ? 'not_applicable' : 'not_applicable'; // Ocean will start later if requested
-
 
     const newVehicle = await sql`
       INSERT INTO vehicles (
@@ -570,7 +582,7 @@ export async function POST(request) {
         ${lot_number || null},
         ${masterStatus}, ${purchaseStatus}, ${dispatchStatus}, ${titleStatus},
         ${pin_number || null}, ${buyer_number}, ${needs_review}, ${review_reason}, ${dl_number},
-        ${entry_method}, ${user.role === 'client'}, ${clientPaysAuction}
+        ${entry_method}, ${external_service}, ${clientPaysAuction}
       )
       RETURNING *
     `;

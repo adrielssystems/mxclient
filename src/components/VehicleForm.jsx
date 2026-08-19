@@ -2,9 +2,10 @@ import React, { useMemo, useState } from 'react';
 import { useForm, useWatch, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { ArrowLeft, CheckCircle2, AlertCircle, Briefcase } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, AlertCircle, Briefcase, Calendar } from 'lucide-react';
 import LocationCombobox from './LocationCombobox';
 import { useTranslation } from 'react-i18next';
+import { formatDateInput, formatToMDY, formatToISO, parseMDY } from '@/utils/dateUtils';
 
 const getVehicleSchema = (isAdmin) => z.object({
     dealer: isAdmin
@@ -33,6 +34,14 @@ const getVehicleSchema = (isAdmin) => z.object({
     
     wants_title_service: z.boolean().default(false),
     title_service_id: z.coerce.number().int().optional().nullable()
+}).superRefine((data, ctx) => {
+    if (!data.wants_dispatch && !data.wants_title_service) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "You must select at least one service (Dispatch or Title)",
+            path: ['wants_dispatch']
+        });
+    }
 });
 
 export default function VehicleForm({ initialData, onSubmit, onCancel, clients, auctions, locations, terminals, destinations, titleServices, userRole, isClientView = false }) {
@@ -51,7 +60,7 @@ export default function VehicleForm({ initialData, onSubmit, onCancel, clients, 
         resolver: zodResolver(getVehicleSchema(isAdmin)),
         defaultValues: initialData || {
             dealer: '',
-            purchase_date: new Date().toISOString().split('T')[0],
+            purchase_date: initialData?.purchase_date ? formatToMDY(initialData.purchase_date) : formatToMDY(new Date().toISOString()),
             wants_dispatch: false,
             wants_shipping: false,
             wants_title_service: false,
@@ -103,8 +112,18 @@ export default function VehicleForm({ initialData, onSubmit, onCancel, clients, 
             toast.error('Auction Receipt is mandatory to create a vehicle.');
             return;
         }
+
+        let isoDate = data.purchase_date;
+        if (data.purchase_date && data.purchase_date.includes('/')) {
+            const parsed = parseMDY(data.purchase_date);
+            if (parsed) {
+                isoDate = formatToISO(parsed);
+            }
+        }
+
         onSubmit({ 
             ...data, 
+            purchase_date: isoDate,
             auctionReceiptBase64: auctionReceipt?.base64,
             gatePassBase64: gatePass?.base64
         });
@@ -184,7 +203,39 @@ export default function VehicleForm({ initialData, onSubmit, onCancel, clients, 
                                 </div>
                                 <div>
                                     <label htmlFor="purchase_date" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">{t('add_vehicle.purchase_date')} <span className="text-red-500">*</span></label>
-                                    <input id="purchase_date" {...register('purchase_date')} type="date" className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    <Controller
+                                        name="purchase_date"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <div className="relative flex items-center">
+                                                <input 
+                                                    {...field}
+                                                    value={field.value || ""}
+                                                    id="purchase_date" 
+                                                    type="text" 
+                                                    placeholder="MM/DD/YYYY"
+                                                    maxLength={10}
+                                                    onChange={(e) => {
+                                                        const formatted = formatDateInput(e.target.value, field.value);
+                                                        field.onChange(formatted);
+                                                    }}
+                                                    className="w-full px-3 py-1.5 pr-10 bg-white border border-slate-300 rounded text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none placeholder:font-normal placeholder:text-slate-400" 
+                                                />
+                                                {/* Hidden Native Date Picker overlaying the Calendar Icon */}
+                                                <input 
+                                                    type="date"
+                                                    className="absolute right-0 top-0 bottom-0 w-10 opacity-0 cursor-pointer"
+                                                    onChange={(e) => {
+                                                        if (e.target.value) {
+                                                            const [y, m, d] = e.target.value.split('-');
+                                                            field.onChange(`${m}/${d}/${y}`);
+                                                        }
+                                                    }}
+                                                />
+                                                <Calendar className="w-4 h-4 text-slate-500 absolute right-3 pointer-events-none" />
+                                            </div>
+                                        )}
+                                    />
                                 </div>
                                 <div className={isAdmin ? "" : "md:col-span-1"}>
                                     <label htmlFor="purchase_price" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">{t('add_vehicle.purchase_price')} <span className="text-red-500">*</span></label>
@@ -257,11 +308,17 @@ export default function VehicleForm({ initialData, onSubmit, onCancel, clients, 
 
                     {/* SECTION: ADDITIONAL SERVICES (Vertical List with Horizontal Alignment) */}
                     <div className="bg-white border border-slate-300 rounded shadow-sm overflow-hidden">
-                        <div className="px-5 py-2.5 border-b border-slate-200 bg-slate-100/80">
+                        <div className="px-5 py-2.5 border-b border-slate-200 bg-slate-100/80 flex items-center justify-between">
                             <h3 className="text-[11px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2">
                                 <CheckCircle2 className="h-3.5 w-3.5 text-blue-500" />
                                 {t('add_vehicle.documents_and_services')}
                             </h3>
+                            {errors.wants_dispatch && (
+                                <span className="text-xs font-bold text-red-500 flex items-center gap-1">
+                                    <AlertCircle className="w-3.5 h-3.5" />
+                                    {errors.wants_dispatch.message}
+                                </span>
+                            )}
                         </div>
                         
                         <div className="divide-y divide-slate-100 flex flex-col">

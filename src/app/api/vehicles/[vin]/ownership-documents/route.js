@@ -105,6 +105,11 @@ export async function GET(request, { params }) {
 // POST: Upload a new ownership document
 export async function POST(request, { params }) {
     try {
+        const session = await auth();
+        if (!session || !session.user?.id) {
+            return Response.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         const resolved = await resolveClientId(request);
         if (resolved.error) {
             return Response.json({ error: resolved.error }, { status: 401 });

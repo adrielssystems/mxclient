@@ -340,7 +340,12 @@ export async function GET(request) {
         const clientStatusQuery = await sql`SELECT status FROM auth_users WHERE id = ${clientId}`;
         const clientStatus = clientStatusQuery[0]?.status || 'active';
 
-        return Response.json({ vehicles: mappedVehicles, clientStatus, recentPayments: mappedPayments }, { status: 200 });
+        console.log("CLIENT API RETURN DATA:", JSON.stringify(mappedVehicles, null, 2));
+        
+        return Response.json({
+            vehicles: mappedVehicles,
+            clientStatus: 'active'
+        }, { status: 200, headers: { 'Cache-Control': 'no-store' } });
 
     } catch (error) {
         console.error("GET /api/client/vehicles error:", error);

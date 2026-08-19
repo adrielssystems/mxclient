@@ -189,10 +189,19 @@ export async function PUT(request, { params }) {
         }
 
         // 6. Synchronize with title_logs table (used by Title Log Board)
-        const terminalIdResult = mailing_location && mailing_location.toLowerCase() !== 'others'
-            ? await sql`SELECT id FROM shippers_terminals WHERE name = ${mailing_location} LIMIT 1`
-            : [];
-        const resolvedTerminalId = terminalIdResult[0]?.id || null;
+        // FIX: Use case-insensitive TRIM match to avoid sync failures due to
+        // casing or leading/trailing spaces in the mailing_location name.
+        let resolvedTerminalId = null;
+        if (mailing_location && mailing_location.trim().toLowerCase() !== 'others' && mailing_location.trim() !== '') {
+            const terminalIdResult = await sql`
+                SELECT id FROM shippers_terminals 
+                WHERE LOWER(TRIM(name)) = LOWER(TRIM(${mailing_location})) 
+                LIMIT 1
+            `;
+            resolvedTerminalId = terminalIdResult[0]?.id || null;
+        }
+        // If 'Others', resolvedTerminalId stays null — the admin reads mailing_location='Others'
+        // from vehicle_titles which was already saved above.
 
         await sql`
             INSERT INTO title_logs (

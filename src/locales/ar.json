@@ -240,6 +240,9 @@
     "all_rights_reserved": "جميع الحقوق محفوظة."
   },
   "configure_services": {
+    "do_you_want_motorx_to_transport": "هل تريد أن تقوم شركة MOTOR X بنقل السيارة نيابة عنك؟",
+    "dispatch_service": "خدمة الإرسال",
+    "do_you_have_problem_with_documents": "هل لديك مشكلة في المستندات؟ حدد ما تحتاجه",
     "services_configuration": "تكوين الخدمات",
     "provide_instructions": "قدم تعليمات للشحن والمناولة.",
     "config_locked_in_progress": "تم قفل التكوين لأن العمليات اللوجستية قيد التقدم بالفعل.",

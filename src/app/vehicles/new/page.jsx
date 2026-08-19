@@ -74,27 +74,60 @@ export default function NewClientVehiclePage() {
             });
 
             if (response.ok) {
-                const createdVehicle = await response.json();
+                const responseData = await response.json();
+                const actualVin = responseData.vin || responseData.vehicle?.vin;
+                
+                let hasUploadErrors = false;
                 
                 // Upload Auction Receipt if present
                 if (auctionReceiptBase64) {
-                    await fetch(`/api/vehicles/${createdVehicle.vin}/ownership-documents`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ base64: auctionReceiptBase64, tag: 'Auction Receipt' })
-                    }).catch(console.error);
+                    try {
+                        const receiptRes = await fetch(`/api/vehicles/${actualVin}/ownership-documents`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ base64: auctionReceiptBase64, tag: 'Auction Receipt' })
+                        });
+                        if (!receiptRes.ok) {
+                            const errData = await receiptRes.json();
+                            toast.error(`Auction receipt upload failed: ${errData.error || 'Too large or unknown error'}`);
+                            hasUploadErrors = true;
+                        } else {
+                            toast.success('Auction receipt uploaded');
+                        }
+                    } catch (err) {
+                        console.error('Auction receipt upload error:', err);
+                        toast.error('Network error uploading auction receipt.');
+                        hasUploadErrors = true;
+                    }
                 }
 
                 // Upload Gate Pass if present
                 if (gatePassBase64) {
-                    await fetch(`/api/vehicles/${createdVehicle.vin}/ownership-documents`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ base64: gatePassBase64, tag: 'Gate Pass' })
-                    }).catch(console.error);
+                    try {
+                        const gatePassRes = await fetch(`/api/vehicles/${actualVin}/ownership-documents`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ base64: gatePassBase64, tag: 'Gate Pass' })
+                        });
+                        if (!gatePassRes.ok) {
+                            const errData = await gatePassRes.json();
+                            toast.error(`Gate pass upload failed: ${errData.error || 'Too large or unknown error'}`);
+                            hasUploadErrors = true;
+                        } else {
+                            toast.success('Gate pass uploaded');
+                        }
+                    } catch (err) {
+                        console.error('Gate pass upload error:', err);
+                        toast.error('Network error uploading gate pass.');
+                        hasUploadErrors = true;
+                    }
                 }
 
-                toast.success('Vehicle created successfully');
+                if (hasUploadErrors) {
+                    toast.warning('Vehicle created, but some documents failed to upload. Please upload them manually from the vehicle details page.');
+                } else {
+                    toast.success('Vehicle created successfully');
+                }
                 navigate('/vehicles');
             } else {
                 const error = await response.json();
