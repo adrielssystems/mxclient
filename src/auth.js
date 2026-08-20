@@ -313,8 +313,8 @@ export const { auth } = CreateAuth({
 
       // --- CONCURRENT SESSION CONTROL ---
 
-      // 1. Check if user has an active session (last 15 minutes)
-      const SESSION_TIMEOUT_MS = 15 * 60 * 1000; // 15 Minutes
+      // 1. Check if user has an active session (last 3 hours)
+      const SESSION_TIMEOUT_MS = 3 * 60 * 60 * 1000; // 3 Hours
       const now = new Date();
       const lastActivity = user.last_activity ? new Date(user.last_activity) : new Date(0);
       const timeSinceLastActivity = now - lastActivity;
@@ -323,7 +323,7 @@ export const { auth } = CreateAuth({
       if (user.current_session_token && timeSinceLastActivity < SESSION_TIMEOUT_MS) {
         console.log("[Auth Error] Active session detected for:", email, { lastActivity, timeSinceLastActivity });
         // Reject login
-        throw new Error("Ya tienes una sesión activa. Debes cerrarla o esperar 15 min.");
+        throw new Error("Ya tienes una sesión activa. Debes cerrarla o esperar 3 horas de inactividad.");
       }
 
       // 2. Generate new session token

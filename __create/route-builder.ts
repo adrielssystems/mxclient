@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import { Hono } from 'hono';
 import type { Handler } from 'hono/types';
 import updatedFetch from '../src/__create/fetch';
