@@ -243,20 +243,66 @@ export async function PUT(request, { params }) {
                 const svcNameResult = await sql`SELECT name FROM services WHERE id = ${body.title_service_id}`;
                 const titleSvcName = svcNameResult.length > 0 ? svcNameResult[0].name : '';
 
+                // --- Calculate correct client price and MotorX cost based on price_level ---
+                const vehicleInfo = await sql`
+                    SELECT v.auction_id, COALESCE(csc.price_level, u.price_level) as price_level 
+                    FROM vehicles v
+                    LEFT JOIN auth_users u ON v.client_id = u.id
+                    LEFT JOIN client_service_config csc ON v.client_id = csc.client_id AND csc.service_category = 'TITLE'
+                    WHERE v.id = ${vehicleId}
+                `;
+                
+                let resolvedClientPrice = 0;
+                let baseCost = 0;
+                
+                if (vehicleInfo.length > 0 && vehicleInfo[0].price_level) {
+                    const priceField = \`price_${vehicleInfo[0].price_level.toLowerCase()}\`;
+                    const servicePriceResult = await sql`
+                        SELECT 
+                            sc.${sql(priceField)} as client_price,
+                            sc.price_l0 as base_cost
+                        FROM services s
+                        JOIN service_charges sc ON s.id = sc.service_id
+                        WHERE s.category = 'TITLE' 
+                        AND s.id = ${body.title_service_id}
+                        AND s.is_active = true
+                        AND (sc.auction_specific = false OR sc.auction_id = ${vehicleInfo[0].auction_id})
+                        ORDER BY sc.auction_specific DESC, sc.id ASC
+                        LIMIT 1
+                    `;
+                    if (servicePriceResult.length > 0) {
+                        resolvedClientPrice = parseFloat(servicePriceResult[0].client_price || 0);
+                        baseCost = parseFloat(servicePriceResult[0].base_cost || 0);
+                    }
+                }
+
                 if (existingTitleSvc.length === 0) {
-                    await sql`INSERT INTO vehicle_title_services (vehicle_id, service_id, title_service_name) VALUES (${vehicleId}, ${body.title_service_id}, ${titleSvcName})`;
+                    await sql`
+                        INSERT INTO vehicle_title_services (vehicle_id, service_id, title_service_name, price_client, motorx_cost) 
+                        VALUES (${vehicleId}, ${body.title_service_id}, ${titleSvcName}, ${resolvedClientPrice}, ${baseCost})
+                    `;
                 } else {
-                    await sql`UPDATE vehicle_title_services SET service_id = ${body.title_service_id}, title_service_name = ${titleSvcName} WHERE id = ${existingTitleSvc[0].id}`;
+                    await sql`
+                        UPDATE vehicle_title_services 
+                        SET service_id = ${body.title_service_id}, 
+                            title_service_name = ${titleSvcName},
+                            price_client = ${resolvedClientPrice},
+                            motorx_cost = ${baseCost}
+                        WHERE id = ${existingTitleSvc[0].id}
+                    `;
                 }
                 // FIX: Always set title_status to 'processing' — remove the restrictive
                 // condition that silently failed if the vehicle already had another status.
                 await sql`UPDATE vehicles SET title_status = 'processing' WHERE id = ${vehicleId} AND title_status NOT IN ('completed', 'sent')`;
 
                 // Insert invoice_line_item for title if not already present and price provided
-                if (body.title_price) {
+                if (resolvedClientPrice > 0) {
                     const existingTitleItem = await sql`SELECT id FROM invoice_line_items WHERE vehicle_id = ${vehicleId} AND type = 'SERVICE' AND description ILIKE '%Title%'`;
                     if (existingTitleItem.length === 0) {
-                        await sql`INSERT INTO invoice_line_items (vehicle_id, description, amount, type, service_id) VALUES (${vehicleId}, 'Title Service', ${body.title_price}, 'SERVICE', ${body.title_service_id})`;
+                        await sql`INSERT INTO invoice_line_items (vehicle_id, description, amount, type, service_id) VALUES (${vehicleId}, 'Title Service', ${resolvedClientPrice}, 'SERVICE', ${body.title_service_id})`;
+                    } else {
+                        // Update existing un-invoiced line item if changed
+                        await sql`UPDATE invoice_line_items SET amount = ${resolvedClientPrice}, service_id = ${body.title_service_id} WHERE id = ${existingTitleItem[0].id} AND invoice_id IS NULL`;
                     }
                 }
 
