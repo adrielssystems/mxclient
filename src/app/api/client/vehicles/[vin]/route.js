@@ -256,7 +256,7 @@ export async function PUT(request, { params }) {
                 let baseCost = 0;
                 
                 if (vehicleInfo.length > 0 && vehicleInfo[0].price_level) {
-                    const priceField = \`price_${vehicleInfo[0].price_level.toLowerCase()}\`;
+                    const priceField = `price_${vehicleInfo[0].price_level.toLowerCase()}`;
                     const servicePriceResult = await sql`
                         SELECT 
                             sc.${sql(priceField)} as client_price,
