@@ -1,4 +1,5 @@
 import sql from "@/app/api/utils/sql";
+import { auth } from "@/auth";
 
 export async function GET(request, { params }) {
     const { type } = await params;
@@ -6,6 +7,7 @@ export async function GET(request, { params }) {
 
     try {
         let data = [];
+        const session = await auth();
 
         if (type === 'auctions') {
             // "Auctions" here means specific origins (Auction Locations)
@@ -18,8 +20,17 @@ export async function GET(request, { params }) {
                 ORDER BY a.name ASC, l.name ASC
             `;
         } else if (type === 'terminals') {
-            // User requested Location Code as primary identifier
-            data = await sql`SELECT id, COALESCE(location, name) as name, location FROM shippers_terminals ORDER BY name ASC`;
+            let userRole = session?.user?.role;
+            if (session?.user?.id && !userRole) {
+                const userRows = await sql`SELECT role FROM auth_users WHERE id = ${session.user.id}`;
+                userRole = userRows[0]?.role;
+            }
+
+            if (userRole === 'admin' || userRole === 'employee') {
+                data = await sql`SELECT id, COALESCE(location, name) as name, location FROM shippers_terminals ORDER BY name ASC`;
+            } else {
+                data = await sql`SELECT id, COALESCE(location, name) as name, location FROM shippers_terminals WHERE status IS DISTINCT FROM 'private' ORDER BY name ASC`;
+            }
         } else if (type === 'ports') {
             // Ports come from 'destinations' table
             data = await sql`

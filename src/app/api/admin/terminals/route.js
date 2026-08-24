@@ -8,10 +8,25 @@ export async function GET() {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const terminals = await sql`
-      SELECT * FROM shippers_terminals 
-      ORDER BY name ASC
-    `;
+    let userRole = session.user.role;
+    if (!userRole) {
+        const userRows = await sql`SELECT role FROM auth_users WHERE id = ${session.user.id}`;
+        userRole = userRows[0]?.role;
+    }
+
+    let terminals;
+    if (userRole === 'admin' || userRole === 'employee') {
+        terminals = await sql`
+          SELECT * FROM shippers_terminals 
+          ORDER BY name ASC
+        `;
+    } else {
+        terminals = await sql`
+          SELECT * FROM shippers_terminals 
+          WHERE status IS DISTINCT FROM 'private'
+          ORDER BY name ASC
+        `;
+    }
 
     return Response.json({ terminals });
   } catch (error) {
