@@ -136,7 +136,8 @@ export default function ClientVehiclePage() {
         if (draftConfig.title_service_id && String(draftConfig.title_service_id) !== String(activeTitleId)) {
             const option = titleOptions.find(o => String(o.service_id) === String(draftConfig.title_service_id));
             if (option) {
-                fees.push({ label: `Title Service: ${option.service_name}`, amount: Number(option.price_l1 || 0) });
+                const priceLevelKey = vehicle.title_price_level ? `price_${vehicle.title_price_level.toLowerCase()}` : 'price_l1';
+                fees.push({ label: `Title Service: ${option.service_name}`, amount: Number(option[priceLevelKey] || 0) });
             }
         }
 

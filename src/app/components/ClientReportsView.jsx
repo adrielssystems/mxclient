@@ -71,6 +71,9 @@ export default function ClientReportsView({ hideHeader = false }) {
 
     // RELIST DANGER: >= 7 days since purchase AND $0 paid (using vehicles.amount_paid — same as Purchase Board)
     const relistDangerAll = (vehicleHistory || []).filter(v => {
+        const isMotorXDealer = v.dl_number === 'AR' || v.dl_number === 'WI';
+        if (!isMotorXDealer) return false;
+
         // Use vehicles.amount_paid (raw) — matches Purchase Board display
         const vehiclesAmountPaid = parseFloat(v.vehicles_amount_paid) || 0;
         const payStatus = (v.payment_status || '').toLowerCase();

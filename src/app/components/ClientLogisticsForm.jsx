@@ -72,6 +72,8 @@ export default function ClientLogisticsForm({
         }
     };
 
+    const priceLevelKey = vehicle.title_price_level ? `price_${vehicle.title_price_level.toLowerCase()}` : 'price_l1';
+
     const handleSave = async () => {
         setLoading(true);
         try {
@@ -81,7 +83,7 @@ export default function ClientLogisticsForm({
                 (tr.destination_ref_id?.toString().toUpperCase() === selectedHub.toUpperCase() || tr.destination_name === selectedHub)
             )?.price_l1 || 0);
 
-            const titlePrice = Number(titleOptions.find(o => String(o.service_id) === String(formData.title_service_id))?.price_l1 || 0);
+            const titlePrice = Number(titleOptions.find(o => String(o.service_id) === String(formData.title_service_id))?.[priceLevelKey] || 0);
 
             const payload = {
                 ...formData,
@@ -188,7 +190,7 @@ export default function ClientLogisticsForm({
                             </label>
                             {formData.title_service_id && (
                                 <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
-                                    + ${Number(titleOptions.find(o => String(o.service_id) === String(formData.title_service_id))?.price_l1 || 0).toFixed(2)}
+                                    + ${Number(titleOptions.find(o => String(o.service_id) === String(formData.title_service_id))?.[priceLevelKey] || 0).toFixed(2)}
                                 </span>
                             )}
                         </div>

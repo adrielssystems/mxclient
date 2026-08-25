@@ -47,6 +47,7 @@ export async function GET(request, { params }) {
                 v.terminal_id,
                 v.location_id,
                 t.lien_holder as has_lien,
+                (SELECT COALESCE(csc.price_level, au.price_level) FROM auth_users au LEFT JOIN client_service_config csc ON au.id = csc.client_id AND csc.service_category = 'TITLE' WHERE au.id = v.client_id) as title_price_level,
                 
                 -- We only expose client-facing prices
                 v.purchase_price as client_base_price,
@@ -203,7 +204,7 @@ export async function PUT(request, { params }) {
 
                     // FIX: Always update dispatch_status to 'assignment_pending' — remove
                     // the restrictive condition that silently failed if status had another value.
-                    await sql`UPDATE vehicles SET dispatch_status = 'assignment_pending' WHERE id = ${vehicleId} AND dispatch_status NOT IN ('dispatched', 'completed', 'picked_up')`;
+                    await sql`UPDATE vehicles SET dispatch_status = 'assignment_pending' WHERE id = ${vehicleId} AND dispatch_status NOT IN ('assigned', 'picked_up')`;
                 }
             } else {
                 // Terminal removed — remove dispatch service detail
@@ -293,7 +294,7 @@ export async function PUT(request, { params }) {
                 }
                 // FIX: Always set title_status to 'processing' — remove the restrictive
                 // condition that silently failed if the vehicle already had another status.
-                await sql`UPDATE vehicles SET title_status = 'processing' WHERE id = ${vehicleId} AND title_status NOT IN ('completed', 'sent')`;
+                await sql`UPDATE vehicles SET title_status = 'processing' WHERE id = ${vehicleId} AND title_status != 'title_ready'`;
 
                 // Insert invoice_line_item for title if not already present and price provided
                 if (resolvedClientPrice > 0) {

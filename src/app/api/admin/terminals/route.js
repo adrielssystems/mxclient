@@ -23,7 +23,7 @@ export async function GET() {
     } else {
         terminals = await sql`
           SELECT * FROM shippers_terminals 
-          WHERE status IS DISTINCT FROM 'private'
+          WHERE LOWER(COALESCE(status, 'public')) = 'public'
           ORDER BY name ASC
         `;
     }
