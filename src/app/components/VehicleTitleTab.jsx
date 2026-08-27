@@ -225,7 +225,7 @@ export default function VehicleTitleTab({ vehicle, onUpdate, isClient = false, i
                                 className={`w-full p-2 text-sm border rounded focus:ring-2 focus:ring-blue-500 ${isMissingMailingInfo ? 'border-red-500 bg-red-50' : 'border-slate-300'} ${finalIsLocked ? 'bg-slate-50 text-slate-500 cursor-not-allowed opacity-80' : ''}`}
                             >
                                 <option value="">{t('configure_services.select_destination')}</option>
-                                {terminals.map(t => (
+                                {terminals.filter(t => t.name.toLowerCase() !== 'other' && t.name.toLowerCase() !== 'others').map(t => (
                                     <option key={t.id} value={t.name}>{t.name}</option>
                                 ))}
                                 <option value="Others">{t('configure_services.others_specify')}</option>

@@ -21,7 +21,7 @@ export default function ClientLogisticsForm({
     const titleSvc = services.find(s => s.service_category === 'TITLE');
     const dismSvc = services.find(s => s.service_category === 'DISMANTLING');
 
-    // Per requirements: The configuration form should always be active for unconfigured services, 
+    // Per requirements: The configuration form should always be active for unconfigured services,
     // even if the vehicle is already in a later status (like 'at_terminal').
     const isLockedBase = false;
 
@@ -32,34 +32,38 @@ export default function ClientLogisticsForm({
     const isTitleLocked = hasConfiguredTitle;
 
     const [loading, setLoading] = useState(false);
-
-    const initialTerminal = terminals.find(t => String(t.id) === String(vehicle.terminal_id));
-    const [selectedHub, setSelectedHub] = useState(
-        initialTerminal ? (initialTerminal.location || initialTerminal.name.split(' ')[0]) : ""
-    );
+    const [selectedHub, setSelectedHub] = useState("");
 
     // Form State
     const [formData, setFormData] = useState({
         destination_id: vehicle.destination_id || "",
-        terminal_id: vehicle.terminal_id || "",
+        terminal_id: vehicle.terminal_id ? String(vehicle.terminal_id) : "",
         title_service_id: titleSvc ? (titleSvc.service_id || titleSvc.id) : "",
         dismantling_service_id: dismSvc ? (dismSvc.service_id || dismSvc.id) : "",
         setAsDefaultTerminal: false,
     });
 
     const uniqueHubs = Array.from(new Set(terminals.map(t => t.location || t.name.split(' ')[0]))).sort();
-    const filteredTerminals = selectedHub ? terminals.filter(t => (t.location === selectedHub || t.name.startsWith(selectedHub))) : [];
+    const filteredTerminals = selectedHub
+        ? terminals.filter(t => (t.location === selectedHub || t.name.startsWith(selectedHub)))
+        : [];
 
-    // Ensure state syncs if terminals load after mount or vehicle updates
+    // Sync whenever terminals arrive (async) or vehicle.terminal_id is set.
+    // This is critical: terminals may arrive empty on first render, so we can't rely
+    // solely on useState initialization — we need this effect to always resolve.
     useEffect(() => {
-        if (vehicle.terminal_id && !selectedHub && terminals.length > 0) {
+        if (vehicle.terminal_id && terminals.length > 0) {
             const term = terminals.find(t => String(t.id) === String(vehicle.terminal_id));
             if (term) {
-                setSelectedHub(term.location || term.name.split(' ')[0]);
-                setFormData(prev => ({ ...prev, terminal_id: vehicle.terminal_id }));
+                const hub = term.location || term.name.split(' ')[0];
+                setSelectedHub(hub);
+                setFormData(prev => ({
+                    ...prev,
+                    terminal_id: String(vehicle.terminal_id)
+                }));
             }
         }
-    }, [vehicle.terminal_id, terminals, selectedHub]);
+    }, [vehicle.terminal_id, terminals]);
 
     const handleChange = (field, value) => {
         const newData = { ...formData, [field]: value };
@@ -78,8 +82,8 @@ export default function ClientLogisticsForm({
         setLoading(true);
         try {
             // Calculate prices to pass to the API for invoice_line_items
-            const dispatchPrice = Number(tariffs.find(tr => 
-                String(tr.origin_ref_id) === String(vehicle.location_id) && 
+            const dispatchPrice = Number(tariffs.find(tr =>
+                String(tr.origin_ref_id) === String(vehicle.location_id) &&
                 (tr.destination_ref_id?.toString().toUpperCase() === selectedHub.toUpperCase() || tr.destination_name === selectedHub)
             )?.price_l1 || 0);
 
@@ -139,8 +143,8 @@ export default function ClientLogisticsForm({
                             </label>
                             {selectedHub && (
                                 <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 animate-in fade-in zoom-in duration-200">
-                                    + ${Number(tariffs.find(tr => 
-                                        String(tr.origin_ref_id) === String(vehicle.location_id) && 
+                                    + ${Number(tariffs.find(tr =>
+                                        String(tr.origin_ref_id) === String(vehicle.location_id) &&
                                         (tr.destination_ref_id?.toString().toUpperCase() === selectedHub.toUpperCase() || tr.destination_name === selectedHub)
                                     )?.price_l1 || 0).toFixed(2)}
                                 </span>

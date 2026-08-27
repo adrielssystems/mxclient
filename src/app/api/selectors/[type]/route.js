@@ -29,7 +29,8 @@ export async function GET(request, { params }) {
             if (userRole === 'admin' || userRole === 'employee') {
                 data = await sql`SELECT id, COALESCE(location, name) as name, location FROM shippers_terminals ORDER BY name ASC`;
             } else {
-                data = await sql`SELECT id, COALESCE(location, name) as name, location FROM shippers_terminals WHERE status IS DISTINCT FROM 'private' ORDER BY name ASC`;
+                // Exclude 'private' and 'inactive' terminals using LOWER() for case-insensitive matching.
+                data = await sql`SELECT id, COALESCE(location, name) as name, location FROM shippers_terminals WHERE visibility IS DISTINCT FROM 'private' AND visibility IS DISTINCT FROM 'Private' AND visibility IS DISTINCT FROM 'inactive' AND visibility IS DISTINCT FROM 'Inactive' ORDER BY name ASC`;
             }
         } else if (type === 'ports') {
             // Ports come from 'destinations' table

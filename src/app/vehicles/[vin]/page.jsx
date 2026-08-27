@@ -13,8 +13,6 @@ export default function ClientVehiclePage() {
     const navigate = useNavigate();
     const { data: user, loading: userLoading } = useUser();
 
-    // Explicit unwrapping of the params is required in next 15+ but standard react is fine
-    // Since this is Next.js app router we use params.vin
     const vin = params?.vin;
 
     const [loading, setLoading] = useState(true);
@@ -120,7 +118,7 @@ export default function ClientVehiclePage() {
             if (terminal) {
                 const hub = terminal.location || terminal.name.split(' ')[0];
                 const tariff = tariffs.find(tr => 
-                    String(tr.origin_ref_id) === String(vehicle.location_id) && 
+                    String(tr.origin_ref_id) === String(vehicle.location_id) &&
                     (tr.destination_ref_id?.toString().toUpperCase() === hub.toUpperCase() || tr.destination_name === hub)
                 );
                 if (tariff) {
@@ -186,12 +184,12 @@ export default function ClientVehiclePage() {
                     onUpdate={fetchVehicleData}
                 />
                 
-                {/* NEW: Title Tracking for Clients */}
+                {/* Title Tracking — isLocked=false so clients can always set Mailing Location */}
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                     <VehicleTitleTab 
                         vehicle={vehicle} 
                         isClient={true}
-                        isLocked={vehicle?.current_status && !['purchased', 'pending', 'pending_dispatch', 'assignment_pending'].includes(vehicle.current_status.toLowerCase())}
+                        isLocked={false}
                         onUpdate={fetchVehicleData}
                     />
                 </div>

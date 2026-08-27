@@ -21,11 +21,17 @@ export async function GET() {
           ORDER BY name ASC
         `;
     } else {
+        // Show terminals that are NOT explicitly 'private' or 'inactive'.
+        // Using LOWER() for case-insensitive comparison to handle any casing (e.g., 'Private', 'INACTIVE').
         terminals = await sql`
           SELECT * FROM shippers_terminals 
-          WHERE LOWER(COALESCE(status, 'public')) = 'public'
+          WHERE visibility IS DISTINCT FROM 'private' 
+            AND visibility IS DISTINCT FROM 'Private' 
+            AND visibility IS DISTINCT FROM 'inactive' 
+            AND visibility IS DISTINCT FROM 'Inactive'
           ORDER BY name ASC
         `;
+        console.log("CLIENT TERMINALS FETCHED:", terminals?.length);
     }
 
     return Response.json({ terminals });
