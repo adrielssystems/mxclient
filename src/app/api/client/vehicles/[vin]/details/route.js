@@ -77,14 +77,10 @@ export async function GET(request, { params }) {
         vehicle.model = model;
         vehicle.client_total_price = vehicle.total_due;
 
-        // Purchase source
-        vehicle.purchase_source = (
-            (!vehicle.entry_method && !vehicle.dl_number)
-        ) ? 'External' : 'MotorX';
+        // Purchase source: AR or WI dealer = MotorX, anything else or null = External
+        const isMotorXDealer = vehicle.dl_number && ['AR', 'WI'].includes(vehicle.dl_number.trim().toUpperCase());
         const motorxEntryMethods = ['MX Inventory', 'Client Direct (MX Account)'];
-        if (motorxEntryMethods.includes(vehicle.entry_method)) {
-            vehicle.purchase_source = 'MotorX';
-        }
+        vehicle.purchase_source = (isMotorXDealer || motorxEntryMethods.includes(vehicle.entry_method)) ? 'MotorX' : 'External';
 
         // Fetch Services and their prices from invoice_line_items
         const serviceDetails = await sql`

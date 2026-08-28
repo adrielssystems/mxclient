@@ -690,6 +690,69 @@ export async function POST(request) {
       }
     }
 
+    // 5. If Title Service requested, ensure vehicle_title_services record is created for Admin Panel & Billing
+    if (wants_title_service && title_service_id) {
+      const svcNameResult = await sql`SELECT name FROM services WHERE id = ${title_service_id}`;
+      const titleSvcName = svcNameResult.length > 0 ? svcNameResult[0].name : '';
+
+      // Calculate correct client price and MotorX cost based on price_level
+      const vehicleInfo = await sql`
+        SELECT v.auction_id, COALESCE(csc.price_level, u.price_level) as price_level 
+        FROM vehicles v
+        LEFT JOIN auth_users u ON v.client_id = u.id
+        LEFT JOIN client_service_config csc ON v.client_id = csc.client_id AND csc.service_category = 'TITLE'
+        WHERE v.id = ${vehicleId}
+      `;
+
+      let resolvedClientPrice = 0;
+      let baseCost = 0;
+
+      if (vehicleInfo.length > 0 && vehicleInfo[0].price_level) {
+        const priceField = `price_${vehicleInfo[0].price_level.toLowerCase()}`;
+        const servicePriceResult = await sql`
+          SELECT 
+            sc.${sql(priceField)} as client_price,
+            sc.price_l0 as base_cost
+          FROM services s
+          JOIN service_charges sc ON s.id = sc.service_id
+          WHERE s.category = 'TITLE' 
+            AND s.id = ${title_service_id}
+            AND s.is_active = true
+            AND (sc.auction_specific = false OR sc.auction_id = ${vehicleInfo[0].auction_id})
+          ORDER BY sc.auction_specific DESC, sc.id ASC
+          LIMIT 1
+        `;
+        if (servicePriceResult.length > 0) {
+          resolvedClientPrice = parseFloat(servicePriceResult[0].client_price || 0);
+          baseCost = parseFloat(servicePriceResult[0].base_cost || 0);
+        }
+      }
+
+      await sql`
+        INSERT INTO vehicle_title_services (vehicle_id, service_id, title_service_name, price_client, motorx_cost) 
+        VALUES (${vehicleId}, ${title_service_id}, ${titleSvcName}, ${resolvedClientPrice}, ${baseCost})
+        ON CONFLICT (vehicle_id) DO UPDATE 
+        SET service_id = EXCLUDED.service_id,
+            title_service_name = EXCLUDED.title_service_name,
+            price_client = EXCLUDED.price_client,
+            motorx_cost = EXCLUDED.motorx_cost
+      `;
+
+      // Insert invoice_line_item for title if price resolved
+      if (resolvedClientPrice > 0) {
+        const existingTitleItem = await sql`
+          SELECT id FROM invoice_line_items 
+          WHERE vehicle_id = ${vehicleId} AND type = 'SERVICE' AND description ILIKE '%Title%'
+        `;
+        if (existingTitleItem.length === 0) {
+          await sql`
+            INSERT INTO invoice_line_items (vehicle_id, description, amount, type, service_id) 
+            VALUES (${vehicleId}, 'Title Service', ${resolvedClientPrice}, 'SERVICE', ${title_service_id})
+          `;
+        }
+      }
+    }
+
     // Log audit event
     const { ipAddress, userAgent } = getRequestInfo(request);
     const currentUserData = await sql`SELECT name, email, role FROM auth_users WHERE id = ${session.user.id}`;

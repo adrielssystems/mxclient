@@ -61,94 +61,102 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [],
         const clientPayAdjustment = vehicle?.buyer_pays_auction ? -winningBidAmount : 0;
         const totalCost = winningBidAmount + clientPayAdjustment + Object.values(feeMap).reduce((a, b) => a + b, 0);
 
+        const isMotorX = vehicle?.purchase_source === 'MotorX';
+
         return (
             <div className="space-y-6">
-                <div className="flex justify-between items-start border-b border-slate-100 pb-4">
-                    <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
-                        <DollarSign size={16} className="text-blue-500" /> {t('vehicle_details.purchase_breakdown')}
-                    </h3>
-                    <div className="text-right">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{t('vehicle_details.total_invoice')}</p>
-                        <p className="text-lg font-black text-slate-900">{formatCurrency(totalCost)}</p>
-                        {vehicle?.payment_status && (
-                            <span className={`inline-flex px-2 py-0.5 mt-1 rounded-full text-[9px] font-bold uppercase tracking-widest border ${
-                                vehicle.payment_status === 'paid' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'
-                            }`}>
-                                {t(`status.${vehicle.payment_status.toLowerCase()}`, { defaultValue: vehicle.payment_status.replace('_', ' ') })}
-                            </span>
-                        )}
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                    {/* Source Details */}
-                    <div className="md:col-span-5 bg-slate-50 rounded-xl p-5 border border-slate-100 h-fit space-y-5">
-                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('vehicle_details.auction_details_source')}</h4>
-                        <div>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">{t('vehicle_details.winning_bid_amount')}</p>
-                            <p className="text-2xl font-black text-slate-900">{formatCurrency(winningBidAmount)}</p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-0.5 font-bold">{t('vehicle_details.auction_house')}</p>
-                                <p className="text-sm font-bold text-slate-700">{vehicle?.auction_name || 'N/A'}</p>
-                            </div>
-                            <div>
-                                <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-0.5 font-bold">{t('vehicle_details.date')}</p>
-                                <p className="text-sm font-bold text-slate-700">{formatToMDY(vehicle?.purchase_date) || 'N/A'}</p>
+                {isMotorX && (
+                    <>
+                        <div className="flex justify-between items-start border-b border-slate-100 pb-4">
+                            <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
+                                <DollarSign size={16} className="text-blue-500" /> {t('vehicle_details.purchase_breakdown')}
+                            </h3>
+                            <div className="text-right">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{t('vehicle_details.total_invoice')}</p>
+                                <p className="text-lg font-black text-slate-900">{formatCurrency(totalCost)}</p>
+                                {vehicle?.payment_status && (
+                                    <span className={`inline-flex px-2 py-0.5 mt-1 rounded-full text-[9px] font-bold uppercase tracking-widest border ${
+                                        vehicle.payment_status === 'paid' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'
+                                    }`}>
+                                        {t(`status.${vehicle.payment_status.toLowerCase()}`, { defaultValue: vehicle.payment_status.replace('_', ' ') })}
+                                    </span>
+                                )}
                             </div>
                         </div>
-                    </div>
 
-                    {/* Breakdown */}
-                    <div className="md:col-span-7 bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-                        <div className="px-6 py-3 border-b border-slate-100 bg-slate-50 flex justify-between items-center text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                            <span>{t('vehicle_details.description')}</span>
-                            <span>{t('vehicle_details.amount')}</span>
-                        </div>
-                        <div className="p-6 space-y-4">
-                            <div className="flex items-end gap-2 w-full">
-                                <span className="text-sm font-bold text-slate-700">{t('vehicle_details.purchase_price')}</span>
-                                <div className="flex-1 border-b-2 border-dotted border-slate-200 mb-1.5 mx-1"></div>
-                                <span className="text-sm font-black text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(winningBidAmount)}</span>
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                            {/* Source Details */}
+                            <div className="md:col-span-5 bg-slate-50 rounded-xl p-5 border border-slate-100 h-fit space-y-5">
+                                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('vehicle_details.auction_details_source')}</h4>
+                                <div>
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">{t('vehicle_details.winning_bid_amount')}</p>
+                                    <p className="text-2xl font-black text-slate-900">{formatCurrency(winningBidAmount)}</p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-0.5 font-bold">{t('vehicle_details.auction_house')}</p>
+                                        <p className="text-sm font-bold text-slate-700">{vehicle?.auction_name || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-0.5 font-bold">{t('vehicle_details.date')}</p>
+                                        <p className="text-sm font-bold text-slate-700">{formatToMDY(vehicle?.purchase_date) || 'N/A'}</p>
+                                    </div>
+                                </div>
                             </div>
-                            {feeMap.gateFee > 0 && (
-                                <div className="flex items-end gap-2 w-full group">
-                                    <span className="text-sm font-bold text-slate-500 leading-snug group-hover:text-slate-700 transition-colors">{t('vehicle_details.gate_fee')}</span>
-                                    <div className="flex-1 border-b-2 border-dotted border-slate-200 mb-1.5 mx-1 group-hover:border-slate-300 transition-colors"></div>
-                                    <span className="text-sm font-black text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(feeMap.gateFee)}</span>
-                                </div>
-                            )}
-                            {feeMap.brokerFee > 0 && (
-                                <div className="flex items-end gap-2 w-full group">
-                                    <span className="text-sm font-bold text-slate-500 leading-snug group-hover:text-slate-700 transition-colors">{t('vehicle_details.broker_fee')}</span>
-                                    <div className="flex-1 border-b-2 border-dotted border-slate-200 mb-1.5 mx-1 group-hover:border-slate-300 transition-colors"></div>
-                                    <span className="text-sm font-black text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(feeMap.brokerFee)}</span>
-                                </div>
-                            )}
-                            {feeMap.commissionFee > 0 && (
-                                <div className="flex items-end gap-2 w-full group">
-                                    <span className="text-sm font-bold text-slate-500 leading-snug group-hover:text-slate-700 transition-colors">{t('vehicle_details.markup_fee')}</span>
-                                    <div className="flex-1 border-b-2 border-dotted border-slate-200 mb-1.5 mx-1 group-hover:border-slate-300 transition-colors"></div>
-                                    <span className="text-sm font-black text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(feeMap.commissionFee)}</span>
-                                </div>
-                            )}
-                            {feeMap.wireFee > 0 && (
-                                <div className="flex items-end gap-2 w-full group">
-                                    <span className="text-sm font-bold text-slate-500 leading-snug group-hover:text-slate-700 transition-colors">{t('vehicle_details.wire_fee')}</span>
-                                    <div className="flex-1 border-b-2 border-dotted border-slate-200 mb-1.5 mx-1 group-hover:border-slate-300 transition-colors"></div>
-                                    <span className="text-sm font-black text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(feeMap.wireFee)}</span>
-                                </div>
-                            )}
-                        </div>
-                        <div className="px-6 pt-4 pb-6 border-t border-slate-200 flex justify-between items-center">
-                            <span className="text-xs font-black text-slate-600 uppercase tracking-widest">{t('vehicle_details.total_purchase_cost')}</span>
-                            <span className="text-xl font-black text-slate-900">{formatCurrency(totalCost)}</span>
-                        </div>
-                    </div>
 
+                            {/* Breakdown */}
+                            <div className="md:col-span-7 bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                                <div className="px-6 py-3 border-b border-slate-100 bg-slate-50 flex justify-between items-center text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                    <span>{t('vehicle_details.description')}</span>
+                                    <span>{t('vehicle_details.amount')}</span>
+                                </div>
+                                <div className="p-6 space-y-4">
+                                    <div className="flex items-end gap-2 w-full">
+                                        <span className="text-sm font-bold text-slate-700">{t('vehicle_details.purchase_price')}</span>
+                                        <div className="flex-1 border-b-2 border-dotted border-slate-200 mb-1.5 mx-1"></div>
+                                        <span className="text-sm font-black text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(winningBidAmount)}</span>
+                                    </div>
+                                    {feeMap.gateFee > 0 && (
+                                        <div className="flex items-end gap-2 w-full group">
+                                            <span className="text-sm font-bold text-slate-500 leading-snug group-hover:text-slate-700 transition-colors">{t('vehicle_details.gate_fee')}</span>
+                                            <div className="flex-1 border-b-2 border-dotted border-slate-200 mb-1.5 mx-1 group-hover:border-slate-300 transition-colors"></div>
+                                            <span className="text-sm font-black text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(feeMap.gateFee)}</span>
+                                        </div>
+                                    )}
+                                    {feeMap.brokerFee > 0 && (
+                                        <div className="flex items-end gap-2 w-full group">
+                                            <span className="text-sm font-bold text-slate-500 leading-snug group-hover:text-slate-700 transition-colors">{t('vehicle_details.broker_fee')}</span>
+                                            <div className="flex-1 border-b-2 border-dotted border-slate-200 mb-1.5 mx-1 group-hover:border-slate-300 transition-colors"></div>
+                                            <span className="text-sm font-black text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(feeMap.brokerFee)}</span>
+                                        </div>
+                                    )}
+                                    {feeMap.commissionFee > 0 && (
+                                        <div className="flex items-end gap-2 w-full group">
+                                            <span className="text-sm font-bold text-slate-500 leading-snug group-hover:text-slate-700 transition-colors">{t('vehicle_details.markup_fee')}</span>
+                                            <div className="flex-1 border-b-2 border-dotted border-slate-200 mb-1.5 mx-1 group-hover:border-slate-300 transition-colors"></div>
+                                            <span className="text-sm font-black text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(feeMap.commissionFee)}</span>
+                                        </div>
+                                    )}
+                                    {feeMap.wireFee > 0 && (
+                                        <div className="flex items-end gap-2 w-full group">
+                                            <span className="text-sm font-bold text-slate-500 leading-snug group-hover:text-slate-700 transition-colors">{t('vehicle_details.wire_fee')}</span>
+                                            <div className="flex-1 border-b-2 border-dotted border-slate-200 mb-1.5 mx-1 group-hover:border-slate-300 transition-colors"></div>
+                                            <span className="text-sm font-black text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(feeMap.wireFee)}</span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="px-6 pt-4 pb-6 border-t border-slate-200 flex justify-between items-center">
+                                    <span className="text-xs font-black text-slate-600 uppercase tracking-widest">{t('vehicle_details.total_purchase_cost')}</span>
+                                    <span className="text-xl font-black text-slate-900">{formatCurrency(totalCost)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </>
+                )}
+
+                <div className="grid grid-cols-1 gap-6">
                     {/* Logistics & Request (Full Width Bottom) */}
-                    <div className="md:col-span-12 bg-slate-50 rounded-xl p-5 border border-slate-100">
+                    <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
                         <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">{t('vehicle_details.logistics_request')}</h4>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div>
