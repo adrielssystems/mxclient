@@ -78,9 +78,9 @@ export async function GET(request, { params }) {
         vehicle.client_total_price = vehicle.total_due;
 
         // Purchase source: AR or WI dealer = MotorX, anything else or null = External
-        const isMotorXDealer = vehicle.dl_number && ['AR', 'WI'].includes(vehicle.dl_number.trim().toUpperCase());
-        const motorxEntryMethods = ['MX Inventory', 'Client Direct (MX Account)'];
-        vehicle.purchase_source = (isMotorXDealer || motorxEntryMethods.includes(vehicle.entry_method)) ? 'MotorX' : 'External';
+        const isMotorXDealer = vehicle.dl_number && ['AR', 'WI'].includes(String(vehicle.dl_number).trim().toUpperCase());
+        const isExternalSvc = vehicle.external_service === true || vehicle.purchase_source === 'External' || vehicle.purchase_status === 'not_applicable';
+        vehicle.purchase_source = (isMotorXDealer && !isExternalSvc) ? 'MotorX' : 'External';
 
         // Fetch Services and their prices from invoice_line_items
         const serviceDetails = await sql`
