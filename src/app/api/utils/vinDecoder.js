@@ -8,9 +8,9 @@ const NHTSA_API = 'https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVin';
 const TIMEOUT_MS = 5000;
 
 // Mapping keywords to size classes
-const MOTORCYCLE_KEYWORDS = ['MOTORCYCLE'];
-const REGULAR_KEYWORDS = ['SEDAN', 'COUPE', 'HATCHBACK', 'CONVERTIBLE', 'WAGON', 'SALOON'];
-const LARGE_KEYWORDS = ['SPORT UTILITY', 'SUV', 'MINIVAN', 'PICKUP', 'TRUCK', 'CROSSOVER', 'VAN'];
+const MOTORCYCLE_KEYWORDS = ['MOTORCYCLE', 'MOTOR BIKE', 'MOPED', 'SCOOTER', 'TRIKE', 'MOTOR DRIVEN'];
+const REGULAR_KEYWORDS = ['SEDAN', 'COUPE', 'HATCHBACK', 'CONVERTIBLE', 'WAGON', 'SALOON', 'SPORT UTILITY', 'SUV', 'MINIVAN', 'CROSSOVER', 'MPV', 'MULTIPURPOSE', 'PASSENGER CAR'];
+const LARGE_KEYWORDS = ['PICKUP', 'TRUCK', 'VAN', 'FULL-SIZE TRUCK'];
 const OVERSIZED_KEYWORDS = ['BUS', 'TRAILER', 'HEAVY TRUCK', 'INCOMPLETE', 'MOTORHOME', 'LOW SPEED'];
 
 /**
@@ -103,11 +103,11 @@ function classifySize(vehicleType, bodyClass) {
     // 2. Oversized check (buses, trailers, heavy trucks)
     if (matchesAny(combined, OVERSIZED_KEYWORDS)) return 'oversized';
 
-    // 3. Large check (SUVs, pickups, trucks, vans)
-    if (matchesAny(combined, LARGE_KEYWORDS)) return 'large';
-
-    // 4. Regular check (sedans, coupes, etc.) OR explicit PASSENGER CAR type
+    // 3. Regular check (sedans, SUVs, MPVs, Minivans, etc.) OR explicit PASSENGER CAR type
     if (matchesAny(combined, REGULAR_KEYWORDS) || vehicleType === 'PASSENGER CAR') return 'regular';
+
+    // 4. Large check (pickups, trucks, vans)
+    if (matchesAny(combined, LARGE_KEYWORDS)) return 'large';
 
     // 5. Fallback
     return 'regular';
