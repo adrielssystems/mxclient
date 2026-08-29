@@ -61,8 +61,7 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [],
         const clientPayAdjustment = vehicle?.buyer_pays_auction ? -winningBidAmount : 0;
         const totalCost = winningBidAmount + clientPayAdjustment + Object.values(feeMap).reduce((a, b) => a + b, 0);
 
-        const isMotorXDealer = vehicle?.dl_number && ['AR', 'WI'].includes(String(vehicle.dl_number).trim().toUpperCase());
-        const isMotorX = (vehicle?.purchase_source === 'MotorX' || isMotorXDealer) && !vehicle?.external_service && isMotorXDealer;
+        const isMotorX = vehicle?.purchase_source === 'MotorX';
 
         return (
             <div className="space-y-6">
@@ -450,16 +449,14 @@ export default function ClientVehicleReadOnlyLogistics({ vehicle, services = [],
     return (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden h-full flex flex-col">
             <div className="px-4 py-3 border-b border-slate-100 bg-slate-50 flex flex-wrap gap-4 items-center">
-                {vehicle?.purchase_source === 'MotorX' && (
-                    <button
-                        onClick={() => setActiveTab('purchases')}
-                        className={`text-[11px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full transition-colors flex items-center gap-2 ${
-                            activeTab === 'purchases' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
-                        }`}
-                    >
-                        <DollarSign size={14} /> {t('vehicle_details.purchases_tab')}
-                    </button>
-                )}
+                <button
+                    onClick={() => setActiveTab('purchases')}
+                    className={`text-[11px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full transition-colors flex items-center gap-2 ${
+                        activeTab === 'purchases' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
+                    }`}
+                >
+                    <DollarSign size={14} /> {t('vehicle_details.purchases_tab')}
+                </button>
                 <button
                     onClick={() => setActiveTab('dispatch')}
                     className={`text-[11px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full transition-colors flex items-center gap-2 ${
