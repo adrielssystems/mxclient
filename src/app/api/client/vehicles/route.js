@@ -48,6 +48,7 @@ export async function GET(request) {
                 v.purchase_status,
                 v.purchase_source,
                 v.dl_number,
+                v.do_not_pay,
                 
                 CASE
                   WHEN t.vin IS NULL THEN NULL

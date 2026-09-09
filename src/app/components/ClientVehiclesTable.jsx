@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Search, Car, CalendarDays, ChevronDown, Check } from 'lucide-react';
+import { Search, Car, CalendarDays, ChevronDown, Check, Ban } from 'lucide-react';
 import { formatToMDY } from "@/utils/dateUtils";
 import { formatCurrency } from "@/utils/formatUtils";
 
@@ -109,7 +109,17 @@ const VehicleRow = React.memo(({ vehicle, activeTab = 'All', t }) => {
             {/* Purchase Status */}
             { (activeTab === 'All' || activeTab === 'Purchases') && (
                 <td className="px-2 py-1.5 w-[82px]">
-                    <StatusBadge label={purchaseLabel} colorClass={purchaseColor} t={t} />
+                    <div className="flex flex-col items-center gap-1">
+                        <StatusBadge label={purchaseLabel} colorClass={purchaseColor} t={t} />
+                        {vehicle.do_not_pay && (
+                            <span 
+                                className="inline-flex items-center gap-0.5 px-1 py-0.5 bg-orange-500 text-white rounded text-[8px] font-black uppercase tracking-tight shadow-sm shrink-0" 
+                                title={t('vehicle_details.do_not_pay_warning_title', { defaultValue: 'DO NOT PAY - Payment On Hold' })}
+                            >
+                                <Ban size={8} /> DO NOT PAY
+                            </span>
+                        )}
+                    </div>
                 </td>
             )}
             {/* Dispatch Status */}

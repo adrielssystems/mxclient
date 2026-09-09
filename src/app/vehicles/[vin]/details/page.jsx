@@ -134,6 +134,13 @@ export default function ClientVehicleDetailsPage() {
                         operationalRules={operationalRules}
                         clientCommission={clientCommission}
                         invoices={invoices}
+                        onUpdate={(updatedVeh) => {
+                            if (updatedVeh) {
+                                setVehicle(prev => ({ ...prev, ...updatedVeh }));
+                            } else {
+                                fetchVehicleDetails();
+                            }
+                        }}
                     />
                 </div>
 
