@@ -5,7 +5,7 @@ import { formatToMDY } from '@/utils/dateUtils';
 import { formatCurrency } from "@/utils/formatUtils";
 import useUser from "@/utils/useUser";
 import { Car, MapPin, CheckCircle, Clock, AlertCircle, DollarSign, Plus, ChevronRight } from "lucide-react";
-import { useNavigate } from 'react-router';
+import { useNavigate, Link } from 'react-router';
 import { useTranslation } from "react-i18next";
 
 export default function ClientActionsPage() {
@@ -116,9 +116,9 @@ export default function ClientActionsPage() {
                                     {t('actions.show_sidebar')}
                                 </button>
                             )}
-                            <a href="/vehicles" className="text-sm font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors">
+                            <Link to="/vehicles" className="text-sm font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors">
                                 {t('actions.view_all')} <ChevronRight size={16} />
-                            </a>
+                            </Link>
                         </div>
                     </div>
 
@@ -180,13 +180,13 @@ export default function ClientActionsPage() {
 
                                         <div className="w-full sm:w-auto flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-3 border-t sm:border-t-0 border-slate-100 pt-4 sm:pt-0 shrink-0">
                                             {uiStatus === 'ACTION_REQUIRED' ? (
-                                                <a href={`/vehicles/${v.vin}`} className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm transition-transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                                                <Link to={`/vehicles/${v.vin}`} className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm transition-transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
                                                     {t('actions.configure_services')} <ChevronRight size={16} />
-                                                </a>
+                                                </Link>
                                             ) : (
                                                 <>
                                                     <p className="font-black text-xl text-slate-800">{formatCurrency(v.client_total_price || 0)}</p>
-                                                    <a href={`/vehicles/${v.vin}`} className="text-blue-600 font-bold text-sm hover:underline">{t('actions.view_invoice')}</a>
+                                                    <Link to={`/vehicles/${v.vin}`} className="text-blue-600 font-bold text-sm hover:underline">{t('actions.view_invoice')}</Link>
                                                 </>
                                             )}
                                         </div>

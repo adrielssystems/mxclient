@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowLeft, Car } from 'lucide-react';
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router";
 
 export default function ClientVehicleHeader({ vehicle }) {
     const { t } = useTranslation();
@@ -18,13 +19,13 @@ export default function ClientVehicleHeader({ vehicle }) {
     return (
         <div className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-sm">
             <div className="flex items-center gap-4">
-                <a
-                    href="/vehicles"
+                <Link
+                    to="/vehicles"
                     className="p-2 -ml-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
                     title={t('vehicle_details.back_to_vehicles')}
                 >
                     <ArrowLeft className="h-5 w-5" />
-                </a>
+                </Link>
 
                 <div>
                     <div className="flex items-center gap-2">

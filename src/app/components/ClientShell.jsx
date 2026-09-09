@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router';
 import useUser from "@/utils/useUser";
 import useAuth from "@/utils/useAuth";
 import { LogOut, Home, Car, CreditCard, FileText, ArrowLeft, Eye, AlertTriangle, CheckSquare } from "lucide-react";
@@ -17,15 +18,13 @@ export default function ClientShell({ children }) {
     const { data: user, loading } = useUser();
     const { signOut } = useAuth();
     const { t } = useTranslation();
+    const location = useLocation();
+    const currentPath = location.pathname;
 
-    const [currentPath, setCurrentPath] = useState('');
     const [impersonating, setImpersonating] = useState(null);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            const path = window.location.pathname;
-            setCurrentPath(path);
-
             // --- INACTIVITY RESET (30 MINS) ---
             const lastActivity = localStorage.getItem('clientLastActivity');
             const now = Date.now();
@@ -33,7 +32,7 @@ export default function ClientShell({ children }) {
 
             if (lastActivity && (now - parseInt(lastActivity)) > thirtyMins) {
                 // If expired and not already at overview, redirect
-                if (path !== '/' && !path.startsWith('/?')) {
+                if (currentPath !== '/' && !currentPath.startsWith('/?')) {
                     window.location.href = '/';
                     return; // Stop further execution
                 }
@@ -54,7 +53,7 @@ export default function ClientShell({ children }) {
                 console.error('Failed to parse impersonation cookie:', e);
             }
         }
-    }, [typeof window !== 'undefined' ? window.location.pathname : null]);
+    }, [currentPath]);
 
     const exitImpersonation = async () => {
         await fetch('/api/admin/impersonate', { method: 'DELETE' });
@@ -119,8 +118,8 @@ export default function ClientShell({ children }) {
     const NavBtn = ({ tab }) => {
         const isActive = currentPath === tab.path || (tab.path !== '/' && currentPath.startsWith(tab.path));
         return (
-            <a
-                href={tab.path}
+            <Link
+                to={tab.path}
                 className={`${isActive
                     ? "bg-blue-600 text-white shadow-sm"
                     : "text-slate-400 hover:bg-slate-800 hover:text-white"
@@ -128,7 +127,7 @@ export default function ClientShell({ children }) {
             >
                 <tab.icon className={`${isActive ? "text-white" : "text-slate-500 group-hover:text-slate-300"} mr-3 h-5 w-5 flex-shrink-0 transition-colors`} />
                 <span className="truncate tracking-wide">{t(`sidebar.${tab.id === 'overview' ? 'dashboard' : tab.id}`)}</span>
-            </a>
+            </Link>
         );
     };
 
@@ -157,10 +156,10 @@ export default function ClientShell({ children }) {
                 <div className="w-full px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16">
                         <div className="flex items-center">
-                            <a href="/" className="flex items-center">
+                            <Link to="/" className="flex items-center">
                                 <img src="/images/logo-new.png" alt="MotorX" className="h-8 w-auto object-contain mr-3" />
                                 <h1 className="text-xl font-bold text-white tracking-tight hidden sm:block">{t('shell.client_portal')}</h1>
-                            </a>
+                            </Link>
                         </div>
                         <div className="flex items-center gap-2 sm:gap-4">
                             <span className="text-sm font-medium text-white hidden sm:block truncate max-w-[200px]" title={user.name || user.email}>
@@ -209,9 +208,9 @@ export default function ClientShell({ children }) {
                         {CLIENT_TABS.map(tab => {
                             const isActive = currentPath === tab.path || (tab.path !== '/' && currentPath.startsWith(tab.path));
                             return (
-                                <a
+                                <Link
                                     key={tab.id}
-                                    href={tab.path}
+                                    to={tab.path}
                                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap ${isActive
                                         ? "bg-blue-600 text-white shadow-sm"
                                         : "text-slate-400 hover:text-white bg-slate-800"
@@ -219,7 +218,7 @@ export default function ClientShell({ children }) {
                                 >
                                     <tab.icon size={14} />
                                     <span>{t(`sidebar.${tab.id === 'overview' ? 'dashboard' : tab.id}`)}</span>
-                                </a>
+                                </Link>
                             );
                         })}
                     </nav>
