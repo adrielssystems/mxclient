@@ -43,13 +43,6 @@ export default function ClientActionsPage() {
         );
     }
 
-    // Action Required Vehicles based on specific client rules
-    const actionRequiredVehicles = vehicles.filter(v => {
-        const isTitleReceivedAndNoLocation = (v.title_log_status === 'Received' || v.title_service_status === 'Received') && !v.mailing_location;
-        const isLienAndNoTitleService = v.has_lien && !v.title_service_requested;
-        return isTitleReceivedAndNoLocation || isLienAndNoTitleService;
-    });
-
     // --- Helper Functions ---
     const getStatusGroup = (v) => {
         // Group statuses into the UI categories requested by the user
@@ -67,6 +60,13 @@ export default function ClientActionsPage() {
         if (['arrived', 'customs_cleared', 'delivered'].includes(status)) return 'DELIVERED';
         return status.toUpperCase();
     };
+
+    // Action Required: vehicles in early stages that still need at least one service configured
+    // Uses getStatusGroup() as the source of truth — same logic used for rendering badges
+    const actionRequiredVehicles = vehicles.filter(v => {
+        const statusGroup = getStatusGroup(v);
+        return statusGroup === 'ACTION_REQUIRED';
+    });
 
     const getStatusBadge = (statusGroup, v) => {
         if (statusGroup === 'ACTION_REQUIRED') {

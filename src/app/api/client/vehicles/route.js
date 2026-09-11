@@ -49,6 +49,9 @@ export async function GET(request) {
                 v.purchase_source,
                 v.dl_number,
                 v.do_not_pay,
+                v.terminal_id,
+                v.dispatch_status,
+                v.has_lien,
                 
                 CASE
                   WHEN t.vin IS NULL THEN NULL
@@ -341,11 +344,11 @@ export async function GET(request) {
         const clientStatusQuery = await sql`SELECT status FROM auth_users WHERE id = ${clientId}`;
         const clientStatus = clientStatusQuery[0]?.status || 'active';
 
-        console.log("CLIENT API RETURN DATA:", JSON.stringify(mappedVehicles, null, 2));
-        
+
         return Response.json({
             vehicles: mappedVehicles,
-            clientStatus: 'active'
+            recentPayments: mappedPayments,
+            clientStatus
         }, { status: 200, headers: { 'Cache-Control': 'no-store' } });
 
     } catch (error) {
