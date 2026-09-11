@@ -51,7 +51,7 @@ export async function GET(request) {
                 v.do_not_pay,
                 v.terminal_id,
                 v.dispatch_status,
-                v.has_lien,
+                COALESCE(vt.has_lien, t.lien_holder, false) as has_lien,
                 
                 CASE
                   WHEN t.vin IS NULL THEN NULL
