@@ -45,23 +45,30 @@ export default function ClientActionsPage() {
 
     // --- Helper Functions ---
     const getStatusGroup = (v) => {
-        // Group statuses into the UI categories requested by the user
         const status = v.current_status || '';
         
-        // Fallback: If it's in an early stage (including pending_dispatch) but missing required config, force ACTION_REQUIRED
-        if (['purchased', 'entered', 'assignment_pending', 'pending_dispatch', 'pending'].includes(status)) {
-            if (!v.terminal_id || !v.mailing_location) {
-                return 'ACTION_REQUIRED';
-            }
+        // Priority 1: Critical client actions needed regardless of transport stage
+        // 1a. Title received (in Title Log or Title Service) but mailing location is blank
+        const isTitleReceivedAndNoLocation = (v.title_log_status === 'Received' || v.title_service_status === 'Received') && (!v.mailing_location || !v.mailing_location.trim());
+        // 1b. Vehicle has lien but no title service requested
+        const isLienAndNoTitleService = Boolean(v.has_lien && !v.title_service_requested);
+
+        if (isTitleReceivedAndNoLocation || isLienAndNoTitleService) {
+            return 'ACTION_REQUIRED';
         }
 
-        if (['purchased', 'entered', 'assignment_pending'].includes(status)) return 'ACTION_REQUIRED';
+        // Priority 2: Vehicles in early purchase stage that require service setup
+        if (['purchased', 'entered', 'assignment_pending', 'pending_dispatch', 'pending'].includes(status)) {
+            return 'ACTION_REQUIRED';
+        }
+
+        // Priority 3: Normal transport progress groups
         if (['dispatched', 'in_transit', 'booked', 'loaded', 'in_transit_ocean', 'at_terminal'].includes(status)) return 'IN_TRANSIT';
         if (['arrived', 'customs_cleared', 'delivered'].includes(status)) return 'DELIVERED';
         return status.toUpperCase();
     };
 
-    // Action Required: vehicles in early stages that still need at least one service configured
+    // Action Required: vehicles in early stages or requiring specific action
     // Uses getStatusGroup() as the source of truth — same logic used for rendering badges
     const actionRequiredVehicles = vehicles.filter(v => {
         const statusGroup = getStatusGroup(v);
@@ -70,6 +77,8 @@ export default function ClientActionsPage() {
 
     const getStatusBadge = (statusGroup, v) => {
         if (statusGroup === 'ACTION_REQUIRED') {
+            const isTitleReceivedAndNoLocation = (v.title_log_status === 'Received' || v.title_service_status === 'Received') && (!v.mailing_location || !v.mailing_location.trim());
+
             return (
                 <div className="flex flex-col gap-2">
                     {v.terminal_id ? (
@@ -79,6 +88,9 @@ export default function ClientActionsPage() {
                     )}
                     {v.title_service_requested && (
                         <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 w-max"><CheckCircle size={14} /> {t('actions.title_service_requested')}</span>
+                    )}
+                    {isTitleReceivedAndNoLocation && (
+                        <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 w-max"><AlertCircle size={14} /> {t('actions.title_received_warning')}</span>
                     )}
                 </div>
             );
@@ -163,12 +175,16 @@ export default function ClientActionsPage() {
                                             </div>
                                             
                                             {/* Warning Alerts */}
-                                            {(!v.mailing_location && v.title_service_requested) && (
+                                            {((v.title_log_status === 'Received' || v.title_service_status === 'Received') && (!v.mailing_location || !v.mailing_location.trim())) && (
                                                 <div className="mt-2 bg-yellow-50 text-yellow-800 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 border border-yellow-200">
                                                     <AlertCircle size={14} className="text-yellow-600" />
-                                                    {v.title_log_status === 'Received' 
-                                                        ? t('actions.title_received_warning') 
-                                                        : t('actions.title_requested_warning')}
+                                                    {t('actions.title_received_warning')}
+                                                </div>
+                                            )}
+                                            {(!v.mailing_location && v.title_service_requested && v.title_log_status !== 'Received' && v.title_service_status !== 'Received') && (
+                                                <div className="mt-2 bg-yellow-50 text-yellow-800 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 border border-yellow-200">
+                                                    <AlertCircle size={14} className="text-yellow-600" />
+                                                    {t('actions.title_requested_warning')}
                                                 </div>
                                             )}
                                             {(v.has_lien && !v.title_service_requested) && (
