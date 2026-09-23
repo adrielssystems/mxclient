@@ -337,7 +337,7 @@ export default function VehicleTitleTab({ vehicle, onUpdate, isClient = false, i
                                     <div>
                                         <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">{t('configure_services.tracking_number')}</p>
                                         <p className="font-mono text-slate-700 font-semibold mt-0.5 break-all">
-                                            {titleTracking.tracking_out || <span className="text-slate-300 italic font-sans font-normal">{t('configure_services.not_available')}</span>}
+                                            {titleTracking.tracking_out || titleTracking.tracking_number || <span className="text-slate-300 italic font-sans font-normal">{t('configure_services.not_available')}</span>}
                                         </p>
                                     </div>
                                     <div>

@@ -291,7 +291,7 @@ export default function ClientVehicleReadOnlyLogistics({
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{t('vehicle_details.tracking_number')}</p>
-                                            <p className="text-sm font-medium text-slate-800">{vehicle?.title_tracking?.tracking_out || titleData?.mailing_out_tracking || <span className="text-slate-400 italic text-xs">{t('vehicle_details.not_available')}</span>}</p>
+                                            <p className="text-sm font-medium text-slate-800">{vehicle?.title_tracking?.tracking_out || vehicle?.title_tracking?.tracking_number || titleData?.mailing_out_tracking || <span className="text-slate-400 italic text-xs">{t('vehicle_details.not_available')}</span>}</p>
                                         </div>
                                         <div>
                                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{t('vehicle_details.date_mailed')}</p>
