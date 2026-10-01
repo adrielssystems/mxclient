@@ -72,8 +72,8 @@ export async function GET(request) {
                       (v.invoice_number IS NOT NULL AND v.invoice_number != '')
                       OR EXISTS (SELECT 1 FROM invoices i WHERE i.vehicle_id = v.id AND i.service_category = 'PURCHASE')
                     )
-                    AND LOWER(COALESCE(v.payment_status, '')) != 'paid'
-                    AND LOWER(COALESCE(v.purchase_status, '')) != 'paid'
+                    AND LOWER(COALESCE(v.payment_status::text, '')) != 'paid'
+                    AND LOWER(COALESCE(v.purchase_status::text, '')) != 'paid'
                   )
                 ) as has_unpaid_purchase_invoice,
                 COALESCE(vt.has_lien, t.lien_holder, false) as has_lien,
