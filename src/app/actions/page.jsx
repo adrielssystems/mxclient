@@ -48,14 +48,17 @@ export default function ClientActionsPage() {
     // 1) Title status RECEIVED (in title_log or vehicle_title_services) and mailing_location is empty/blank
     // 2) VIN with unpaid purchase invoice
     const isTitleReceivedNoLocation = (v) => {
-        const isReceived = v.title_log_status === 'Received' || v.title_service_status === 'Received';
-        const hasNoLocation = !v.mailing_location || !v.mailing_location.trim();
+        const titleLog = String(v.title_log_status || '').toLowerCase();
+        const titleSvc = String(v.title_service_status || '').toLowerCase();
+        const isReceived = titleLog === 'received' || titleSvc === 'received';
+        const hasNoLocation = !v.mailing_location || String(v.mailing_location).trim() === '';
         return Boolean(isReceived && hasNoLocation);
     };
 
     const isPurchaseInvoiceUnpaid = (v) => {
         // Exclude external purchases that don't belong to MotorX dealer auctions
-        const isMotorXDealer = v.dl_number === 'AR' || v.dl_number === 'WI';
+        const dl = String(v.dl_number || '').toUpperCase();
+        const isMotorXDealer = dl === 'AR' || dl === 'WI';
         if (!isMotorXDealer) return false;
 
         const payStatus = String(v.payment_status || '').toLowerCase();
