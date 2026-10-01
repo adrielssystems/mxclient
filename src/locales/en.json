@@ -61,6 +61,7 @@
     "title_received_warning": "Title Received - Please Configure Mailing Location",
     "title_requested_warning": "Title Requested - Please Configure Mailing Location",
     "lien_warning": "Lien on Title - Title Service Required",
+    "unpaid_purchase_invoice": "Purchase Invoice Pending Payment",
     "configure_services": "Configure Services",
     "view_invoice": "View Invoice",
     "previous": "Previous",

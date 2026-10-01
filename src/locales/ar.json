@@ -61,6 +61,7 @@
     "title_received_warning": "تم استلام الملكية - يرجى تحديد موقع المراسلة",
     "title_requested_warning": "تم طلب الملكية - يرجى تحديد موقع المراسلة",
     "lien_warning": "يوجد رهن على الملكية - خدمة الملكية مطلوبة",
+    "unpaid_purchase_invoice": "فاتورة الشراء في انتظار الدفع",
     "configure_services": "إعداد الخدمات",
     "view_invoice": "عرض الفاتورة",
     "previous": "السابق",

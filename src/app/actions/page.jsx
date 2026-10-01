@@ -44,53 +44,65 @@ export default function ClientActionsPage() {
     }
 
     // --- Helper Functions ---
+    // Actions requires vehicles that match strictly 2 conditions:
+    // 1) Title status RECEIVED (in title_log or vehicle_title_services) and mailing_location is empty/blank
+    // 2) VIN with unpaid purchase invoice
+    const isTitleReceivedNoLocation = (v) => {
+        const isReceived = v.title_log_status === 'Received' || v.title_service_status === 'Received';
+        const hasNoLocation = !v.mailing_location || !v.mailing_location.trim();
+        return Boolean(isReceived && hasNoLocation);
+    };
+
+    const isPurchaseInvoiceUnpaid = (v) => {
+        // Exclude external purchases that don't belong to MotorX dealer auctions
+        const isMotorXDealer = v.dl_number === 'AR' || v.dl_number === 'WI';
+        if (!isMotorXDealer) return false;
+
+        const payStatus = String(v.payment_status || '').toLowerCase();
+        const currStatus = String(v.current_status || '').toLowerCase();
+        if (payStatus === 'paid' || payStatus === 'canceled' || currStatus === 'canceled') return false;
+
+        // If backend computed has_unpaid_purchase_invoice, respect it
+        if (v.has_unpaid_purchase_invoice !== undefined) {
+            return Boolean(v.has_unpaid_purchase_invoice);
+        }
+
+        const ps = String(v.purchase_status || '').toLowerCase();
+        return ps === 'payment_pending' || ps === 'late' || ps === 'unpaid';
+    };
+
     const getStatusGroup = (v) => {
+        if (isTitleReceivedNoLocation(v) || isPurchaseInvoiceUnpaid(v)) {
+            return 'ACTION_REQUIRED';
+        }
+
         const status = v.current_status || '';
-        
-        // Priority 1: Critical client actions needed regardless of transport stage
-        // 1a. Title received (in Title Log or Title Service) but mailing location is blank
-        const isTitleReceivedAndNoLocation = (v.title_log_status === 'Received' || v.title_service_status === 'Received') && (!v.mailing_location || !v.mailing_location.trim());
-        // 1b. Vehicle has lien but no title service requested
-        const isLienAndNoTitleService = Boolean(v.has_lien && !v.title_service_requested);
-
-        if (isTitleReceivedAndNoLocation || isLienAndNoTitleService) {
-            return 'ACTION_REQUIRED';
-        }
-
-        // Priority 2: Vehicles in early purchase stage that require service setup
-        if (['purchased', 'entered', 'assignment_pending', 'pending_dispatch', 'pending'].includes(status)) {
-            return 'ACTION_REQUIRED';
-        }
-
-        // Priority 3: Normal transport progress groups
         if (['dispatched', 'in_transit', 'booked', 'loaded', 'in_transit_ocean', 'at_terminal'].includes(status)) return 'IN_TRANSIT';
         if (['arrived', 'customs_cleared', 'delivered'].includes(status)) return 'DELIVERED';
         return status.toUpperCase();
     };
 
-    // Action Required: vehicles in early stages or requiring specific action
-    // Uses getStatusGroup() as the source of truth — same logic used for rendering badges
+    // Action Required: strictly matching the 2 conditions requested
     const actionRequiredVehicles = vehicles.filter(v => {
-        const statusGroup = getStatusGroup(v);
-        return statusGroup === 'ACTION_REQUIRED';
+        return isTitleReceivedNoLocation(v) || isPurchaseInvoiceUnpaid(v);
     });
 
     const getStatusBadge = (statusGroup, v) => {
         if (statusGroup === 'ACTION_REQUIRED') {
-            const isTitleReceivedAndNoLocation = (v.title_log_status === 'Received' || v.title_service_status === 'Received') && (!v.mailing_location || !v.mailing_location.trim());
+            const titleIssue = isTitleReceivedNoLocation(v);
+            const purchaseIssue = isPurchaseInvoiceUnpaid(v);
 
             return (
-                <div className="flex flex-col gap-2">
-                    {v.terminal_id ? (
-                        <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 w-max"><CheckCircle size={14} /> {t('actions.dispatch_requested')}</span>
-                    ) : (
-                        <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 w-max"><AlertCircle size={14} /> {t('actions.setup_delivery')}</span>
+                <div className="flex flex-col gap-1.5">
+                    {titleIssue && (
+                        <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 w-max">
+                            <AlertCircle size={14} /> {t('actions.title_received_warning')}
+                        </span>
                     )}
-                    {v.title_service_requested && (
-                        <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 w-max"><CheckCircle size={14} /> {t('actions.title_service_requested')}</span>
-                    )}
-                    {isTitleReceivedAndNoLocation && (
-                        <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 w-max"><AlertCircle size={14} /> {t('actions.title_received_warning')}</span>
+                    {purchaseIssue && (
+                        <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 w-max">
+                            <AlertCircle size={14} /> {t('actions.unpaid_purchase_invoice')}
+                        </span>
                     )}
                 </div>
             );
@@ -175,21 +187,16 @@ export default function ClientActionsPage() {
                                             </div>
                                             
                                             {/* Warning Alerts */}
-                                            {((v.title_log_status === 'Received' || v.title_service_status === 'Received') && (!v.mailing_location || !v.mailing_location.trim())) && (
+                                            {isTitleReceivedNoLocation(v) && (
                                                 <div className="mt-2 bg-yellow-50 text-yellow-800 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 border border-yellow-200">
-                                                    <AlertCircle size={14} className="text-yellow-600" />
+                                                    <AlertCircle size={14} className="text-yellow-600 shrink-0" />
                                                     {t('actions.title_received_warning')}
                                                 </div>
                                             )}
-                                            {(!v.mailing_location && v.title_service_requested && v.title_log_status !== 'Received' && v.title_service_status !== 'Received') && (
-                                                <div className="mt-2 bg-yellow-50 text-yellow-800 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 border border-yellow-200">
-                                                    <AlertCircle size={14} className="text-yellow-600" />
-                                                    {t('actions.title_requested_warning')}
-                                                </div>
-                                            )}
-                                            {(v.has_lien && !v.title_service_requested) && (
-                                                <div className="mt-2 bg-purple-50 text-purple-800 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 border border-purple-200">
-                                                    <AlertCircle size={14} className="text-purple-600" /> {t('actions.lien_warning')}
+                                            {isPurchaseInvoiceUnpaid(v) && (
+                                                <div className="mt-2 bg-red-50 text-red-800 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 border border-red-200">
+                                                    <AlertCircle size={14} className="text-red-600 shrink-0" />
+                                                    {t('actions.unpaid_purchase_invoice')}
                                                 </div>
                                             )}
                                         </div>

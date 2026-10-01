@@ -51,6 +51,31 @@ export async function GET(request) {
                 v.do_not_pay,
                 v.terminal_id,
                 v.dispatch_status,
+                v.invoice_number,
+                (
+                  SELECT i.invoice_number 
+                  FROM invoices i 
+                  WHERE i.vehicle_id = v.id 
+                    AND i.service_category = 'PURCHASE' 
+                    AND i.status != 'void'
+                  LIMIT 1
+                ) as purchase_invoice_number,
+                (
+                  EXISTS (
+                    SELECT 1 FROM invoices i 
+                    WHERE i.vehicle_id = v.id 
+                      AND i.service_category = 'PURCHASE' 
+                      AND i.status NOT IN ('paid', 'void', 'voided')
+                  )
+                  OR (
+                    (
+                      (v.invoice_number IS NOT NULL AND v.invoice_number != '')
+                      OR EXISTS (SELECT 1 FROM invoices i WHERE i.vehicle_id = v.id AND i.service_category = 'PURCHASE')
+                    )
+                    AND LOWER(COALESCE(v.payment_status, '')) != 'paid'
+                    AND LOWER(COALESCE(v.purchase_status, '')) != 'paid'
+                  )
+                ) as has_unpaid_purchase_invoice,
                 COALESCE(vt.has_lien, t.lien_holder, false) as has_lien,
                 
                 CASE
