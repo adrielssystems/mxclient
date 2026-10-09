@@ -48,6 +48,7 @@ export async function GET(request) {
         u.is_main_client,
         u.main_client_id,
         u.allowed_sections,
+        COALESCE(u.can_access_auctions, false) as can_access_auctions,
         main.name as main_client_name
       FROM auth_users u
       LEFT JOIN auth_users main ON u.main_client_id = main.id

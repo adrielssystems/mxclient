@@ -42,6 +42,7 @@
 		"dotenv": "^17.3.1",
 		"downshift": "^9.3.3",
 		"fast-glob": "^3.3.3",
+		"framer-motion": "^14.0.0",
 		"google-auth-library": "^10.6.2",
 		"hono": "^4.12.18",
 		"html-to-image": "^1.11.13",
