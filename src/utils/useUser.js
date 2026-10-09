@@ -11,17 +11,25 @@ const useUser = () => {
   useEffect(() => {
     if (status === 'loading') return;
 
-    if (session?.user) {
-      // Fetch latest profile from DB to get fresh role and allowed_sections
+    const hasImpersonation = typeof document !== 'undefined' && 
+      document.cookie.split(';').some(c => c.trim().startsWith('motorx-impersonate='));
+
+    if (session?.user || hasImpersonation) {
+      // Fetch latest profile from DB to get fresh role, allowed_sections, and can_access_auctions
       fetch('/api/user/profile')
         .then(res => res.ok ? res.json() : null)
         .then(data => {
-          const freshUser = data?.user ? { ...session.user, ...data.user } : session.user;
-          globalCachedUser = freshUser;
-          setUser(freshUser);
+          if (data?.user) {
+            const freshUser = { ...(session?.user || {}), ...data.user };
+            globalCachedUser = freshUser;
+            setUser(freshUser);
+          } else if (session?.user) {
+            globalCachedUser = session.user;
+            setUser(session.user);
+          }
         })
         .catch(() => {
-          if (!globalCachedUser) {
+          if (!globalCachedUser && session?.user) {
             globalCachedUser = session.user;
             setUser(session.user);
           }

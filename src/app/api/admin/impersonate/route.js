@@ -5,11 +5,6 @@ export const dynamic = "force-dynamic";
 // DELETE: Exit impersonation
 export async function DELETE(request) {
     try {
-        const session = await auth();
-        if (!session || !session.user?.id) {
-            return Response.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
         const isProduction = process.env.NODE_ENV === "production";
         const domainStr = isProduction ? "; Domain=.motorxcars.com" : "";
 
