@@ -1,6 +1,8 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { auth } from "@/auth";
+import sql from "@/app/api/utils/sql";
+import { driveService } from "@/utils/googleDriveService";
 
 export const dynamic = 'force-dynamic';
 
@@ -57,21 +59,65 @@ export async function GET(request, { params }) {
         const FALLBACK_DIR = path.join(process.cwd(), "uploads");
 
         let filePath = path.join(PRIMARY_DIR, relativePath);
-        console.log(`[Documents] Attempting path: ${filePath}`);
+        let fileBuffer;
         try {
             await fs.access(filePath);
+            fileBuffer = await fs.readFile(filePath);
         } catch {
             filePath = path.join(FALLBACK_DIR, relativePath);
             console.log(`[Documents] Primary not found, trying fallback: ${filePath}`);
             try {
                 await fs.access(filePath);
+                fileBuffer = await fs.readFile(filePath);
             } catch {
-                console.error(`[Documents] File not found in either location. Primary: ${path.join(PRIMARY_DIR, relativePath)}, Fallback: ${path.join(FALLBACK_DIR, relativePath)}`);
-                return new Response("File not found", { status: 404 });
+                console.log(`[Documents] File not found locally: ${relativePath}. Attempting auto-recovery from Google Drive...`);
+                const filename = path.basename(relativePath);
+
+                let driveFileId = null;
+                try {
+                    const dbMatch = await sql`
+                        SELECT drive_file_id FROM vehicle_ownership_documents 
+                        WHERE filename = ${filename} OR file_url LIKE ${'%' + filename}
+                        LIMIT 1
+                    `;
+                    if (dbMatch.length > 0 && dbMatch[0].drive_file_id) {
+                        driveFileId = dbMatch[0].drive_file_id;
+                    }
+                } catch (dbErr) {
+                    console.error("[Documents] DB lookup error:", dbErr.message);
+                }
+
+                if (!driveFileId) {
+                    try {
+                        const searchRes = await driveService.drive.files.list({
+                            q: `name = '${filename}' and trashed = false`,
+                            fields: "files(id, name)",
+                        });
+                        if (searchRes.data.files?.length > 0) {
+                            driveFileId = searchRes.data.files[0].id;
+                        }
+                    } catch (driveErr) {
+                        console.error("[Documents] Drive search error:", driveErr.message);
+                    }
+                }
+
+                if (!driveFileId) {
+                    console.error(`[Documents] File not found locally or in Google Drive: ${relativePath}`);
+                    return new Response("File not found", { status: 404 });
+                }
+
+                try {
+                    fileBuffer = await driveService.downloadFileBuffer(driveFileId);
+                    const targetLocalPath = path.join(PRIMARY_DIR, relativePath);
+                    await fs.mkdir(path.dirname(targetLocalPath), { recursive: true });
+                    await fs.writeFile(targetLocalPath, fileBuffer).catch(() => {});
+                    console.log(`[Documents] Successfully recovered from Drive and cached: ${targetLocalPath}`);
+                } catch (dlErr) {
+                    console.error("[Documents] Failed to download from Drive:", dlErr.message);
+                    return new Response("File not found", { status: 404 });
+                }
             }
         }
-
-        const fileBuffer = await fs.readFile(filePath);
 
         const ext = path.extname(relativePath).toLowerCase();
         let contentType = "application/octet-stream";

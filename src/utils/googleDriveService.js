@@ -210,6 +210,22 @@ class GoogleDriveService {
             throw error;
         }
     }
+
+    /**
+     * Downloads a file from Google Drive as a Buffer
+     */
+    async downloadFileBuffer(fileId) {
+        try {
+            const response = await this.drive.files.get(
+                { fileId: fileId, alt: "media" },
+                { responseType: "arraybuffer" }
+            );
+            return Buffer.from(response.data);
+        } catch (error) {
+            console.error(`[Drive Error] downloadFileBuffer failed for ${fileId}:`, error);
+            throw error;
+        }
+    }
 }
 
 function ReadableStreamFromBuffer(buffer) {
