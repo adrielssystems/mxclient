@@ -22,4 +22,20 @@ client_secret.json
 # Scratch / Debug files
 scratch_*.js
 scratch/
+*.csv
+uploads/
+/uploads
 
+# Security - Backups & Database Dumps
+*.sql
+*.dump
+*.tar
+*.gz
+
+# Internal Documentation & Advance Logs
+Advance*
+advance*
+
+# Internal Reports
+Informes*/
+informes*/
