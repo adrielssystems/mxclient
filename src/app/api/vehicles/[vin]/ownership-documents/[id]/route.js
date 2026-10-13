@@ -48,27 +48,22 @@ export async function DELETE(request, { params }) {
             WHERE id = ${id} AND vin = ${vin}
         `;
 
-        // 3. Delete physical file (Drive or Local)
+        // 3. Delete local physical file only - PRESERVE GOOGLE DRIVE BACKUP AS IMMUTABLE
         try {
-            if (drive_file_id) {
-                console.log(`[Delete] Deleting from Google Drive: ${drive_file_id}`);
-                await driveService.drive.files.delete({ fileId: drive_file_id });
-            } else {
-                // Fallback: Delete local file
-                const storageDir = await getStorageDir(vin);
-                const filePath = path.join(storageDir, filename);
-                
-                try {
-                    await fs.access(filePath);
-                    await fs.unlink(filePath);
-                } catch {
-                    const rootDir = await getStorageDir("");
-                    const legacyPath = path.join(rootDir, filename);
-                    await fs.unlink(legacyPath);
-                }
+            console.log(`[Delete] Preserving backup copy in Google Drive (ID: ${drive_file_id || 'None'}). Removing from local storage...`);
+            const storageDir = await getStorageDir(vin);
+            const filePath = path.join(storageDir, filename);
+            
+            try {
+                await fs.access(filePath);
+                await fs.unlink(filePath);
+            } catch {
+                const rootDir = await getStorageDir("");
+                const legacyPath = path.join(rootDir, filename);
+                await fs.unlink(legacyPath).catch(() => {});
             }
         } catch (fileError) {
-            console.error("Could not delete physical file:", fileError.message);
+            console.error("Could not delete local physical file:", fileError.message);
         }
 
         return Response.json({ success: true, message: "Document deleted successfully" });
