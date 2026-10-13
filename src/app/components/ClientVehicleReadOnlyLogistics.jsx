@@ -335,7 +335,7 @@ export default function ClientVehicleReadOnlyLogistics({
     };
 
     const renderDispatchTab = () => {
-        const isRequired = !!dispatchSvc;
+        const isRequired = !!dispatchSvc || !!dispatchData || (vehicle?.dispatch_status && vehicle.dispatch_status !== 'not_applicable') || vehicle?.wants_dispatch === true;
         // Fallback to dispatchData.client_price if not yet invoiced
         const price = dispatchSvc?.price || dispatchData?.client_price || 0;
 
@@ -370,13 +370,13 @@ export default function ClientVehicleReadOnlyLogistics({
                                 <div>
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">Hub</label>
                                     <div className="bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-700">
-                                        {vehicle?.terminal_name ? vehicle.terminal_name.split(' ')[0] : 'N/A'}
+                                        {dispatchData?.terminal_location || (vehicle?.terminal_name ? vehicle.terminal_name.split(' ')[0] : 'N/A')}
                                     </div>
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">Terminal</label>
                                     <div className="bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-700 truncate">
-                                        {vehicle?.terminal_name || 'N/A'}
+                                        {dispatchData?.terminal_name || vehicle?.terminal_name || 'N/A'}
                                     </div>
                                 </div>
                             </div>
@@ -439,7 +439,7 @@ export default function ClientVehicleReadOnlyLogistics({
     };
 
     const renderTitleTab = () => {
-        const isRequired = !!titleSvc;
+        const isRequired = !!titleSvc || !!titleData || (vehicle?.title_status && vehicle.title_status !== 'not_applicable') || vehicle?.wants_title_service === true;
         // Fallback to titleData.price_client_override or titleData.price_client if not yet invoiced
         const price = titleSvc?.price || titleData?.price_client_override || titleData?.price_client || 0;
 

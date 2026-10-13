@@ -98,9 +98,18 @@ export async function GET(request, { params }) {
             ORDER BY created_at DESC
         `;
 
-        // Fetch Dispatch Order (Dates and Status)
+        // Fetch Dispatch Order (Dates, Status and Terminal/Carrier details)
         const dispatchOrders = await sql`
-            SELECT * FROM dispatch_orders WHERE vehicle_id = ${vehicle.id} ORDER BY created_at DESC LIMIT 1
+            SELECT 
+                d.*,
+                st.name as terminal_name,
+                st.location as terminal_location,
+                c.company_name as carrier_name
+            FROM dispatch_orders d
+            LEFT JOIN shippers_terminals st ON d.terminal_id = st.id
+            LEFT JOIN carriers c ON d.carrier_id = c.id
+            WHERE d.vehicle_id = ${vehicle.id} 
+            ORDER BY d.created_at DESC LIMIT 1
         `;
         const dispatchData = dispatchOrders.length > 0 ? dispatchOrders[0] : null;
 

@@ -1,5 +1,8 @@
 import sql from "@/app/api/utils/sql";
 
+// In-memory mutex to ensure only one token refresh occurs at a time in this process
+let activeRefreshPromise = null;
+
 export function getQuickBooksBaseUrl() {
     return process.env.QB_ENVIRONMENT === 'sandbox'
         ? "https://sandbox-quickbooks.api.intuit.com"
@@ -26,11 +29,45 @@ export async function getValidTokens() {
         return { accessToken: access_token, realmId: realm_id };
     }
 
-    console.log("[QB Utils MXCLIENT] Token expired or near expiration. Refreshing...");
-    return await refreshQuickBooksToken(refresh_token, realm_id);
+    // Concurrency Lock: If another refresh is already in-flight, await that same Promise
+    if (activeRefreshPromise) {
+        console.log("[QB Utils MXCLIENT] Another token refresh is in progress. Awaiting existing refresh...");
+        return await activeRefreshPromise;
+    }
+
+    activeRefreshPromise = (async () => {
+        try {
+            // Re-check DB in case another process/worker just refreshed it milliseconds ago
+            const fresh = await sql`
+                SELECT access_token, refresh_token, realm_id, token_expires_at
+                FROM settings_integrations
+                WHERE provider = 'quickbooks' AND is_connected = TRUE
+            `;
+            if (fresh.length > 0) {
+                const freshExpires = new Date(fresh[0].token_expires_at);
+                if (freshExpires.getTime() - Date.now() > expirationBufferMs) {
+                    console.log("[QB Utils MXCLIENT] Token was already refreshed by another worker. Reusing.");
+                    return { accessToken: fresh[0].access_token, realmId: fresh[0].realm_id };
+                }
+            }
+
+            console.log("[QB Utils MXCLIENT] Token expired or near expiration. Refreshing...");
+            return await refreshQuickBooksToken(fresh[0]?.refresh_token || refresh_token, realm_id);
+        } finally {
+            activeRefreshPromise = null;
+        }
+    })();
+
+    return await activeRefreshPromise;
 }
 
 async function refreshQuickBooksToken(storedRefreshToken, realmId) {
+    // SAFETY GUARD: Do NOT rotate production refresh tokens from local development
+    if (process.env.NODE_ENV === 'development' && process.env.ENABLE_LOCAL_QB_REFRESH !== 'true') {
+        console.warn("[QB Utils MXCLIENT] Token refresh prevented in local development to protect production session. Set ENABLE_LOCAL_QB_REFRESH=true to allow.");
+        throw new Error("QuickBooks token refresh disabled in local development to protect production.");
+    }
+
     const clientId = process.env.QB_CLIENT_ID;
     const clientSecret = process.env.QB_CLIENT_SECRET;
 
@@ -60,6 +97,18 @@ async function refreshQuickBooksToken(storedRefreshToken, realmId) {
     if (!response.ok) {
         console.error("[QB Utils MXCLIENT] Refresh Token Error:", data);
         if (data.error === "invalid_grant") {
+            // Check if another concurrent process just updated the tokens within the last 30 seconds
+            const recent = await sql`
+                SELECT access_token, realm_id, token_expires_at, updated_at
+                FROM settings_integrations
+                WHERE provider = 'quickbooks' AND is_connected = TRUE
+                  AND updated_at > NOW() - INTERVAL '30 seconds'
+            `;
+            if (recent.length > 0 && new Date(recent[0].token_expires_at) > new Date()) {
+                console.log("[QB Utils MXCLIENT] Another worker updated the token recently. Using new token instead of disconnecting.");
+                return { accessToken: recent[0].access_token, realmId: recent[0].realm_id };
+            }
+
             await sql`
                 UPDATE settings_integrations 
                 SET is_connected = FALSE, updated_at = NOW() 
