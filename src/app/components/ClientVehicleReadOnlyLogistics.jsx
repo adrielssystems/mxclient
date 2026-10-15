@@ -17,15 +17,21 @@ export default function ClientVehicleReadOnlyLogistics({
     invoices = [],
     onUpdate
 }) {
-    const { t } = useTranslation();
-    const initialTab = initialVehicle?.purchase_source === 'MotorX' ? 'purchases' : 'dispatch';
-    const [activeTab, setActiveTab] = useState(initialTab);
+    const hasPurchases = initialVehicle?.purchase_source === 'MotorX' && initialVehicle?.purchase_status !== 'not_applicable';
+    const [activeTab, setActiveTab] = useState(hasPurchases ? 'purchases' : 'dispatch');
     const [vehicle, setVehicle] = useState(initialVehicle || {});
     const [savingDoNotPay, setSavingDoNotPay] = useState(false);
 
     useEffect(() => {
-        setVehicle(initialVehicle || {});
-    }, [initialVehicle]);
+        if (initialVehicle) {
+            setVehicle(initialVehicle);
+            const hasPurchasesNow = initialVehicle?.purchase_source === 'MotorX' && initialVehicle?.purchase_status !== 'not_applicable';
+            setActiveTab(prev => {
+                if (!hasPurchasesNow && prev === 'purchases') return 'dispatch';
+                return hasPurchasesNow ? 'purchases' : 'dispatch';
+            });
+        }
+    }, [initialVehicle?.id, initialVehicle?.vin, initialVehicle?.purchase_source, initialVehicle?.purchase_status]);
 
     const handleToggleDoNotPay = async () => {
         const newVal = !vehicle.do_not_pay;
@@ -558,14 +564,16 @@ export default function ClientVehicleReadOnlyLogistics({
     return (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden h-full flex flex-col">
             <div className="px-4 py-3 border-b border-slate-100 bg-slate-50 flex flex-wrap gap-4 items-center">
-                <button
-                    onClick={() => setActiveTab('purchases')}
-                    className={`text-[11px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full transition-colors flex items-center gap-2 ${
-                        activeTab === 'purchases' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
-                    }`}
-                >
-                    <DollarSign size={14} /> {t('vehicle_details.purchases_tab')}
-                </button>
+                {hasPurchases && (
+                    <button
+                        onClick={() => setActiveTab('purchases')}
+                        className={`text-[11px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full transition-colors flex items-center gap-2 ${
+                            activeTab === 'purchases' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
+                        }`}
+                    >
+                        <DollarSign size={14} /> {t('vehicle_details.purchases_tab')}
+                    </button>
+                )}
                 <button
                     onClick={() => setActiveTab('dispatch')}
                     className={`text-[11px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full transition-colors flex items-center gap-2 ${

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Save, AlertTriangle, Upload, Calendar, Clock } from 'lucide-react';
+import { FileText, Save, AlertTriangle, AlertCircle, Upload, Calendar, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from "react-i18next";
 
@@ -20,6 +20,7 @@ export default function VehicleTitleTab({ vehicle, onUpdate, isClient = false, i
     });
     const [trackingLoading, setTrackingLoading] = useState(true);
     const [savingTracking, setSavingTracking] = useState(false);
+    const [sendingLateNotice, setSendingLateNotice] = useState(false);
     const [terminals, setTerminals] = useState([]);
     const [uploadingPdf, setUploadingPdf] = useState(false);
     const [initiallyConfigured, setInitiallyConfigured] = useState(false);
@@ -89,6 +90,41 @@ export default function VehicleTitleTab({ vehicle, onUpdate, isClient = false, i
             toast.error("Error saving tracking");
         } finally {
             setSavingTracking(false);
+        }
+    };
+
+    const handleLateTitleNotice = async () => {
+        if (!vehicle?.vin) return;
+        setSendingLateNotice(true);
+        try {
+            const updatedPayload = {
+                ...titleTracking,
+                manual_status: 'Missing'
+            };
+            const res = await fetch(`/api/vehicles/${vehicle.vin}/title-tracking`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedPayload)
+            });
+            if (res.ok) {
+                const json = await res.json();
+                setTitleTracking(prev => ({
+                    ...prev,
+                    ...(json.data || {}),
+                    manual_status: 'Missing',
+                    computed_status: 'Missing'
+                }));
+                toast.success(t('configure_services.late_title_notice_sent', { defaultValue: "LATE Title Notice sent. Status marked as Missing." }));
+                if (onUpdate) onUpdate();
+            } else {
+                const errData = await res.json().catch(() => ({}));
+                toast.error(errData.error || "Failed to send LATE Title Notice");
+            }
+        } catch (error) {
+            console.error("Error sending Late Title Notice:", error);
+            toast.error("Network error sending Late Title Notice");
+        } finally {
+            setSendingLateNotice(false);
         }
     };
 
@@ -172,10 +208,23 @@ export default function VehicleTitleTab({ vehicle, onUpdate, isClient = false, i
             {/* ── TITLE TRACKING MODULE ── */}
             <div className={`p-5 rounded-xl border shadow-sm ${isMissingMailingInfo ? 'border-red-400 bg-red-50/10' : 'border-blue-200 bg-blue-50/30'}`}>
                 <div className="flex flex-wrap justify-between items-center mb-4 gap-3">
-                    <h3 className="text-lg font-black text-blue-900 flex items-center gap-2">
-                        <FileText size={20} className="text-blue-600" />
-                        {t('configure_services.master_title_tracking')}
-                    </h3>
+                    <div className="flex items-center gap-3 flex-wrap">
+                        <h3 className="text-lg font-black text-blue-900 flex items-center gap-2">
+                            <FileText size={20} className="text-blue-600" />
+                            {t('configure_services.master_title_tracking')}
+                        </h3>
+                        {/* LATE Title Notice Button */}
+                        <button
+                            type="button"
+                            onClick={handleLateTitleNotice}
+                            disabled={sendingLateNotice}
+                            className="bg-orange-500 hover:bg-orange-600 active:scale-95 disabled:opacity-50 text-white font-black px-4 py-1.5 rounded-lg text-xs uppercase tracking-wider shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                            title="Send notice that the vehicle title is late and update status to Missing"
+                        >
+                            <AlertCircle size={14} />
+                            {sendingLateNotice ? t('configure_services.sending', { defaultValue: "Sending..." }) : "LATE Title Notice"}
+                        </button>
+                    </div>
 
                     <div className="flex items-center gap-2 flex-wrap">
                         {/* ENTER banner — missing mailing location */}
