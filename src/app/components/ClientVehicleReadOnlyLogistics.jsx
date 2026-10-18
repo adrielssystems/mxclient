@@ -17,6 +17,7 @@ export default function ClientVehicleReadOnlyLogistics({
     invoices = [],
     onUpdate
 }) {
+    const { t } = useTranslation();
     const hasPurchases = initialVehicle?.purchase_source === 'MotorX' && initialVehicle?.purchase_status !== 'not_applicable';
     const [activeTab, setActiveTab] = useState(hasPurchases ? 'purchases' : 'dispatch');
     const [vehicle, setVehicle] = useState(initialVehicle || {});
