@@ -89,9 +89,20 @@ export async function logAudit({
  * @returns {Object} Object with ipAddress and userAgent
  */
 export function getRequestInfo(request) {
-    const ipAddress = request.headers.get('x-forwarded-for') ||
+    let ipAddress = request.headers.get('x-forwarded-for') ||
         request.headers.get('x-real-ip') ||
-        'unknown';
+        request.headers.get('cf-connecting-ip') ||
+        request.headers.get('x-client-ip') ||
+        '';
+
+    if (ipAddress && ipAddress.includes(',')) {
+        ipAddress = ipAddress.split(',')[0].trim();
+    }
+
+    if (!ipAddress || ipAddress === 'unknown') {
+        ipAddress = process.env.NODE_ENV === 'development' ? '127.0.0.1 (Localhost)' : 'unknown';
+    }
+
     const userAgent = request.headers.get('user-agent') || 'unknown';
 
     return { ipAddress, userAgent };

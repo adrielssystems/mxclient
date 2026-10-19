@@ -19,7 +19,9 @@ export default function App() {
     bodyStyle: '',
     maxPrice: 100000,
     showLive: true,
-    showBuyNow: true
+    showBuyNow: true,
+    showTimed: true,
+    showSimulcast: true
   });
   
   // Tabs State
@@ -64,7 +66,11 @@ export default function App() {
       mainRef.current.scrollTo({ top: 0, behavior: 'smooth' });
     }
     setLoadingAdesa(true);
-    fetchAdesaInventory({ limit: 50, page: adesaPage })
+    const params = { limit: 50, page: adesaPage };
+    if (!activeFilters.showLive && activeFilters.showBuyNow) {
+      params.buyNow = 'true';
+    }
+    fetchAdesaInventory(params)
       .then(data => {
         if (!data || !data.vehicles) return;
         setAdesaLots(data.vehicles);
@@ -73,7 +79,7 @@ export default function App() {
       })
       .catch(err => console.error(err))
       .finally(() => setLoadingAdesa(false));
-  }, [adesaPage, user, userLoading]);
+  }, [adesaPage, activeFilters.showLive, activeFilters.showBuyNow, user, userLoading]);
 
   if (!userLoading && user && user.can_access_auctions !== true) {
     return null;
@@ -83,14 +89,32 @@ export default function App() {
 
   // Map ADESA to mockInventory format for seamless integration into cards
   const mappedAdesa = adesaLots.map(v => {
+    // 1. Channel detection according to ADESA RTI v1.6:
+    // v1: ["Dealer block sale", "Simulcast sale"] or In-lane
+    // v2: "AdesaClear sale", "Timed Sale", "Simulcast sale"
+    let rawChannels = v.sale_channels || [];
+    if (typeof rawChannels === 'string') {
+      try { rawChannels = JSON.parse(rawChannels); } catch (e) { rawChannels = [rawChannels]; }
+    }
+    if (!Array.isArray(rawChannels)) rawChannels = rawChannels ? [rawChannels] : [];
+
+    const isSimulcast = rawChannels.some(c => String(c).toLowerCase().includes('simulcast') || String(c).toLowerCase().includes('lane')) || Boolean(v.lane && v.run_number);
+    const isTimed = rawChannels.some(c => String(c).toLowerCase().includes('timed') || String(c).toLowerCase().includes('clear') || String(c).toLowerCase().includes('dealer block')) || !isSimulcast;
+
+    // 2. Modalities (Live Auction vs Buy Now):
     const modalities = [];
-    if (v.buy_now_price > 0) modalities.push('Buy Now');
-    if (!v.buy_now_price || v.current_high_bid > 0 || v.starting_bid > 0) modalities.push('Live Auction');
-    if (modalities.length === 0) modalities.push('Live Auction'); // Default
+    const hasBuyNow = v.buy_now_price != null && parseFloat(v.buy_now_price) > 0;
+    if (hasBuyNow) modalities.push('Buy Now');
+    // If vehicle has high bid or starting bid or is in auction, it is Live Auction / Timed Bidding
+    if (!hasBuyNow || v.current_high_bid > 0 || v.starting_bid > 0) modalities.push('Live Auction');
+    if (modalities.length === 0) modalities.push('Live Auction');
 
     return {
       vehicleId: v.vehicle_id || v.vin,
       vin: v.vin || 'N/A',
+      lotNumber: v.run_number ? `${v.lane || ''}${v.run_number}` : (v.lot_number || v.vehicle_id),
+      auctionSource: 'ADESA',
+      location: v.city && v.state ? `${v.city}, ${v.state}` : (v.state || v.city || 'ADESA US'),
       primaryImageUrl: v.primary_image_url || 'https://via.placeholder.com/300?text=No+Image',
       year: v.year,
       makeName: v.make_name,
@@ -101,14 +125,21 @@ export default function App() {
       auctionVendor: v.auction_vendor || 'ADESA',
       auctionEndDate: v.auction_end_date ? new Date(v.auction_end_date) : null,
       currentHighBid: parseFloat(v.current_high_bid || v.starting_bid || 0),
-      buyNowPrice: v.buy_now_price ? parseFloat(v.buy_now_price) : null,
+      buyNowPrice: hasBuyNow ? parseFloat(v.buy_now_price) : null,
       additionalImageUrls: v.additional_image_urls || [],
       engineName: v.engine_name,
       transmission: v.transmission,
       exteriorColor: v.exterior_color,
       interiorColor: v.interior_color,
       condition: v.vehicle_grade ? `Grade ${v.vehicle_grade}` : 'Clean',
-      isBestDeal: Math.random() > 0.8, // Add some flair
+      vehicleGrade: v.vehicle_grade,
+      guaranteeLight: v.guarantee_light,
+      saleChannels: rawChannels,
+      isSimulcast,
+      isTimed,
+      lane: v.lane,
+      runNumber: v.run_number,
+      isBestDeal: Math.random() > 0.8,
       aiScore: Math.floor(Math.random() * 15) + 80,
       modalities,
       isRealAdesa: true
@@ -208,20 +239,30 @@ export default function App() {
     const uiPrice = v.currentHighBid || v.buyNowPrice || 0;
     if (uiPrice > activeFilters.maxPrice) return false;
 
-    if (!activeFilters.showLive && v.modalities.includes('Live Auction')) return false;
-    if (!activeFilters.showBuyNow && v.modalities.includes('Buy Now')) return false;
+    // Modality filter: Match the selected modalities
+    const hasLive = v.modalities.includes('Live Auction');
+    const hasBuyNow = v.modalities.includes('Buy Now');
+
+    if (!activeFilters.showLive && !activeFilters.showBuyNow) return false;
+    if (activeFilters.showLive && !activeFilters.showBuyNow && !hasLive) return false;
+    if (!activeFilters.showLive && activeFilters.showBuyNow && !hasBuyNow) return false;
+
+    // Sale Channel Filter (Timed vs Simulcast)
+    if (!activeFilters.showTimed && v.isTimed && !v.isSimulcast) return false;
+    if (!activeFilters.showSimulcast && v.isSimulcast && !v.isTimed) return false;
+    if (!activeFilters.showTimed && !activeFilters.showSimulcast) return false;
 
     return true;
   });
 
-  const liveAuctions = filteredInventory.filter(v => v.modalities.includes("Live Auction"));
-  const buyNow = filteredInventory.filter(v => v.modalities.includes("Buy Now"));
+  const liveAuctions = activeFilters.showLive ? filteredInventory.filter(v => v.modalities.includes("Live Auction")) : [];
+  const buyNow = activeFilters.showBuyNow ? filteredInventory.filter(v => v.modalities.includes("Buy Now")) : [];
   const sealedBids = filteredInventory.filter(v => v.modalities.includes("Sealed Bid"));
 
   const sections = [
-    { title: "Live Auctions", description: "Bidding in real-time across the country.", data: liveAuctions, color: "text-motorx-red" },
-    { title: "Buy It Now", description: "Skip the bidding. Purchase instantly.", data: buyNow, color: "text-emerald-600" },
-    { title: "Sealed Bid Opportunities", description: "Submit your best offer blindly.", data: sealedBids, color: "text-blue-600" }
+    ...(activeFilters.showLive ? [{ title: "Live Auctions", description: "Bidding in real-time across the country.", data: liveAuctions, color: "text-motorx-red" }] : []),
+    ...(activeFilters.showBuyNow ? [{ title: "Buy It Now", description: "Skip the bidding. Purchase instantly.", data: buyNow, color: "text-emerald-600" }] : []),
+    ...(sealedBids.length > 0 ? [{ title: "Sealed Bid Opportunities", description: "Submit your best offer blindly.", data: sealedBids, color: "text-blue-600" }] : [])
   ];
 
   const VehicleCard = ({ vehicle }) => {
@@ -336,10 +377,17 @@ export default function App() {
         </div>
         
         {/* Modalities */}
-        <div className="flex flex-wrap gap-2 mb-3">
-          {vehicle.modalities?.slice(0, 1).map(modality => (
-            <span key={modality} className="px-2 py-1 bg-slate-50 text-slate-600 rounded flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider border border-slate-200">
-              <Tag className="w-2.5 h-2.5 text-slate-400" /> {modality}
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {vehicle.modalities?.map(modality => (
+            <span 
+              key={modality} 
+              className={`px-2 py-0.5 rounded flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider border ${
+                modality === 'Buy Now' 
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                  : 'bg-red-50 text-motorx-red border-red-200'
+              }`}
+            >
+              <Tag className="w-2.5 h-2.5" /> {modality}
             </span>
           ))}
         </div>
@@ -360,9 +408,17 @@ export default function App() {
         <div className="flex gap-2">
           <button 
             onClick={() => setSelectedVehicle(vehicle)}
-            className="w-full bg-motorx-red hover:bg-motorx-red-dark text-white py-2.5 rounded-lg text-xs font-black shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all flex justify-center items-center gap-1 uppercase tracking-wide truncate px-3"
+            className={`w-full text-white py-2.5 rounded-lg text-xs font-black shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all flex justify-center items-center gap-1 uppercase tracking-wide truncate px-3 cursor-pointer ${
+              vehicle.buyNowPrice && !activeFilters.showLive
+                ? 'bg-emerald-600 hover:bg-emerald-700'
+                : 'bg-motorx-red hover:bg-motorx-red-dark'
+            }`}
           >
-            BID NOW <ChevronRight className="w-4 h-4" />
+            {vehicle.buyNowPrice && !activeFilters.showLive ? (
+              <>BUY NOW <ChevronRight className="w-4 h-4" /></>
+            ) : (
+              <>BID NOW <ChevronRight className="w-4 h-4" /></>
+            )}
           </button>
         </div>
       </div>
@@ -512,6 +568,31 @@ export default function App() {
                   </div>
                 </div>
 
+                {/* Sale Channel Filter (ADESA Style) */}
+                <div>
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Sale Channel</h4>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={activeFilters.showTimed}
+                        onChange={(e) => setActiveFilters({...activeFilters, showTimed: e.target.checked})}
+                        className="w-4 h-4 text-motorx-red focus:ring-motorx-red rounded border-slate-300"
+                      />
+                      <span className="text-sm font-medium text-slate-700">Timed / Online</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={activeFilters.showSimulcast}
+                        onChange={(e) => setActiveFilters({...activeFilters, showSimulcast: e.target.checked})}
+                        className="w-4 h-4 text-motorx-red focus:ring-motorx-red rounded border-slate-300"
+                      />
+                      <span className="text-sm font-medium text-slate-700">Simulcast (In-Lane)</span>
+                    </label>
+                  </div>
+                </div>
+
               </div>
             </motion.div>
           )}
@@ -653,11 +734,28 @@ export default function App() {
           })
         )}
         
-        {/* If no data found for non-Salvato/ADESA tab */}
-        {activeTab !== 'Salvato' && activeTab !== 'ADESA' && sections.every(s => s.data.length === 0) && (
-          <div className="text-center py-20 text-slate-500 bg-white border border-slate-200 rounded-xl shadow-sm">
-            <h3 className="font-bold text-lg text-slate-700">No inventory available</h3>
-            <p className="text-sm">We don't have vehicles for {activeTab} yet.</p>
+        {/* If no data found matching filters */}
+        {activeTab !== 'Salvato' && sections.length === 0 && (
+          <div className="text-center py-20 text-slate-500 bg-white border border-slate-200 rounded-xl shadow-sm max-w-xl mx-auto my-8">
+            <h3 className="font-bold text-lg text-slate-700">No vehicles match your active filters</h3>
+            <p className="text-sm mt-1 text-slate-500">
+              {!activeFilters.showLive && activeFilters.showBuyNow 
+                ? "No 'Buy It Now' lots currently available in this inventory. All active listings are in Live Auction / Timed bidding."
+                : "Try clearing or broadening your filters (Vehicle Type, Max Price, Sale Channel)."}
+            </p>
+            <button
+              onClick={() => setActiveFilters({
+                bodyStyle: '',
+                maxPrice: 100000,
+                showLive: true,
+                showBuyNow: true,
+                showTimed: true,
+                showSimulcast: true
+              })}
+              className="mt-4 px-4 py-2 bg-motorx-red text-white text-xs font-bold rounded-lg shadow-sm hover:bg-motorx-red-dark transition-colors cursor-pointer"
+            >
+              Reset Filters
+            </button>
           </div>
         )}
       </main>

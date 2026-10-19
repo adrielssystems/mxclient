@@ -2,12 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Calculator, MapPin, Settings, Info, Gauge, ShieldCheck, ChevronLeft, ChevronRight, CheckCircle2, Clock, Sparkles, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import { calculateBuyFee } from '@/utils/buyFeeCalculator';
+import BuyFeeScheduleModal from './BuyFeeScheduleModal';
 
 export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, similarVehicles, onSelectVehicle }) {
   const [activeTab, setActiveTab] = useState('details'); // details, calculator
   const [freightCost, setFreightCost] = useState(0);
   const [destinations, setDestinations] = useState([]);
+  const [selectedDestination, setSelectedDestination] = useState(null);
   const [loadingDestinations, setLoadingDestinations] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showBuyFeeModal, setShowBuyFeeModal] = useState(false);
   const [timeLeft, setTimeLeft] = useState('...');
 
   // Timer logic
@@ -38,16 +43,16 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
     return () => clearInterval(timerInterval);
   }, [vehicle.auctionEndDate]);
 
-  // Fetch real destinations from development Appmx2
+  // Fetch real destinations from database
   useEffect(() => {
-    const baseUrl = process.env.NEXT_PUBLIC_MOTORX_API_URL || 'https://dev.motorxcars.com';
-    fetch(`${baseUrl}/api/client/destinations`)
+    fetch('/api/client/destinations')
       .then(res => res.json())
       .then(data => {
         if (data && data.destinations) {
           setDestinations(data.destinations);
           // Set a default freight cost algorithm based on destination id
           if (data.destinations.length > 0) {
+            setSelectedDestination(data.destinations[0]);
             setFreightCost(calculateEstimatedFreight(data.destinations[0].id));
           }
         }
@@ -55,6 +60,68 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
       .catch(err => console.error("Error fetching destinations:", err))
       .finally(() => setLoadingDestinations(false));
   }, []);
+
+  const handleSubmitOffer = async () => {
+    setIsSubmitting(true);
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_MOTORX_API_URL || '';
+      const serviceFee = calculateBuyFee(vehicle.currentHighBid || 0);
+      const totalLanded = (vehicle.currentHighBid || 0) + serviceFee + freightCost;
+
+      const payload = {
+        vin: vehicle.vin,
+        year: vehicle.year,
+        make: vehicle.makeName,
+        model: vehicle.modelName,
+        lot_number: vehicle.lotNumber || vehicle.lotId || vehicle.vehicleId,
+        auction_source: vehicle.auctionSource || 'ADESA',
+        auction_location: vehicle.location || vehicle.auctionLocation || null,
+        bid_amount: vehicle.currentHighBid || 0,
+        freight_cost: freightCost,
+        service_fee: serviceFee,
+        total_landed: totalLanded,
+        destination_id: selectedDestination?.id || null,
+        destination_port: selectedDestination ? `${selectedDestination.country_name} - ${selectedDestination.port_name}` : null,
+        raw_details: {
+          odometer: vehicle.odometerReading,
+          damage: vehicle.damageType || vehicle.primaryDamage,
+          primaryImageUrl: vehicle.primaryImageUrl,
+          drivable: vehicle.drivable,
+          saleChannels: vehicle.saleChannels,
+          lane: vehicle.lane,
+          runNumber: vehicle.runNumber
+        }
+      };
+
+      const res = await fetch('/api/auctions/offers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        toast.success('Live Auction Offer Submitted!', {
+          description: `Your purchase order for the ${vehicle.makeName} ${vehicle.modelName} (VIN: ${vehicle.vin}) has been recorded and audited.`
+        });
+        if (onClose) setTimeout(onClose, 1200);
+      } else {
+        toast.error('Failed to submit offer', {
+          description: data.error || 'Please verify your session and permissions.'
+        });
+      }
+    } catch (err) {
+      console.error("Submit offer error:", err);
+      toast.error('Network error', {
+        description: 'Unable to reach the server. Please check your connection.'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Temporary mock algorithm until the full tariff calculator is exposed
   const calculateEstimatedFreight = (destId) => {
@@ -330,16 +397,31 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
                       <span className="font-bold text-slate-900">{formatCurrency(vehicle.currentHighBid)}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-slate-500">Auction Fees (Est. 5%)</span>
-                      <span className="font-bold text-slate-900">{formatCurrency(vehicle.currentHighBid * 0.05)}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-slate-500">Auction Buy Fee</span>
+                        <button
+                          type="button"
+                          onClick={() => setShowBuyFeeModal(true)}
+                          className="text-[11px] font-bold text-motorx-red hover:text-red-700 underline tracking-wide cursor-pointer inline-flex items-center gap-0.5"
+                          title="View ADESA standard Buy Fee tier schedule"
+                        >
+                          [Schedule]
+                        </button>
+                      </div>
+                      <span className="font-bold text-slate-900">{formatCurrency(calculateBuyFee(vehicle.currentHighBid || 0))}</span>
                     </div>
                     
                     <div className="pt-3 border-t border-slate-100">
                       <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Destination Port</label>
                       <select 
                         className="w-full p-2.5 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:ring-2 focus:ring-motorx-red focus:border-motorx-red outline-none transition-all"
-                        value={destinations.findIndex(d => calculateEstimatedFreight(d.id) === freightCost) !== -1 ? destinations.find(d => calculateEstimatedFreight(d.id) === freightCost).id : ""}
-                        onChange={(e) => setFreightCost(calculateEstimatedFreight(Number(e.target.value)))}
+                        value={selectedDestination ? selectedDestination.id : (destinations[0]?.id || "")}
+                        onChange={(e) => {
+                          const targetId = Number(e.target.value);
+                          const matched = destinations.find(d => d.id === targetId);
+                          setSelectedDestination(matched || null);
+                          setFreightCost(calculateEstimatedFreight(targetId));
+                        }}
                         disabled={loadingDestinations}
                       >
                         {loadingDestinations ? (
@@ -363,7 +445,7 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
                   <div className="bg-motorx-red/5 border border-motorx-red/20 rounded-xl p-5 flex justify-between items-center shadow-sm">
                     <span className="font-black text-slate-900 uppercase tracking-wide">Total Landed</span>
                     <span className="text-2xl font-black text-motorx-red">
-                      {formatCurrency(vehicle.currentHighBid + (vehicle.currentHighBid * 0.05) + freightCost)}
+                      {formatCurrency((vehicle.currentHighBid || 0) + calculateBuyFee(vehicle.currentHighBid || 0) + freightCost)}
                     </span>
                   </div>
                 </div>
@@ -374,14 +456,26 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
           {/* Footer Action */}
           <div className="p-6 bg-white border-t border-slate-200 mt-auto">
             <button 
-              onClick={() => toast.success('Offer initialized!', { description: `Your offer request for the ${vehicle.makeName} ${vehicle.modelName} (VIN: ${vehicle.vin}) has been queued. The direct Appmx2 integration is coming in the next update.` })}
-              className="w-full bg-motorx-red hover:bg-motorx-red-dark text-white py-4 rounded-xl text-sm font-black shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all flex justify-center items-center gap-2 uppercase tracking-wide"
+              onClick={handleSubmitOffer}
+              disabled={isSubmitting}
+              className="w-full bg-motorx-red hover:bg-motorx-red-dark disabled:opacity-50 text-white py-4 rounded-xl text-sm font-black shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all flex justify-center items-center gap-2 uppercase tracking-wide cursor-pointer"
             >
-              Submit Offer <CheckCircle2 className="w-5 h-5" />
+              {isSubmitting ? (
+                <>Recording Offer...</>
+              ) : (
+                <>Submit Offer <CheckCircle2 className="w-5 h-5" /></>
+              )}
             </button>
           </div>
         </div>
       </motion.div>
+
+      {/* Buy Fee Tier Schedule Modal */}
+      <BuyFeeScheduleModal
+        isOpen={showBuyFeeModal}
+        onClose={() => setShowBuyFeeModal(false)}
+        currentAmount={vehicle.currentHighBid || 0}
+      />
     </div>
   );
 }
