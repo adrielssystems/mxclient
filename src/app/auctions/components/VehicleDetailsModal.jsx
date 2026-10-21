@@ -1,19 +1,74 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Calculator, MapPin, Settings, Info, Gauge, ShieldCheck, ChevronLeft, ChevronRight, CheckCircle2, Clock, Sparkles, AlertTriangle } from 'lucide-react';
+import { 
+  X, 
+  Calculator, 
+  MapPin, 
+  Clock, 
+  CheckCircle2, 
+  AlertTriangle, 
+  Gavel, 
+  DollarSign, 
+  Zap, 
+  ShieldAlert, 
+  TrendingUp, 
+  ArrowRight,
+  Heart,
+  ChevronLeft,
+  ChevronRight,
+  Maximize2,
+  ZoomIn
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { calculateBuyFee } from '@/utils/buyFeeCalculator';
 import BuyFeeScheduleModal from './BuyFeeScheduleModal';
 
 export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, similarVehicles, onSelectVehicle }) {
-  const [activeTab, setActiveTab] = useState('details'); // details, calculator
+  const [activeTab, setActiveTab] = useState('bidding'); // bidding, details, calculator
   const [freightCost, setFreightCost] = useState(0);
   const [destinations, setDestinations] = useState([]);
   const [selectedDestination, setSelectedDestination] = useState(null);
   const [loadingDestinations, setLoadingDestinations] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmittingBid, setIsSubmittingBid] = useState(false);
+  const [isBuyingNow, setIsBuyingNow] = useState(false);
   const [showBuyFeeModal, setShowBuyFeeModal] = useState(false);
   const [timeLeft, setTimeLeft] = useState('...');
+  const [imgIndex, setImgIndex] = useState(0);
+
+  // Vehicle Bidding PDF state
+  const [proxyBidInput, setProxyBidInput] = useState('');
+  const [existingBid, setExistingBid] = useState(null);
+  const [loadingExistingBid, setLoadingExistingBid] = useState(true);
+  const [collisionWarning, setCollisionWarning] = useState(null); // When another client bid higher
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+
+  // All Images array declared upfront so useEffect hooks can safely reference it
+  const allImages = [
+    vehicle.primaryImageUrl,
+    ...(vehicle.additionalImageUrls || [])
+  ].filter(Boolean);
+
+  // Helper to format pure integer with thousand separators
+  const formatInteger = (val) => {
+    if (val === undefined || val === null || val === '') return '';
+    const num = Math.round(Number(String(val).replace(/[^0-9]/g, '')) || 0);
+    return num > 0 ? num.toLocaleString('en-US') : '';
+  };
+
+  // Calculate standard auction increment based on price tier
+  const getBidIncrement = (currentPrice) => {
+    const price = Math.round(Number(currentPrice) || 0);
+    if (price < 1000) return 50;
+    if (price < 5000) return 100;
+    if (price < 15000) return 250;
+    if (price < 30000) return 500;
+    return 1000;
+  };
+
+  const basePrice = Math.round(existingBid ? Number(existingBid.max_proxy_bid) : (Number(vehicle.currentHighBid) || 0));
+  const currentIncrement = getBidIncrement(basePrice);
+  const minBidAllowed = basePrice + currentIncrement;
 
   // Timer logic
   useEffect(() => {
@@ -43,14 +98,30 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
     return () => clearInterval(timerInterval);
   }, [vehicle.auctionEndDate]);
 
-  // Fetch real destinations from database
+  // Keyboard navigation for lightbox
   useEffect(() => {
+    if (!isLightboxOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setIsLightboxOpen(false);
+      } else if (e.key === 'ArrowLeft' && allImages.length > 1) {
+        setImgIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
+      } else if (e.key === 'ArrowRight' && allImages.length > 1) {
+        setImgIndex((prev) => (prev + 1) % allImages.length);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isLightboxOpen, allImages.length]);
+
+  // Fetch real destinations & existing proxy bid from auctions_db
+  useEffect(() => {
+    // 1. Destinations
     fetch('/api/client/destinations')
       .then(res => res.json())
       .then(data => {
         if (data && data.destinations) {
           setDestinations(data.destinations);
-          // Set a default freight cost algorithm based on destination id
           if (data.destinations.length > 0) {
             setSelectedDestination(data.destinations[0]);
             setFreightCost(calculateEstimatedFreight(data.destinations[0].id));
@@ -59,33 +130,80 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
       })
       .catch(err => console.error("Error fetching destinations:", err))
       .finally(() => setLoadingDestinations(false));
-  }, []);
 
-  const handleSubmitOffer = async () => {
-    setIsSubmitting(true);
+    // 2. Fetch existing proxy bid for this VIN
+    if (vehicle.vin) {
+      fetch(`/api/auctions/bids?vin=${encodeURIComponent(vehicle.vin)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data?.bid) {
+            setExistingBid(data.bid);
+            const prevBid = Math.round(Number(data.bid.max_proxy_bid) || 0);
+            const inc = getBidIncrement(prevBid);
+            setProxyBidInput(formatInteger(prevBid + inc));
+          } else {
+            const currentBid = Math.round(Number(vehicle.currentHighBid) || 0);
+            const inc = getBidIncrement(currentBid);
+            const suggested = currentBid > 0 ? (currentBid + inc) : 500;
+            setProxyBidInput(formatInteger(suggested));
+          }
+        })
+        .catch(err => {
+          console.error("Error fetching existing bid:", err);
+          const currentBid = Math.round(Number(vehicle.currentHighBid) || 0);
+          const inc = getBidIncrement(currentBid);
+          const suggested = currentBid > 0 ? (currentBid + inc) : 500;
+          setProxyBidInput(formatInteger(suggested));
+        })
+        .finally(() => setLoadingExistingBid(false));
+
+      // 3. Check wishlist
+      fetch(`/api/auctions/wishlist`)
+        .then(res => res.json())
+        .then(data => {
+          if (data?.wishlist?.some(w => w.vin === vehicle.vin)) {
+            setIsWishlisted(true);
+          }
+        })
+        .catch(err => console.error("Error fetching wishlist:", err));
+    }
+  }, [vehicle.vin]);
+
+  const calculateEstimatedFreight = (destId) => {
+    switch (destId) {
+      case 1: return 850;
+      case 2: return 950;
+      case 3: return 1200;
+      default: return 750;
+    }
+  };
+
+  // Strictly integer parsed amount (no decimals / non-rationals)
+  const parsedBid = Math.round(Number(proxyBidInput.replace(/[^0-9]/g, '')) || 0);
+  const isValidBid = parsedBid > 0 && parsedBid >= minBidAllowed && (!existingBid || parsedBid > Number(existingBid.max_proxy_bid));
+
+  // Handle Proxy Bid Submission
+  const handlePlaceProxyBid = async () => {
+    if (!isValidBid) return;
+    setIsSubmittingBid(true);
+    setCollisionWarning(null);
+
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_MOTORX_API_URL || '';
-      const serviceFee = calculateBuyFee(vehicle.currentHighBid || 0);
-      const totalLanded = (vehicle.currentHighBid || 0) + serviceFee + freightCost;
-
       const payload = {
         vin: vehicle.vin,
-        year: vehicle.year,
-        make: vehicle.makeName,
-        model: vehicle.modelName,
         lot_number: vehicle.lotNumber || vehicle.lotId || vehicle.vehicleId,
         auction_source: vehicle.auctionSource || 'ADESA',
         auction_location: vehicle.location || vehicle.auctionLocation || null,
-        bid_amount: vehicle.currentHighBid || 0,
-        freight_cost: freightCost,
-        service_fee: serviceFee,
-        total_landed: totalLanded,
+        max_proxy_bid: parsedBid,
         destination_id: selectedDestination?.id || null,
         destination_port: selectedDestination ? `${selectedDestination.country_name} - ${selectedDestination.port_name}` : null,
-        raw_details: {
+        raw_vehicle_details: {
           odometer: vehicle.odometerReading,
           damage: vehicle.damageType || vehicle.primaryDamage,
           primaryImageUrl: vehicle.primaryImageUrl,
+          year: vehicle.year,
+          make: vehicle.makeName,
+          model: vehicle.modelName,
           drivable: vehicle.drivable,
           saleChannels: vehicle.saleChannels,
           lane: vehicle.lane,
@@ -93,108 +211,148 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
         }
       };
 
-      const res = await fetch('/api/auctions/offers', {
+      const res = await fetch('/api/auctions/bids', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
       const data = await res.json();
 
       if (res.ok && data.success) {
-        toast.success('Live Auction Offer Submitted!', {
-          description: `Your purchase order for the ${vehicle.makeName} ${vehicle.modelName} (VIN: ${vehicle.vin}) has been recorded and audited.`
+        toast.success(existingBid ? 'Proxy Bid Increased!' : 'Maximum Proxy Bid Placed!', {
+          description: data.message || `Authorized limit: ${formatCurrency(parsedBid)}`
         });
-        if (onClose) setTimeout(onClose, 1200);
+        setExistingBid(data.bid);
+        setCollisionWarning(null);
+      } else if (res.status === 409 && data.code === 'MX_OUTBID_COLLISION') {
+        // PDF Section 2 Rule: Internal client collision
+        setCollisionWarning(data.error);
+        toast.error('Bid Conflict Between Motor X Customers', {
+          description: data.error
+        });
       } else {
-        toast.error('Failed to submit offer', {
-          description: data.error || 'Please verify your session and permissions.'
+        toast.error('Unable to submit bid', {
+          description: data.error || 'Please verify your bid amount.'
         });
       }
     } catch (err) {
-      console.error("Submit offer error:", err);
-      toast.error('Network error', {
-        description: 'Unable to reach the server. Please check your connection.'
-      });
+      console.error("Submit proxy bid error:", err);
+      toast.error('Network error', { description: 'Please check your connection and try again.' });
     } finally {
-      setIsSubmitting(false);
+      setIsSubmittingBid(false);
     }
   };
 
-  // Temporary mock algorithm until the full tariff calculator is exposed
-  const calculateEstimatedFreight = (destId) => {
-    // Generate a deterministic but fake cost based on ID just for the UI
-    return 500 + (destId * 50);
+  // Toggle Wishlist
+  const handleToggleWishlist = async () => {
+    try {
+      if (isWishlisted) {
+        await fetch(`/api/auctions/wishlist?vin=${encodeURIComponent(vehicle.vin)}`, { method: 'DELETE' });
+        setIsWishlisted(false);
+        toast.info("Removed from Wish List");
+      } else {
+        await fetch('/api/auctions/wishlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            vin: vehicle.vin,
+            auction_source: vehicle.auctionSource || 'ADESA',
+            lot_number: vehicle.lotNumber || vehicle.lotId,
+            raw_details: {
+              year: vehicle.year,
+              make: vehicle.makeName,
+              model: vehicle.modelName,
+              primaryImageUrl: vehicle.primaryImageUrl,
+              currentHighBid: vehicle.currentHighBid,
+              buyNowPrice: vehicle.buyNowPrice
+            }
+          })
+        });
+        setIsWishlisted(true);
+        toast.success("Saved to Wish List");
+      }
+    } catch (e) {
+      console.error("Wishlist toggle error:", e);
+    }
   };
-  
-  const allImages = [vehicle.primaryImageUrl, ...(vehicle.additionalImageUrls || [])];
-  const [imgIndex, setImgIndex] = useState(0);
-
-  const nextImage = () => setImgIndex((prev) => (prev + 1) % allImages.length);
-  const prevImage = () => setImgIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-12">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-hidden">
       <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" 
-        onClick={onClose} 
-      />
-      
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[95vh] md:h-[820px] overflow-hidden relative z-10 flex flex-col md:flex-row"
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.96 }}
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[92vh] flex flex-col md:flex-row overflow-hidden border border-slate-200"
       >
-        {/* LEFT PANEL: IMAGE GALLERY */}
-        <div className="w-full md:w-3/5 bg-slate-900 relative flex flex-col group">
-          <div className="relative flex-1 flex items-center justify-center overflow-hidden min-h-[300px] md:min-h-0">
-            <AnimatePresence mode="wait">
-              <motion.img 
-                key={imgIndex}
-                initial={{ opacity: 0, scale: 1.05 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
+        {/* LEFT PANEL: MEDIA & SPECS (Compact layout per PDF Section 1) */}
+        <div className="w-full md:w-3/5 bg-slate-900 flex flex-col h-[320px] md:h-auto border-r border-slate-800">
+          <div className="relative flex-1 bg-black flex items-center justify-center overflow-hidden group">
+            {allImages.length > 0 ? (
+              <img 
                 src={allImages[imgIndex]} 
-                alt="Vehicle Preview" 
-                className="w-full h-full object-cover"
+                alt={`${vehicle.year} ${vehicle.makeName}`} 
+                onClick={() => setIsLightboxOpen(true)}
+                className="w-full h-full object-contain max-h-[500px] cursor-zoom-in transition-transform duration-300 group-hover:scale-[1.02]"
+                title="Click to expand full size"
               />
-            </AnimatePresence>
-            
-            {/* Gallery Controls */}
+            ) : (
+              <div className="text-slate-500 font-bold">No images available</div>
+            )}
+
+            {/* Click to expand hover hint */}
+            {allImages.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setIsLightboxOpen(true)}
+                className="absolute top-4 right-4 p-2 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-md transition-all opacity-80 hover:opacity-100 flex items-center gap-1.5 text-xs font-semibold px-3"
+                title="View Fullscreen"
+              >
+                <Maximize2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Zoom</span>
+              </button>
+            )}
+
+            {/* Wishlist Button */}
+            <button
+              onClick={handleToggleWishlist}
+              className={`absolute top-4 left-4 p-2.5 rounded-full backdrop-blur-md transition-all shadow-lg ${isWishlisted ? 'bg-red-500 text-white' : 'bg-black/40 text-white hover:bg-black/60'}`}
+              title={isWishlisted ? "Remove from Wish List" : "Add to Wish List"}
+            >
+              <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-current' : ''}`} />
+            </button>
+
+            {/* Navigation arrows */}
             {allImages.length > 1 && (
               <>
-                <button onClick={prevImage} className="absolute left-4 p-2 bg-black/40 hover:bg-black/60 text-white rounded-full backdrop-blur-md transition-all opacity-0 group-hover:opacity-100">
-                  <ChevronLeft className="w-6 h-6" />
+                <button 
+                  onClick={() => setImgIndex((imgIndex - 1 + allImages.length) % allImages.length)}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-black/50 hover:bg-black/80 text-white rounded-full transition-all"
+                >
+                  <ChevronLeft className="w-5 h-5" />
                 </button>
-                <button onClick={nextImage} className="absolute right-4 p-2 bg-black/40 hover:bg-black/60 text-white rounded-full backdrop-blur-md transition-all opacity-0 group-hover:opacity-100">
-                  <ChevronRight className="w-6 h-6" />
+                <button 
+                  onClick={() => setImgIndex((imgIndex + 1) % allImages.length)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-black/50 hover:bg-black/80 text-white rounded-full transition-all"
+                >
+                  <ChevronRight className="w-5 h-5" />
                 </button>
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-black/50 text-white text-xs font-bold rounded-full backdrop-blur-md">
-                  {imgIndex + 1} / {allImages.length}
-                </div>
               </>
             )}
-            
-            <button onClick={onClose} className="md:hidden absolute top-4 right-4 p-2 bg-black/40 text-white rounded-full backdrop-blur-md">
-              <X className="w-5 h-5" />
-            </button>
+
+            {/* Image counter */}
+            <div className="absolute bottom-4 right-4 px-3 py-1 bg-black/70 text-white text-xs font-bold rounded-full">
+              {imgIndex + 1} / {allImages.length}
+            </div>
           </div>
-          
+
           {/* Thumbnail Strip */}
-          <div className="h-24 bg-black p-2 flex gap-2 overflow-x-auto hide-scrollbar snap-x">
+          <div className="h-20 bg-slate-950 p-2 flex gap-2 overflow-x-auto hide-scrollbar snap-x border-t border-slate-800">
             {allImages.map((img, idx) => (
               <button 
                 key={idx}
                 onClick={() => setImgIndex(idx)}
-                className={`flex-shrink-0 w-32 h-full rounded-md overflow-hidden border-2 transition-all snap-start ${imgIndex === idx ? 'border-motorx-red opacity-100' : 'border-transparent opacity-50 hover:opacity-100'}`}
+                className={`flex-shrink-0 w-24 h-full rounded-md overflow-hidden border-2 transition-all snap-start ${imgIndex === idx ? 'border-motorx-red opacity-100' : 'border-transparent opacity-40 hover:opacity-100'}`}
               >
                 <img src={img} className="w-full h-full object-cover" alt="Thumb" />
               </button>
@@ -202,268 +360,279 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
           </div>
         </div>
 
-        {/* RIGHT PANEL: INFO & CALCULATOR */}
-        <div className="w-full md:w-2/5 bg-slate-50 flex flex-col h-full">
+        {/* RIGHT PANEL: ACTIONS, BIDDING, & FEES */}
+        <div className="w-full md:w-2/5 bg-slate-50 flex flex-col h-full max-h-[92vh]">
           {/* Header */}
-          <div className="p-6 bg-white border-b border-slate-200 sticky top-0 z-10 flex justify-between items-start">
+          <div className="p-5 bg-white border-b border-slate-200 sticky top-0 z-10 flex justify-between items-start">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="bg-motorx-red/10 text-motorx-red px-2 py-0.5 rounded text-xs font-black uppercase tracking-wider">
-                  {vehicle.condition}
+                <span className="bg-motorx-red/10 text-motorx-red px-2 py-0.5 rounded text-[11px] font-black uppercase tracking-wider">
+                  {vehicle.condition || 'LIVE AUCTION'}
                 </span>
                 <span className="flex items-center gap-1 text-slate-500 text-xs font-bold uppercase tracking-wider">
-                  <MapPin className="w-3 h-3" /> {vehicle.auctionVendor}
+                  <MapPin className="w-3 h-3" /> {vehicle.auctionVendor || vehicle.location || 'ADESA'}
                 </span>
-                <div className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold shadow-sm border ${timeLeft === 'Ended' ? 'bg-slate-100 text-slate-500 border-slate-200' : 'bg-red-50 text-motorx-red border-red-100'}`}>
-                  <Clock className="w-4 h-4" />
+                <div className={`flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-bold border ${timeLeft === 'Ended' ? 'bg-slate-100 text-slate-500 border-slate-200' : 'bg-red-50 text-motorx-red border-red-100'}`}>
+                  <Clock className="w-3.5 h-3.5" />
                   <span>{timeLeft}</span>
                 </div>
               </div>
-              <h2 className="text-2xl font-black text-slate-900 leading-tight">
+              <h2 className="text-xl font-black text-slate-900 leading-tight">
                 {vehicle.year} {vehicle.makeName} {vehicle.modelName}
               </h2>
-              <p className="text-slate-500 text-sm font-medium mt-1">{vehicle.seriesName} • {vehicle.mileage?.toLocaleString()} mi</p>
+              <p className="text-slate-500 text-xs font-semibold mt-0.5">VIN: <span className="font-mono text-slate-700">{vehicle.vin}</span> • {vehicle.mileage?.toLocaleString()} mi</p>
             </div>
-            <button onClick={onClose} className="hidden md:flex p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 rounded-full transition-all">
+            <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 rounded-full transition-all">
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Tabs */}
-          <div className="flex border-b border-slate-200 px-6 bg-white">
+          {/* Navigation Tabs */}
+          <div className="flex border-b border-slate-200 px-5 bg-white">
+            <button 
+              onClick={() => setActiveTab('bidding')}
+              className={`py-3 px-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-1.5 ${activeTab === 'bidding' ? 'border-motorx-red text-motorx-red' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+            >
+              <Gavel className="w-3.5 h-3.5" /> Proxy Bidding
+            </button>
             <button 
               onClick={() => setActiveTab('details')}
-              className={`py-4 px-4 text-sm font-bold uppercase tracking-wider border-b-2 transition-all ${activeTab === 'details' ? 'border-motorx-red text-motorx-red' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+              className={`py-3 px-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all ${activeTab === 'details' ? 'border-motorx-red text-motorx-red' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
             >
               Vehicle Details
             </button>
             <button 
               onClick={() => setActiveTab('calculator')}
-              className={`py-4 px-4 text-sm font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 ${activeTab === 'calculator' ? 'border-motorx-red text-motorx-red' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+              className={`py-3 px-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-1.5 ${activeTab === 'calculator' ? 'border-motorx-red text-motorx-red' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
             >
-              <Calculator className="w-4 h-4" /> Cost Calc
+              <Calculator className="w-3.5 h-3.5" /> Cost Breakdown
             </button>
           </div>
 
-          {/* Content Area */}
-          <div className="p-6 flex-1 overflow-y-auto">
-            {activeTab === 'details' && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                    <div className="flex items-center gap-2 text-slate-400 mb-1">
-                      <Gauge className="w-4 h-4" /> <span className="text-xs font-bold uppercase tracking-wider">Odometer</span>
-                    </div>
-                    <p className="text-slate-900 font-bold">{vehicle.mileage?.toLocaleString()} mi</p>
+          {/* Tab Content */}
+          <div className="p-5 flex-1 overflow-y-auto space-y-4">
+            {activeTab === 'bidding' && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+                {/* Current Market & Bid Box */}
+                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-3">
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Current Auction Bid</span>
+                    <span className="text-2xl font-black text-slate-900">
+                      {formatCurrency(vehicle.currentHighBid || 0)}
+                    </span>
                   </div>
-                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                    <div className="flex items-center gap-2 text-slate-400 mb-1">
-                      <Settings className="w-4 h-4" /> <span className="text-xs font-bold uppercase tracking-wider">VIN</span>
-                    </div>
-                    <p className="text-slate-900 font-bold text-sm">{vehicle.vin}</p>
-                  </div>
-                </div>
 
-                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-                  <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center gap-2">
-                    <Info className="w-4 h-4 text-slate-500" />
-                    <h4 className="font-bold text-slate-700 text-sm uppercase tracking-wider">Specs & Info</h4>
-                  </div>
-                  <div className="divide-y divide-slate-100">
-                    <div className="flex justify-between px-4 py-3 text-sm">
-                      <span className="text-slate-500">Engine</span>
-                      <span className="font-medium text-slate-900">{vehicle.engineName || 'N/A'}</span>
-                    </div>
-                    <div className="flex justify-between px-4 py-3 text-sm">
-                      <span className="text-slate-500">Transmission</span>
-                      <span className="font-medium text-slate-900">{vehicle.transmission || 'N/A'}</span>
-                    </div>
-                    <div className="flex justify-between px-4 py-3 text-sm">
-                      <span className="text-slate-500">Exterior Color</span>
-                      <span className="font-medium text-slate-900">{vehicle.exteriorColor || 'N/A'}</span>
-                    </div>
-                    <div className="flex justify-between px-4 py-3 text-sm">
-                      <span className="text-slate-500">Interior Color</span>
-                      <span className="font-medium text-slate-900">{vehicle.interiorColor || 'N/A'}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {vehicle.isRealSalvato && (
-                  <div className="bg-amber-50/70 border border-amber-200 rounded-xl overflow-hidden shadow-sm">
-                    <div className="bg-amber-100/60 px-4 py-3 border-b border-amber-200 flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-amber-600" />
-                      <h4 className="font-bold text-amber-900 text-sm uppercase tracking-wider">Salvage & Damage Report</h4>
-                    </div>
-                    <div className="divide-y divide-amber-100/70 text-sm">
-                      {vehicle.damageType && (
-                        <div className="flex justify-between px-4 py-2.5">
-                          <span className="text-amber-800">Primary Incident</span>
-                          <span className="font-bold text-amber-900">{vehicle.damageType}</span>
-                        </div>
-                      )}
-                      {vehicle.primaryDamage && (
-                        <div className="flex justify-between px-4 py-2.5">
-                          <span className="text-amber-800">Point of Impact / Damage</span>
-                          <span className="font-bold text-amber-900">{vehicle.primaryDamage}</span>
-                        </div>
-                      )}
-                      {vehicle.titleName && (
-                        <div className="flex justify-between px-4 py-2.5">
-                          <span className="text-amber-800">Document Type</span>
-                          <span className="font-bold text-amber-900 truncate max-w-[220px]">{vehicle.titleName}</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between px-4 py-2.5">
-                        <span className="text-amber-800">Engine / Drivable</span>
-                        <span className="font-bold text-amber-900">{vehicle.drivable === 'YES' ? 'Starts & Drives' : 'Non-Drivable'} ({vehicle.startCode || 'N/A'})</span>
+                  {existingBid && (
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between">
+                      <div>
+                        <span className="text-[11px] font-bold text-slate-500 uppercase block">My Maximum Proxy Bid</span>
+                        <span className="text-lg font-black text-slate-800">{formatCurrency(existingBid.max_proxy_bid)}</span>
                       </div>
-                      <div className="flex justify-between px-4 py-2.5">
-                        <span className="text-amber-800">Keys Present</span>
-                        <span className="font-bold text-amber-900">{vehicle.hasKeys === 'YES' ? 'Yes' : 'No'}</span>
+                      <span className={`px-2.5 py-1 rounded text-xs font-bold uppercase ${existingBid.status === 'WINNING' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-amber-100 text-amber-800 border border-amber-200'}`}>
+                        {existingBid.status === 'WINNING' ? 'Winning (MotorX Priority)' : existingBid.status}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Buy It Now Option if available (Section 5) */}
+                  {vehicle.buyNowPrice && vehicle.buyNowPrice > 0 && (
+                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-bold text-emerald-600 uppercase flex items-center gap-1">
+                          <Zap className="w-3.5 h-3.5" /> Buy It Now Price
+                        </span>
+                        <span className="text-xl font-black text-slate-900">{formatCurrency(vehicle.buyNowPrice)}</span>
                       </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex gap-3 shadow-sm">
-                  <ShieldCheck className="w-6 h-6 text-emerald-600 flex-shrink-0" />
-                  <div>
-                    <h4 className="text-emerald-800 font-bold text-sm mb-1">MotorX Verified Listing</h4>
-                    <p className="text-emerald-600/80 text-xs leading-relaxed">This vehicle data has been retrieved directly from {vehicle.auctionVendor} real-time APIs. Condition reports and structural guarantees apply as per vendor policies.</p>
-                  </div>
-                </div>
-
-                {/* Similar Vehicles Recommendation Engine */}
-                {similarVehicles && similarVehicles.length > 0 && (
-                  <div className="mt-8">
-                    <h3 className="font-black text-slate-800 text-lg mb-3 flex items-center gap-2">
-                      <Sparkles className="w-5 h-5 text-motorx-red" />
-                      Similar Recommendations
-                    </h3>
-                    <div className="grid grid-cols-1 gap-3">
-                      {similarVehicles.map(sim => (
-                        <div 
-                          key={sim.vehicleId} 
-                          onClick={() => onSelectVehicle(sim)}
-                          className="flex gap-4 p-3 border border-slate-200 rounded-xl bg-white hover:border-motorx-red hover:shadow-md transition-all cursor-pointer group"
-                        >
-                          <div className="w-24 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100 relative">
-                            <img src={sim.primaryImageUrl} alt={sim.modelName} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
-                            {sim.isBestDeal && (
-                              <div className="absolute top-0 left-0 bg-motorx-red text-white text-[8px] font-bold px-1 py-0.5 rounded-br-lg">
-                                BEST DEAL
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex flex-col justify-center">
-                            <h4 className="font-bold text-slate-900 text-sm group-hover:text-motorx-red transition-colors">{sim.year} {sim.makeName} {sim.modelName}</h4>
-                            <p className="text-xs text-slate-500">{sim.mileage?.toLocaleString()} mi • {sim.condition}</p>
-                            <p className="text-sm font-black text-slate-900 mt-1">{formatCurrency(sim.currentHighBid || sim.buyNowPrice)}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-              </motion.div>
-            )}
-
-            {activeTab === 'calculator' && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-                <div className="bg-slate-900 rounded-xl p-6 text-white shadow-lg relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-motorx-red rounded-full blur-3xl opacity-20 -mr-10 -mt-10"></div>
-                  <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Current Bid</p>
-                  <p className="text-4xl font-black mb-4">{formatCurrency(vehicle.currentHighBid)}</p>
-                  
-                  {vehicle.buyNowPrice > 0 && (
-                    <div className="inline-block bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-1.5 rounded-lg">
-                      <p className="text-[10px] text-slate-300 font-bold uppercase tracking-wider">Buy Now Available</p>
-                      <p className="text-sm font-bold text-white">{formatCurrency(vehicle.buyNowPrice)}</p>
+                      <button 
+                        type="button"
+                        onClick={() => toast.info("Buy It Now purchase flow initiating...")}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase px-4 py-2.5 rounded-lg shadow transition-all cursor-pointer"
+                      >
+                        Buy It Now {formatCurrency(vehicle.buyNowPrice)}
+                      </button>
                     </div>
                   )}
                 </div>
 
-                <div className="space-y-4">
-                  <h4 className="font-bold text-slate-900 flex items-center gap-2">
-                    <Calculator className="w-4 h-4 text-motorx-red" /> Estimate All-In Cost
-                  </h4>
-                  
-                  <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-3">
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-slate-500">Vehicle Price</span>
-                      <span className="font-bold text-slate-900">{formatCurrency(vehicle.currentHighBid)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-slate-500">Auction Buy Fee</span>
-                        <button
-                          type="button"
-                          onClick={() => setShowBuyFeeModal(true)}
-                          className="text-[11px] font-bold text-motorx-red hover:text-red-700 underline tracking-wide cursor-pointer inline-flex items-center gap-0.5"
-                          title="View ADESA standard Buy Fee tier schedule"
-                        >
-                          [Schedule]
-                        </button>
+                {/* Internal Motor X Collision Alert (Section 2 of PDF) */}
+                {collisionWarning && (
+                  <motion.div 
+                    initial={{ scale: 0.95, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="p-4 bg-amber-50 border-2 border-amber-300 rounded-xl space-y-3"
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wide">Another Motor X Customer Has Bid</h4>
+                        <p className="text-xs text-amber-800 mt-1 leading-relaxed">{collisionWarning}</p>
                       </div>
-                      <span className="font-bold text-slate-900">{formatCurrency(calculateBuyFee(vehicle.currentHighBid || 0))}</span>
                     </div>
-                    
-                    <div className="pt-3 border-t border-slate-100">
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Destination Port</label>
-                      <select 
-                        className="w-full p-2.5 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:ring-2 focus:ring-motorx-red focus:border-motorx-red outline-none transition-all"
-                        value={selectedDestination ? selectedDestination.id : (destinations[0]?.id || "")}
-                        onChange={(e) => {
-                          const targetId = Number(e.target.value);
-                          const matched = destinations.find(d => d.id === targetId);
-                          setSelectedDestination(matched || null);
-                          setFreightCost(calculateEstimatedFreight(targetId));
-                        }}
-                        disabled={loadingDestinations}
+                    <div className="flex gap-2 justify-end pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setCollisionWarning(null)}
+                        className="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 font-bold text-xs rounded-lg hover:bg-slate-50 transition-all uppercase"
                       >
-                        {loadingDestinations ? (
-                          <option>Cargando puertos reales...</option>
-                        ) : (
-                          destinations.map(dest => (
-                            <option key={dest.id} value={dest.id}>
-                              {dest.country_name} - {dest.port_name}
-                            </option>
-                          ))
-                        )}
-                      </select>
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const inputEl = document.getElementById('proxyBidInputField');
+                          if (inputEl) inputEl.focus();
+                        }}
+                        className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg transition-all uppercase shadow-sm"
+                      >
+                        Increase Bid
+                      </button>
                     </div>
+                  </motion.div>
+                )}
 
-                    <div className="flex justify-between items-center text-sm pt-2">
-                      <span className="text-slate-500">MotorX Freight</span>
-                      <span className="font-bold text-slate-900">{formatCurrency(freightCost)}</span>
-                    </div>
+                {/* Maximum Proxy Bid Form (Section 2) */}
+                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-3">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    {existingBid ? 'Increase Maximum Proxy Bid' : 'Maximum Proxy Bid'}
+                  </label>
+                  <div className="relative">
+                    <DollarSign className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input 
+                      id="proxyBidInputField"
+                      type="text"
+                      inputMode="numeric"
+                      placeholder={`Min: $${formatInteger(minBidAllowed)}`}
+                      value={proxyBidInput}
+                      onKeyDown={(e) => {
+                        // Allow navigation, backspace, delete, tab
+                        if (['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) {
+                          return;
+                        }
+                        // Disallow non-digits (minus, plus, decimal point, comma, e)
+                        if (!/^[0-9]$/.test(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
+                      onChange={(e) => {
+                        // Sanitize to only digits and format with thousand separators
+                        const rawDigits = e.target.value.replace(/[^0-9]/g, '');
+                        if (!rawDigits) {
+                          setProxyBidInput('');
+                        } else {
+                          const num = parseInt(rawDigits, 10);
+                          setProxyBidInput(num.toLocaleString('en-US'));
+                        }
+                      }}
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold text-lg text-slate-900 focus:ring-2 focus:ring-motorx-red focus:border-motorx-red outline-none transition-all"
+                    />
                   </div>
 
-                  <div className="bg-motorx-red/5 border border-motorx-red/20 rounded-xl p-5 flex justify-between items-center shadow-sm">
-                    <span className="font-black text-slate-900 uppercase tracking-wide">Total Landed</span>
-                    <span className="text-2xl font-black text-motorx-red">
-                      {formatCurrency((vehicle.currentHighBid || 0) + calculateBuyFee(vehicle.currentHighBid || 0) + freightCost)}
-                    </span>
+                  {/* Suggested Quick Bids / Increments */}
+                  <div className="flex items-center gap-2 pt-1 flex-wrap">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase">Suggested:</span>
+                    <button
+                      type="button"
+                      onClick={() => setProxyBidInput(formatInteger(minBidAllowed))}
+                      className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition-all"
+                    >
+                      ${formatInteger(minBidAllowed)} (Min +${formatInteger(currentIncrement)})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setProxyBidInput(formatInteger(minBidAllowed + currentIncrement))}
+                      className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition-all"
+                    >
+                      +${formatInteger(currentIncrement)}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setProxyBidInput(formatInteger(minBidAllowed + (currentIncrement * 2)))}
+                      className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition-all"
+                    >
+                      +${formatInteger(currentIncrement * 2)}
+                    </button>
+                  </div>
+
+                  {/* Required Legal Disclaimers (Exact wording from Section 2 of PDF) */}
+                  <div className="space-y-2 pt-2 border-t border-slate-100 text-[11px] text-slate-500 leading-normal">
+                    <p className="flex items-start gap-1.5">
+                      <span className="text-slate-400">•</span>
+                      <span>Your Maximum Proxy Bid applies to the vehicle purchase price only. Auction fees and Motor X charges are additional.</span>
+                    </p>
+                    <p className="flex items-start gap-1.5">
+                      <span className="text-slate-400">•</span>
+                      <span>Once submitted, your Maximum Proxy Bid cannot be reduced or canceled. You may increase it at any time before bidding closes.</span>
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === 'details' && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="bg-white p-3 rounded-lg border border-slate-200">
+                    <span className="text-slate-500 font-semibold block">Lot / Listing</span>
+                    <span className="font-bold text-slate-800">{vehicle.lotNumber || vehicle.lotId || 'N/A'}</span>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg border border-slate-200">
+                    <span className="text-slate-500 font-semibold block">Auction Source</span>
+                    <span className="font-bold text-slate-800">{vehicle.auctionSource || 'ADESA'}</span>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg border border-slate-200">
+                    <span className="text-slate-500 font-semibold block">Primary Damage</span>
+                    <span className="font-bold text-slate-800">{vehicle.primaryDamage || vehicle.damageType || 'None'}</span>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg border border-slate-200">
+                    <span className="text-slate-500 font-semibold block">Run & Drive</span>
+                    <span className="font-bold text-slate-800">{vehicle.drivable ? 'Yes' : 'No / Stationary'}</span>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === 'calculator' && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
+                <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2 text-xs">
+                  <div className="flex justify-between py-1">
+                    <span className="text-slate-500">Estimated Purchase</span>
+                    <span className="font-bold text-slate-900">{formatCurrency(parsedBid || vehicle.currentHighBid || 0)}</span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-slate-500">Auction Buy Fee</span>
+                    <span className="font-bold text-slate-900">{formatCurrency(calculateBuyFee(parsedBid || vehicle.currentHighBid || 0))}</span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-slate-500">Estimated Freight</span>
+                    <span className="font-bold text-slate-900">{formatCurrency(freightCost)}</span>
+                  </div>
+                  <div className="pt-2 border-t border-slate-200 flex justify-between font-black text-sm text-motorx-red">
+                    <span>Estimated Landed</span>
+                    <span>{formatCurrency((parsedBid || vehicle.currentHighBid || 0) + calculateBuyFee(parsedBid || vehicle.currentHighBid || 0) + freightCost)}</span>
                   </div>
                 </div>
               </motion.div>
             )}
           </div>
 
-          {/* Footer Action */}
-          <div className="p-6 bg-white border-t border-slate-200 mt-auto">
+          {/* Footer Action (PLACE BID or INCREASE BID) */}
+          <div className="p-5 bg-white border-t border-slate-200 mt-auto">
             <button 
-              onClick={handleSubmitOffer}
-              disabled={isSubmitting}
-              className="w-full bg-motorx-red hover:bg-motorx-red-dark disabled:opacity-50 text-white py-4 rounded-xl text-sm font-black shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all flex justify-center items-center gap-2 uppercase tracking-wide cursor-pointer"
+              type="button"
+              onClick={handlePlaceProxyBid}
+              disabled={!isValidBid || isSubmittingBid}
+              className={`w-full py-3.5 rounded-xl text-xs font-black uppercase tracking-wider shadow-lg transition-all flex justify-center items-center gap-2 cursor-pointer ${
+                isValidBid && !isSubmittingBid 
+                  ? 'bg-motorx-red hover:bg-motorx-red-dark text-white hover:shadow-xl hover:-translate-y-0.5' 
+                  : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+              }`}
             >
-              {isSubmitting ? (
-                <>Recording Offer...</>
+              {isSubmittingBid ? (
+                <>Recording Bid...</>
+              ) : existingBid ? (
+                <>Increase Bid <TrendingUp className="w-4 h-4" /></>
               ) : (
-                <>Submit Offer <CheckCircle2 className="w-5 h-5" /></>
+                <>Place Bid <CheckCircle2 className="w-4 h-4" /></>
               )}
             </button>
           </div>
@@ -474,8 +643,113 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
       <BuyFeeScheduleModal
         isOpen={showBuyFeeModal}
         onClose={() => setShowBuyFeeModal(false)}
-        currentAmount={vehicle.currentHighBid || 0}
+        currentAmount={parsedBid || vehicle.currentHighBid || 0}
       />
+
+      {/* FULLSCREEN LIGHTBOX MODAL */}
+      <AnimatePresence>
+        {isLightboxOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-between p-4 sm:p-6"
+            onClick={() => setIsLightboxOpen(false)}
+          >
+            {/* Top Bar: Title & Close Button */}
+            <div 
+              className="w-full flex items-center justify-between text-white z-10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div>
+                <h3 className="text-sm sm:text-base font-black tracking-wide">
+                  {vehicle.year} {vehicle.makeName} {vehicle.modelName}
+                </h3>
+                <p className="text-xs text-slate-400 font-mono">VIN: {vehicle.vin}</p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <span className="px-3 py-1 bg-white/10 rounded-full text-xs font-bold text-slate-300">
+                  {imgIndex + 1} of {allImages.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsLightboxOpen(false)}
+                  className="p-2.5 rounded-full bg-white/10 hover:bg-white/25 text-white transition-all cursor-pointer"
+                  title="Close Fullscreen (Esc)"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Central Full-Size Image Container */}
+            <div 
+              className="relative flex-1 w-full flex items-center justify-center p-2 overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <motion.img
+                key={imgIndex}
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.2 }}
+                src={allImages[imgIndex]}
+                alt={`${vehicle.year} ${vehicle.makeName} full view`}
+                className="max-h-[85vh] max-w-full object-contain rounded-lg shadow-2xl select-none"
+              />
+
+              {/* Prev / Next Navigation Arrows */}
+              {allImages.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setImgIndex((imgIndex - 1 + allImages.length) % allImages.length);
+                    }}
+                    className="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 p-3 sm:p-4 rounded-full bg-black/60 hover:bg-black/90 text-white backdrop-blur-md transition-all shadow-xl hover:scale-105 cursor-pointer"
+                    title="Previous Image"
+                  >
+                    <ChevronLeft className="w-6 h-6 sm:w-8 sm:h-8" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setImgIndex((imgIndex + 1) % allImages.length);
+                    }}
+                    className="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 p-3 sm:p-4 rounded-full bg-black/60 hover:bg-black/90 text-white backdrop-blur-md transition-all shadow-xl hover:scale-105 cursor-pointer"
+                    title="Next Image"
+                  >
+                    <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8" />
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Bottom Thumbnail Strip */}
+            {allImages.length > 1 && (
+              <div 
+                className="w-full max-w-4xl flex items-center justify-center gap-2 overflow-x-auto py-2 z-10"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {allImages.map((img, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setImgIndex(idx)}
+                    className={`relative flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                      idx === imgIndex ? 'border-motorx-red scale-105 shadow-md' : 'border-white/20 opacity-50 hover:opacity-100'
+                    }`}
+                  >
+                    <img src={img} alt="thumb" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

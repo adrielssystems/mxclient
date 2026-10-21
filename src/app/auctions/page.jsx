@@ -5,6 +5,7 @@ import useUser from "@/utils/useUser";
 import { fetchSalvatoInventory, fetchAllInventory } from './services/salvatoApi';
 import { fetchAdesaInventory } from './services/adesaApi';
 import VehicleDetailsModal from './components/VehicleDetailsModal';
+import ClientBiddingDashboard from './components/ClientBiddingDashboard';
 
 export default function App() {
   const { data: user, loading: userLoading } = useUser();
@@ -25,7 +26,7 @@ export default function App() {
   });
   
   // Tabs State
-  const auctionTabs = ['All Auctions', 'ADESA', 'Salvato', 'Copart', 'Pipeline'];
+  const auctionTabs = ['All Auctions', 'ADESA', 'Salvato', 'Copart', 'Pipeline', 'My Bids & Wishlist'];
   const [activeTab, setActiveTab] = useState('All Auctions');
   
   // Salvato State
@@ -601,7 +602,28 @@ export default function App() {
 
       {/* DASHBOARD CONTENT - Scrollable area */}
       <main ref={mainRef} className="flex-1 overflow-y-auto w-full px-6 py-8 space-y-12 pb-24">
-        {activeTab === 'Salvato' ? (
+        {activeTab === 'My Bids & Wishlist' ? (
+          <ClientBiddingDashboard 
+            onOpenVehicleModal={(bidRecord) => {
+              // Construct vehicle object compatible with modal
+              const v = {
+                vin: bidRecord.vin,
+                lotNumber: bidRecord.lot_number,
+                auctionSource: bidRecord.auction_source,
+                auctionVendor: bidRecord.auction_source,
+                currentHighBid: Number(bidRecord.max_proxy_bid),
+                year: bidRecord.raw_vehicle_details?.year,
+                makeName: bidRecord.raw_vehicle_details?.make,
+                modelName: bidRecord.raw_vehicle_details?.model,
+                primaryImageUrl: bidRecord.raw_vehicle_details?.primaryImageUrl,
+                mileage: bidRecord.raw_vehicle_details?.odometer,
+                drivable: bidRecord.raw_vehicle_details?.drivable,
+                condition: 'LIVE AUCTION'
+              };
+              setSelectedVehicle(v);
+            }}
+          />
+        ) : activeTab === 'Salvato' ? (
           <motion.section
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
