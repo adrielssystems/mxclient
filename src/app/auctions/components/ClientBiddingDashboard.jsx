@@ -388,14 +388,23 @@ export default function ClientBiddingDashboard({ onOpenVehicleModal }) {
 
                           {/* Modalities & Condition */}
                           <div className="flex flex-wrap gap-1.5 mb-3">
-                            {condition === 'Clean Title' ? (
+                            {condition === 'Clean Title' || condition === 'Clean' ? (
                               <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded text-[9px] font-bold flex items-center gap-1">
-                                <ShieldCheck className="w-2.5 h-2.5" /> Clean Title
+                                <ShieldCheck className="w-2.5 h-2.5 flex-shrink-0" /> Clean Title
                               </span>
                             ) : (
-                              <span className="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded text-[9px] font-bold flex items-center gap-1">
-                                <AlertTriangle className="w-2.5 h-2.5" /> {condition}
-                              </span>
+                              (() => {
+                                const rawParts = (condition || '').split('•').map(p => p.trim().replace(/_/g, ' ')).filter(Boolean);
+                                return rawParts.map((part, pIdx) => (
+                                  <span 
+                                    key={pIdx}
+                                    className="bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded text-[9px] font-bold flex items-center gap-1 capitalize"
+                                    title={part}
+                                  >
+                                    <AlertTriangle className="w-2.5 h-2.5 flex-shrink-0 text-amber-600" /> {part.toLowerCase()}
+                                  </span>
+                                ));
+                              })()
                             )}
                             <span className="bg-red-50 text-motorx-red border border-red-200 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider flex items-center gap-1">
                               <Tag className="w-2.5 h-2.5" /> Live Auction

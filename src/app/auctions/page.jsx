@@ -344,15 +344,24 @@ export default function App() {
               <Sparkles className="w-3 h-3" /> Best Deal • {vehicle.aiScore}
             </span>
           )}
-          <div className="flex gap-2">
-            {vehicle.condition === 'Clean Title' ? (
-              <span className="bg-white/90 text-slate-700 border border-slate-200 px-2 py-1 rounded-md text-[10px] font-bold flex items-center gap-1 shadow-sm backdrop-blur-sm">
-                <ShieldCheck className="w-3 h-3 text-emerald-600" /> Clean
+          <div className="flex flex-wrap gap-1.5 max-w-[calc(100%-1rem)]">
+            {vehicle.condition === 'Clean Title' || vehicle.condition === 'Clean' ? (
+              <span className="bg-white/95 text-slate-800 border border-slate-200/80 px-2 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-1 shadow-sm backdrop-blur-md">
+                <ShieldCheck className="w-3 h-3 text-emerald-600 flex-shrink-0" /> Clean
               </span>
             ) : (
-              <span className="bg-white/90 text-slate-700 border border-slate-200 px-2 py-1 rounded-md text-[10px] font-bold flex items-center gap-1 shadow-sm backdrop-blur-sm truncate max-w-[100px]">
-                <AlertTriangle className="w-3 h-3 text-amber-500" /> {vehicle.condition}
-              </span>
+              (() => {
+                const rawParts = (vehicle.condition || '').split('•').map(p => p.trim().replace(/_/g, ' ')).filter(Boolean);
+                return rawParts.map((part, pIdx) => (
+                  <span 
+                    key={pIdx}
+                    className="bg-white/95 text-slate-800 border border-amber-200/80 px-2 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-1 shadow-sm backdrop-blur-md capitalize whitespace-nowrap"
+                    title={part}
+                  >
+                    <AlertTriangle className="w-3 h-3 text-amber-500 flex-shrink-0" /> {part.toLowerCase()}
+                  </span>
+                ));
+              })()
             )}
           </div>
         </div>

@@ -390,7 +390,7 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <span className="bg-motorx-red/10 text-motorx-red px-2 py-0.5 rounded text-[11px] font-black uppercase tracking-wider">
-                  {vehicle.condition || 'LIVE AUCTION'}
+                  {(vehicle.condition || 'LIVE AUCTION').replace(/_/g, ' ')}
                 </span>
                 <span className="flex items-center gap-1 text-slate-500 text-xs font-bold uppercase tracking-wider">
                   <MapPin className="w-3 h-3" /> {vehicle.auctionVendor || vehicle.location || 'ADESA'}
