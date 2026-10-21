@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
@@ -13,7 +14,7 @@ import {
   ShieldAlert, 
   TrendingUp, 
   ArrowRight,
-  Heart,
+  Star,
   ChevronLeft,
   ChevronRight,
   Maximize2,
@@ -244,13 +245,13 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
     }
   };
 
-  // Toggle Wishlist
+  // Toggle Watchlist
   const handleToggleWishlist = async () => {
     try {
       if (isWishlisted) {
         await fetch(`/api/auctions/wishlist?vin=${encodeURIComponent(vehicle.vin)}`, { method: 'DELETE' });
         setIsWishlisted(false);
-        toast.info("Removed from Wish List");
+        toast.info("Removed from Watchlist");
       } else {
         await fetch('/api/auctions/wishlist', {
           method: 'POST',
@@ -270,10 +271,10 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
           })
         });
         setIsWishlisted(true);
-        toast.success("Saved to Wish List");
+        toast.success("Saved to Watchlist");
       }
     } catch (e) {
-      console.error("Wishlist toggle error:", e);
+      console.error("Watchlist toggle error:", e);
     }
   };
 
@@ -313,13 +314,22 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
               </button>
             )}
 
-            {/* Wishlist Button */}
+            {/* Watchlist Button (Star Icon - Auction Industry Standard) */}
             <button
-              onClick={handleToggleWishlist}
-              className={`absolute top-4 left-4 p-2.5 rounded-full backdrop-blur-md transition-all shadow-lg ${isWishlisted ? 'bg-red-500 text-white' : 'bg-black/40 text-white hover:bg-black/60'}`}
-              title={isWishlisted ? "Remove from Wish List" : "Add to Wish List"}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleWishlist();
+              }}
+              className={`absolute top-4 left-4 z-20 px-3 py-1.5 rounded-lg backdrop-blur-md transition-all shadow-lg flex items-center gap-1.5 text-xs font-bold ${
+                isWishlisted 
+                  ? 'bg-amber-400 text-slate-950 border border-amber-300' 
+                  : 'bg-black/60 text-white hover:bg-black/80 border border-white/20'
+              }`}
+              title={isWishlisted ? "Remove from Watchlist" : "Add to Watchlist"}
             >
-              <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-current' : ''}`} />
+              <Star className={`w-4 h-4 ${isWishlisted ? 'fill-current text-slate-950' : 'text-amber-400'}`} />
+              <span>{isWishlisted ? 'In Watchlist' : 'Watchlist'}</span>
             </button>
 
             {/* Navigation arrows */}
@@ -646,110 +656,113 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
         currentAmount={parsedBid || vehicle.currentHighBid || 0}
       />
 
-      {/* FULLSCREEN LIGHTBOX MODAL */}
-      <AnimatePresence>
-        {isLightboxOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-between p-4 sm:p-6"
-            onClick={() => setIsLightboxOpen(false)}
-          >
-            {/* Top Bar: Title & Close Button */}
-            <div 
-              className="w-full flex items-center justify-between text-white z-10"
-              onClick={(e) => e.stopPropagation()}
+      {/* FULLSCREEN LIGHTBOX MODAL (Portaled directly to body to guarantee z-index superiority) */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {isLightboxOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[99999] bg-black/95 backdrop-blur-2xl flex flex-col items-center justify-between p-4 sm:p-6"
+              onClick={() => setIsLightboxOpen(false)}
             >
-              <div>
-                <h3 className="text-sm sm:text-base font-black tracking-wide">
-                  {vehicle.year} {vehicle.makeName} {vehicle.modelName}
-                </h3>
-                <p className="text-xs text-slate-400 font-mono">VIN: {vehicle.vin}</p>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-white/10 rounded-full text-xs font-bold text-slate-300">
-                  {imgIndex + 1} of {allImages.length}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setIsLightboxOpen(false)}
-                  className="p-2.5 rounded-full bg-white/10 hover:bg-white/25 text-white transition-all cursor-pointer"
-                  title="Close Fullscreen (Esc)"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-            </div>
-
-            {/* Central Full-Size Image Container */}
-            <div 
-              className="relative flex-1 w-full flex items-center justify-center p-2 overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <motion.img
-                key={imgIndex}
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.2 }}
-                src={allImages[imgIndex]}
-                alt={`${vehicle.year} ${vehicle.makeName} full view`}
-                className="max-h-[85vh] max-w-full object-contain rounded-lg shadow-2xl select-none"
-              />
-
-              {/* Prev / Next Navigation Arrows */}
-              {allImages.length > 1 && (
-                <>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setImgIndex((imgIndex - 1 + allImages.length) % allImages.length);
-                    }}
-                    className="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 p-3 sm:p-4 rounded-full bg-black/60 hover:bg-black/90 text-white backdrop-blur-md transition-all shadow-xl hover:scale-105 cursor-pointer"
-                    title="Previous Image"
-                  >
-                    <ChevronLeft className="w-6 h-6 sm:w-8 sm:h-8" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setImgIndex((imgIndex + 1) % allImages.length);
-                    }}
-                    className="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 p-3 sm:p-4 rounded-full bg-black/60 hover:bg-black/90 text-white backdrop-blur-md transition-all shadow-xl hover:scale-105 cursor-pointer"
-                    title="Next Image"
-                  >
-                    <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8" />
-                  </button>
-                </>
-              )}
-            </div>
-
-            {/* Bottom Thumbnail Strip */}
-            {allImages.length > 1 && (
+              {/* Top Bar: Title & Close Button */}
               <div 
-                className="w-full max-w-4xl flex items-center justify-center gap-2 overflow-x-auto py-2 z-10"
+                className="w-full flex items-center justify-between text-white z-10"
                 onClick={(e) => e.stopPropagation()}
               >
-                {allImages.map((img, idx) => (
+                <div>
+                  <h3 className="text-sm sm:text-base font-black tracking-wide">
+                    {vehicle.year} {vehicle.makeName} {vehicle.modelName}
+                  </h3>
+                  <p className="text-xs text-slate-400 font-mono">VIN: {vehicle.vin}</p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <span className="px-3 py-1 bg-white/10 rounded-full text-xs font-bold text-slate-300">
+                    {imgIndex + 1} of {allImages.length}
+                  </span>
                   <button
-                    key={idx}
                     type="button"
-                    onClick={() => setImgIndex(idx)}
-                    className={`relative flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
-                      idx === imgIndex ? 'border-motorx-red scale-105 shadow-md' : 'border-white/20 opacity-50 hover:opacity-100'
-                    }`}
+                    onClick={() => setIsLightboxOpen(false)}
+                    className="p-2.5 rounded-full bg-white/10 hover:bg-white/25 text-white transition-all cursor-pointer"
+                    title="Close Fullscreen (Esc)"
                   >
-                    <img src={img} alt="thumb" className="w-full h-full object-cover" />
+                    <X className="w-6 h-6" />
                   </button>
-                ))}
+                </div>
               </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+
+              {/* Central Full-Size Image Container */}
+              <div 
+                className="relative flex-1 w-full flex items-center justify-center p-2 overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <motion.img
+                  key={imgIndex}
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.2 }}
+                  src={allImages[imgIndex]}
+                  alt={`${vehicle.year} ${vehicle.makeName} full view`}
+                  className="max-h-[85vh] max-w-full object-contain rounded-lg shadow-2xl select-none"
+                />
+
+                {/* Prev / Next Navigation Arrows */}
+                {allImages.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setImgIndex((imgIndex - 1 + allImages.length) % allImages.length);
+                      }}
+                      className="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 p-3 sm:p-4 rounded-full bg-black/60 hover:bg-black/90 text-white backdrop-blur-md transition-all shadow-xl hover:scale-105 cursor-pointer"
+                      title="Previous Image"
+                    >
+                      <ChevronLeft className="w-6 h-6 sm:w-8 sm:h-8" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setImgIndex((imgIndex + 1) % allImages.length);
+                      }}
+                      className="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 p-3 sm:p-4 rounded-full bg-black/60 hover:bg-black/90 text-white backdrop-blur-md transition-all shadow-xl hover:scale-105 cursor-pointer"
+                      title="Next Image"
+                    >
+                      <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8" />
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* Bottom Thumbnail Strip */}
+              {allImages.length > 1 && (
+                <div 
+                  className="w-full max-w-4xl flex items-center justify-center gap-2 overflow-x-auto py-2 z-10"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {allImages.map((img, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setImgIndex(idx)}
+                      className={`relative flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                        idx === imgIndex ? 'border-motorx-red scale-105 shadow-md' : 'border-white/20 opacity-50 hover:opacity-100'
+                      }`}
+                    >
+                      <img src={img} alt="thumb" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 }

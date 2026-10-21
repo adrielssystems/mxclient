@@ -26,7 +26,7 @@ export default function App() {
   });
   
   // Tabs State
-  const auctionTabs = ['All Auctions', 'ADESA', 'Salvato', 'Copart', 'Pipeline', 'My Bids & Wishlist'];
+  const auctionTabs = ['All Auctions', 'ADESA', 'Salvato', 'Copart', 'Pipeline', 'My Bids & Watchlist'];
   const [activeTab, setActiveTab] = useState('All Auctions');
   
   // Salvato State
@@ -602,7 +602,7 @@ export default function App() {
 
       {/* DASHBOARD CONTENT - Scrollable area */}
       <main ref={mainRef} className="flex-1 overflow-y-auto w-full px-6 py-8 space-y-12 pb-24">
-        {activeTab === 'My Bids & Wishlist' ? (
+        {activeTab === 'My Bids & Watchlist' ? (
           <ClientBiddingDashboard 
             onOpenVehicleModal={(bidRecord) => {
               // Construct vehicle object compatible with modal
