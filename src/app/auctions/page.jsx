@@ -606,19 +606,24 @@ export default function App() {
           <ClientBiddingDashboard 
             onOpenVehicleModal={(bidRecord) => {
               // Construct vehicle object compatible with modal
+              const details = bidRecord.raw_vehicle_details || bidRecord.raw_details || {};
               const v = {
                 vin: bidRecord.vin,
-                lotNumber: bidRecord.lot_number,
-                auctionSource: bidRecord.auction_source,
-                auctionVendor: bidRecord.auction_source,
-                currentHighBid: Number(bidRecord.max_proxy_bid),
-                year: bidRecord.raw_vehicle_details?.year,
-                makeName: bidRecord.raw_vehicle_details?.make,
-                modelName: bidRecord.raw_vehicle_details?.model,
-                primaryImageUrl: bidRecord.raw_vehicle_details?.primaryImageUrl,
-                mileage: bidRecord.raw_vehicle_details?.odometer,
-                drivable: bidRecord.raw_vehicle_details?.drivable,
-                condition: 'LIVE AUCTION'
+                lotNumber: bidRecord.lot_number || bidRecord.lotNumber || details.lotNumber,
+                auctionSource: bidRecord.auction_source || bidRecord.auctionSource || details.auctionSource || 'ADESA',
+                auctionVendor: bidRecord.auction_source || details.auctionVendor || 'ADESA',
+                currentHighBid: Number(bidRecord.max_proxy_bid || details.currentHighBid || 0),
+                buyNowPrice: details.buyNowPrice || null,
+                year: details.year || bidRecord.year,
+                makeName: details.makeName || details.make || bidRecord.makeName,
+                modelName: details.modelName || details.model || bidRecord.modelName,
+                seriesName: details.seriesName || details.trim || '',
+                primaryImageUrl: details.primaryImageUrl || bidRecord.primaryImageUrl,
+                additionalImageUrls: details.additionalImageUrls || [],
+                mileage: details.mileage || details.odometer || 0,
+                drivable: details.drivable,
+                condition: details.condition || 'Clean Title',
+                modalities: details.modalities || ['Live Auction']
               };
               setSelectedVehicle(v);
             }}

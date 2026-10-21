@@ -262,11 +262,24 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
             lot_number: vehicle.lotNumber || vehicle.lotId,
             raw_details: {
               year: vehicle.year,
-              make: vehicle.makeName,
-              model: vehicle.modelName,
+              make: vehicle.makeName || vehicle.make,
+              makeName: vehicle.makeName || vehicle.make,
+              model: vehicle.modelName || vehicle.model,
+              modelName: vehicle.modelName || vehicle.model,
+              seriesName: vehicle.seriesName || vehicle.trim || '',
               primaryImageUrl: vehicle.primaryImageUrl,
-              currentHighBid: vehicle.currentHighBid,
-              buyNowPrice: vehicle.buyNowPrice
+              additionalImageUrls: vehicle.additionalImageUrls || [],
+              currentHighBid: vehicle.currentHighBid || vehicle.startingBid || 0,
+              buyNowPrice: vehicle.buyNowPrice || null,
+              mileage: vehicle.mileage || vehicle.odometerReading || 0,
+              condition: vehicle.condition || 'Clean Title',
+              auctionVendor: vehicle.auctionVendor || vehicle.auctionSource || 'ADESA',
+              auctionSource: vehicle.auctionSource || 'ADESA',
+              modalities: vehicle.modalities || ['Live Auction'],
+              isBestDeal: vehicle.isBestDeal || false,
+              aiScore: vehicle.aiScore || null,
+              auctionEndDate: vehicle.auctionEndDate || null,
+              drivable: vehicle.drivable
             }
           })
         });

@@ -12,7 +12,13 @@ import {
   RefreshCw,
   Search,
   Zap,
-  Info
+  Info,
+  MapPin,
+  Tag,
+  ChevronRight,
+  Sparkles,
+  ShieldCheck,
+  Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { calculateBuyFee } from '@/utils/buyFeeCalculator';
@@ -287,7 +293,7 @@ export default function ClientBiddingDashboard({ onOpenVehicleModal }) {
 
           {/* 7.3 WATCHLIST */}
           {activeTab === 'wishlist' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               {wishlist.length === 0 ? (
                 <div className="col-span-full bg-white p-12 text-center rounded-2xl border border-slate-200">
                   <Star className="w-8 h-8 text-amber-400 mx-auto mb-2 opacity-50" />
@@ -296,26 +302,124 @@ export default function ClientBiddingDashboard({ onOpenVehicleModal }) {
                 </div>
               ) : (
                 wishlist.map((item) => {
-                  const details = item.raw_details || {};
+                  let details = item.raw_details;
+                  if (typeof details === 'string') {
+                    try {
+                      details = JSON.parse(details);
+                    } catch (e) {
+                      details = {};
+                    }
+                  }
+                  details = details || {};
+
+                  const year = details.year || '';
+                  const make = details.makeName || details.make || '';
+                  const model = details.modelName || details.model || '';
+                  const series = details.seriesName || details.trim || '';
+                  const title = `${year} ${make} ${model}`.trim() || item.vin;
+                  const imageUrl = details.primaryImageUrl || details.imageUrl || (details.additionalImageUrls && details.additionalImageUrls[0]) || '/placeholder-car.png';
+                  const currentBid = Number(details.currentHighBid || details.startingBid || item.max_proxy_bid || 0);
+                  const buyNow = details.buyNowPrice ? Number(details.buyNowPrice) : null;
+                  const vendor = details.auctionVendor || item.auction_source || 'ADESA';
+                  const condition = details.condition || 'Clean Title';
+                  const mileage = details.mileage || details.odometer;
+
                   return (
-                    <div key={item.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
+                    <div 
+                      key={item.id} 
+                      className="w-full bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
+                    >
+                      {/* Image & Badges */}
                       <div>
-                        {details.primaryImageUrl && (
-                          <div className="relative mb-3 rounded-lg overflow-hidden h-36 bg-slate-900">
-                            <img src={details.primaryImageUrl} alt="Vehicle" className="w-full h-full object-cover" />
-                            <span className="absolute top-2 left-2 px-2 py-0.5 bg-black/70 backdrop-blur-md rounded text-[10px] font-black text-amber-400 uppercase tracking-wider flex items-center gap-1">
-                              <Star className="w-3 h-3 fill-current" /> Watchlist
+                        <div className="relative h-44 overflow-hidden bg-slate-900">
+                          <img 
+                            src={imageUrl} 
+                            alt={title} 
+                            className="w-full h-full object-cover group-hover:scale-105 transition-all duration-500" 
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80';
+                            }}
+                          />
+                          
+                          {/* Star Watchlist Badge */}
+                          <span className="absolute top-3 left-3 px-2.5 py-1 bg-black/75 backdrop-blur-md rounded-md text-[10px] font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5 shadow-md">
+                            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" /> Watchlist
+                          </span>
+
+                          {/* Auction Vendor Badge */}
+                          <span className="absolute top-3 right-3 px-2 py-0.5 bg-slate-900/80 backdrop-blur-md rounded text-[10px] font-bold text-white uppercase tracking-wider">
+                            {vendor}
+                          </span>
+
+                          {/* Quick Remove Button on Image */}
+                          <button
+                            type="button"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              await fetch(`/api/auctions/wishlist?vin=${encodeURIComponent(item.vin)}`, { method: 'DELETE' });
+                              setWishlist(prev => prev.filter(w => w.id !== item.id));
+                              toast.info("Removed from Watchlist");
+                            }}
+                            className="absolute bottom-3 right-3 p-1.5 bg-black/60 hover:bg-red-600 text-white rounded-lg transition-all backdrop-blur-sm shadow cursor-pointer opacity-90 hover:opacity-100"
+                            title="Remove from Watchlist"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        {/* Details Body */}
+                        <div className="p-4">
+                          <div className="flex justify-between items-start mb-1">
+                            <div className="truncate w-full">
+                              <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">{item.vin}</span>
+                              <h3 className="text-sm font-bold text-slate-900 truncate" title={title}>{title}</h3>
+                              <p className="text-xs text-slate-500 truncate">
+                                {series ? `${series} • ` : ''}
+                                {mileage ? `${Number(mileage).toLocaleString()} mi` : 'Verified Mileage'}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1 mt-2 mb-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">
+                            <MapPin className="w-3 h-3 flex-shrink-0" />
+                            <span className="truncate">{details.location || vendor}</span>
+                          </div>
+
+                          {/* Modalities & Condition */}
+                          <div className="flex flex-wrap gap-1.5 mb-3">
+                            {condition === 'Clean Title' ? (
+                              <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded text-[9px] font-bold flex items-center gap-1">
+                                <ShieldCheck className="w-2.5 h-2.5" /> Clean Title
+                              </span>
+                            ) : (
+                              <span className="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded text-[9px] font-bold flex items-center gap-1">
+                                <AlertTriangle className="w-2.5 h-2.5" /> {condition}
+                              </span>
+                            )}
+                            <span className="bg-red-50 text-motorx-red border border-red-200 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider flex items-center gap-1">
+                              <Tag className="w-2.5 h-2.5" /> Live Auction
                             </span>
                           </div>
-                        )}
-                        <span className="font-mono text-[11px] font-bold text-slate-400">{item.vin}</span>
-                        <h4 className="font-black text-slate-900 text-sm mt-0.5">{details.year} {details.make} {details.model}</h4>
-                        <div className="flex justify-between items-center mt-2 text-xs">
-                          <span className="text-slate-500">Current Bid:</span>
-                          <span className="font-black text-slate-900">{formatCurrency(details.currentHighBid || 0)}</span>
+
+                          {/* Price Container */}
+                          <div className="flex justify-between items-center mb-4 p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                            <div className="truncate">
+                              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Current Bid</p>
+                              <p className="text-base font-black text-slate-900 truncate">{formatCurrency(currentBid)}</p>
+                            </div>
+                            {buyNow && (
+                              <div className="text-right ml-2 truncate">
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Buy Now</p>
+                                <p className="text-sm font-bold text-slate-700 truncate">{formatCurrency(buyNow)}</p>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      <div className="mt-4 pt-3 border-t border-slate-100 flex gap-2">
+
+                      {/* Footer Actions */}
+                      <div className="p-4 pt-0 flex gap-2">
                         <button
                           type="button"
                           onClick={() => {
@@ -323,32 +427,29 @@ export default function ClientBiddingDashboard({ onOpenVehicleModal }) {
                               onOpenVehicleModal({
                                 vin: item.vin,
                                 lot_number: item.lot_number,
-                                auction_source: item.auction_source,
-                                max_proxy_bid: details.currentHighBid || 0,
+                                lotNumber: item.lot_number,
+                                auction_source: item.auction_source || vendor,
+                                max_proxy_bid: currentBid,
                                 raw_vehicle_details: {
                                   year: details.year,
-                                  make: details.make,
-                                  model: details.model,
-                                  primaryImageUrl: details.primaryImageUrl
+                                  make: details.makeName || details.make,
+                                  model: details.modelName || details.model,
+                                  seriesName: details.seriesName || details.trim,
+                                  primaryImageUrl: imageUrl,
+                                  additionalImageUrls: details.additionalImageUrls || [],
+                                  currentHighBid: currentBid,
+                                  buyNowPrice: buyNow,
+                                  odometer: mileage,
+                                  mileage: mileage,
+                                  condition: condition,
+                                  auctionVendor: vendor
                                 }
                               });
                             }
                           }}
-                          className="flex-1 py-2 text-xs font-black uppercase tracking-wider bg-motorx-red hover:bg-motorx-red-dark text-white rounded-lg transition-all text-center cursor-pointer shadow-sm"
+                          className="w-full py-2.5 text-xs font-black uppercase tracking-wider bg-motorx-red hover:bg-motorx-red-dark text-white rounded-lg shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all flex justify-center items-center gap-1 cursor-pointer"
                         >
-                          Bid Now
-                        </button>
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            await fetch(`/api/auctions/wishlist?vin=${encodeURIComponent(item.vin)}`, { method: 'DELETE' });
-                            setWishlist(prev => prev.filter(w => w.id !== item.id));
-                            toast.info("Removed from Watchlist");
-                          }}
-                          className="px-3 py-2 text-xs font-bold text-slate-400 hover:text-red-600 bg-slate-50 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
-                          title="Remove from Watchlist"
-                        >
-                          Remove
+                          Bid Now <ChevronRight className="w-4 h-4" />
                         </button>
                       </div>
                     </div>

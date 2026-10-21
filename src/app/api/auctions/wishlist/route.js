@@ -22,7 +22,22 @@ export async function GET(request) {
             ORDER BY created_at DESC
         `;
 
-        return Response.json({ wishlist: items });
+        const parsedItems = items.map(item => {
+            let details = item.raw_details;
+            if (typeof details === 'string') {
+                try {
+                    details = JSON.parse(details);
+                } catch (e) {
+                    details = {};
+                }
+            }
+            return {
+                ...item,
+                raw_details: details || {}
+            };
+        });
+
+        return Response.json({ wishlist: parsedItems });
     } catch (err) {
         console.error("[Wishlist GET Error]:", err);
         return Response.json({ error: "Failed to fetch wishlist" }, { status: 500 });
