@@ -193,7 +193,7 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
       const payload = {
         vin: vehicle.vin,
         lot_number: vehicle.lotNumber || vehicle.lotId || vehicle.vehicleId,
-        auction_source: vehicle.auctionSource || 'ADESA',
+        auction_source: vehicle.auctionSource || vehicle.auctionVendor || (vehicle.isRealSalvato ? 'Salvato' : 'ADESA'),
         auction_location: vehicle.location || vehicle.auctionLocation || null,
         max_proxy_bid: parsedBid,
         destination_id: selectedDestination?.id || null,

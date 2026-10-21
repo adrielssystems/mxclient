@@ -69,6 +69,8 @@ export async function POST(request) {
         const userAgentHeader = request.headers.get("user-agent") || "";
         const deviceInfo = parseUserAgent(userAgentHeader);
 
+        const sanitizedDestinationId = (destination_id && !isNaN(parseInt(destination_id))) ? parseInt(destination_id) : null;
+
         // --- ATOMIC TRANSACTION ON motorx_auctions_db ---
         const result = await auctionsSql.begin(async (tx) => {
             // 1. Lock existing bids for this vehicle to prevent race conditions
@@ -85,17 +87,21 @@ export async function POST(request) {
                 const errorMsg = `Your new Maximum Proxy Bid ($${proposedMaxBid.toLocaleString()}) must be strictly higher than your previous maximum ($${Number(ownPreviousBid.max_proxy_bid).toLocaleString()}).`;
                 
                 // Record failed audit event
-                await tx`
-                    INSERT INTO auction_bid_events (
-                        vin, lot_number, auction_source, action,
-                        previous_max_bid, new_max_bid, client_id, client_name, client_email,
-                        ip_address, user_agent, device_info, request_status, error_reason
-                    ) VALUES (
-                        ${vin}, ${lot_number}, ${auction_source}, 'INCREASE_BID',
-                        ${ownPreviousBid.max_proxy_bid}, ${proposedMaxBid}, ${clientId}, ${clientUser.name}, ${clientUser.email},
-                        ${reqInfo.ip}, ${userAgentHeader}, ${JSON.stringify(deviceInfo)}, 'FAILED', ${errorMsg}
-                    )
-                `;
+                try {
+                    await tx`
+                        INSERT INTO auction_bid_events (
+                            vin, lot_number, auction_source, action,
+                            previous_max_bid, new_max_bid, client_id, client_name, client_email,
+                            ip_address, user_agent, device_info, request_status, error_reason
+                        ) VALUES (
+                            ${vin}, ${lot_number ? String(lot_number) : null}, ${auction_source}, 'INCREASE_BID',
+                            ${ownPreviousBid.max_proxy_bid}, ${proposedMaxBid}, ${clientId}, ${clientUser.name}, ${clientUser.email},
+                            ${reqInfo.ip}, ${userAgentHeader}, ${JSON.stringify(deviceInfo)}, 'FAILED', ${errorMsg}
+                        )
+                    `;
+                } catch (auditErr) {
+                    console.warn("[Auction Audit Event Warning]:", auditErr.message);
+                }
 
                 return { error: errorMsg, status: 400 };
             }
@@ -116,17 +122,21 @@ export async function POST(request) {
                 // Exact warning required by Section 2 of PDF
                 const conflictWarning = "Another Motor X customer has already placed an equal or higher Maximum Proxy Bid. Increase your amount to continue, or cancel this request.";
 
-                await tx`
-                    INSERT INTO auction_bid_events (
-                        vin, lot_number, auction_source, action,
-                        previous_max_bid, new_max_bid, client_id, client_name, client_email,
-                        ip_address, user_agent, device_info, request_status, error_reason
-                    ) VALUES (
-                        ${vin}, ${lot_number}, ${auction_source}, ${ownPreviousBid ? 'INCREASE_BID' : 'PROXY_BID'},
-                        ${ownPreviousBid?.max_proxy_bid || null}, ${proposedMaxBid}, ${clientId}, ${clientUser.name}, ${clientUser.email},
-                        ${reqInfo.ip}, ${userAgentHeader}, ${JSON.stringify(deviceInfo)}, 'REJECTED_LOWER_THAN_EXISTING', ${conflictWarning}
-                    )
-                `;
+                try {
+                    await tx`
+                        INSERT INTO auction_bid_events (
+                            vin, lot_number, auction_source, action,
+                            previous_max_bid, new_max_bid, client_id, client_name, client_email,
+                            ip_address, user_agent, device_info, request_status, error_reason
+                        ) VALUES (
+                            ${vin}, ${lot_number ? String(lot_number) : null}, ${auction_source}, ${ownPreviousBid ? 'INCREASE_BID' : 'PROXY_BID'},
+                            ${ownPreviousBid?.max_proxy_bid || null}, ${proposedMaxBid}, ${clientId}, ${clientUser.name}, ${clientUser.email},
+                            ${reqInfo.ip}, ${userAgentHeader}, ${JSON.stringify(deviceInfo)}, 'REJECTED_LOWER_THAN_EXISTING', ${conflictWarning}
+                        )
+                    `;
+                } catch (auditErr) {
+                    console.warn("[Auction Audit Event Warning]:", auditErr.message);
+                }
 
                 return {
                     error: conflictWarning,
@@ -159,10 +169,10 @@ export async function POST(request) {
                     destination_id, destination_port, raw_vehicle_details,
                     submission_time, created_at, updated_at
                 ) VALUES (
-                    ${vin}, ${lot_number}, ${auction_source}, ${auction_location},
+                    ${vin}, ${lot_number ? String(lot_number) : null}, ${auction_source}, ${auction_location},
                     ${clientId}, ${clientUser.name}, ${clientUser.email},
                     ${proposedMaxBid}, TRUE, 'WINNING',
-                    ${destination_id}, ${destination_port}, ${JSON.stringify(raw_vehicle_details)},
+                    ${sanitizedDestinationId}, ${destination_port}, ${JSON.stringify(raw_vehicle_details)},
                     NOW(), NOW(), NOW()
                 )
                 ON CONFLICT (vin, client_id) DO UPDATE SET
@@ -184,17 +194,21 @@ export async function POST(request) {
             const activeBid = upsertRows[0];
 
             // 6. Record successful audit event
-            await tx`
-                INSERT INTO auction_bid_events (
-                    proxy_bid_id, vin, lot_number, auction_source, action,
-                    previous_max_bid, new_max_bid, client_id, client_name, client_email,
-                    ip_address, user_agent, device_info, request_status
-                ) VALUES (
-                    ${activeBid.id}, ${vin}, ${lot_number}, ${auction_source}, ${actionType},
-                    ${prevAmount}, ${proposedMaxBid}, ${clientId}, ${clientUser.name}, ${clientUser.email},
-                    ${reqInfo.ip}, ${userAgentHeader}, ${JSON.stringify(deviceInfo)}, 'ACCEPTED'
-                )
-            `;
+            try {
+                await tx`
+                    INSERT INTO auction_bid_events (
+                        proxy_bid_id, vin, lot_number, auction_source, action,
+                        previous_max_bid, new_max_bid, client_id, client_name, client_email,
+                        ip_address, user_agent, device_info, request_status
+                    ) VALUES (
+                        ${activeBid.id}, ${vin}, ${lot_number ? String(lot_number) : null}, ${auction_source}, ${actionType},
+                        ${prevAmount}, ${proposedMaxBid}, ${clientId}, ${clientUser.name}, ${clientUser.email},
+                        ${reqInfo.ip}, ${userAgentHeader}, ${JSON.stringify(deviceInfo)}, 'ACCEPTED'
+                    )
+                `;
+            } catch (auditErr) {
+                console.warn("[Auction Bid Event Save Warning]:", auditErr.message);
+            }
 
             return {
                 success: true,
@@ -213,8 +227,8 @@ export async function POST(request) {
             }, { status: result.status || 400 });
         }
 
-        // Secondary audit in primary database
-        await logAudit({
+        // Secondary audit in primary database (non-blocking)
+        logAudit({
             userId: clientUser.id,
             userEmail: clientUser.email,
             userRole: clientUser.role,
@@ -230,12 +244,15 @@ export async function POST(request) {
             status: 'success',
             ipAddress: reqInfo.ip,
             userAgent: reqInfo.userAgent
-        });
+        }).catch(e => console.warn("[logAudit Non-blocking Error]:", e.message));
 
         return Response.json(result);
     } catch (err) {
         console.error("[Auction Proxy Bids Error]:", err);
-        return Response.json({ error: "Failed to place bid. Please try again." }, { status: 500 });
+        return Response.json({ 
+            error: err.message || "Failed to place bid. Please try again.",
+            detail: err.detail || err.hint || err.code || null
+        }, { status: 500 });
     }
 }
 
