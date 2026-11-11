@@ -46,12 +46,21 @@ export async function POST(request) {
         const body = await request.json();
         const {
             vin,
+            year = null,
+            make = null,
+            model = null,
             lot_number,
             auction_source = 'ADESA',
             auction_location = null,
             max_proxy_bid = 0,
+            bid_amount = null,
+            freight_cost = 0,
+            service_fee = 0,
+            motorx_fee = 0,
+            total_landed = 0,
             destination_id = null,
             destination_port = null,
+            notes = null,
             raw_vehicle_details = {}
         } = body;
 
@@ -59,14 +68,23 @@ export async function POST(request) {
             return Response.json({ error: "VIN is required" }, { status: 400 });
         }
 
-        const proposedMaxBid = Number(max_proxy_bid);
+        const proposedMaxBid = Number(max_proxy_bid || bid_amount);
         if (!proposedMaxBid || proposedMaxBid <= 0 || isNaN(proposedMaxBid)) {
             return Response.json({ error: "Please enter a valid Maximum Proxy Bid amount." }, { status: 400 });
         }
 
+        const numFreightCost = parseFloat(freight_cost) || 0;
+        const numServiceFee = parseFloat(service_fee) || 0;
+        const numMotorXFee = parseFloat(motorx_fee) || 0;
+        const numTotalLanded = parseFloat(total_landed) || (proposedMaxBid + numFreightCost + numServiceFee + numMotorXFee);
+        const resolvedYear = year ? parseInt(year) : (raw_vehicle_details?.year ? parseInt(raw_vehicle_details.year) : null);
+        const resolvedMake = make || raw_vehicle_details?.make || null;
+        const resolvedModel = model || raw_vehicle_details?.model || null;
+
         // Capture client device and IP info
         const reqInfo = getRequestInfo(request);
-        const userAgentHeader = request.headers.get("user-agent") || "";
+        const clientIp = reqInfo.ipAddress || reqInfo.ip || '127.0.0.1';
+        const userAgentHeader = request.headers.get("user-agent") || reqInfo.userAgent || "";
         const deviceInfo = parseUserAgent(userAgentHeader);
 
         const sanitizedDestinationId = (destination_id && !isNaN(parseInt(destination_id))) ? parseInt(destination_id) : null;
@@ -94,9 +112,9 @@ export async function POST(request) {
                             previous_max_bid, new_max_bid, client_id, client_name, client_email,
                             ip_address, user_agent, device_info, request_status, error_reason
                         ) VALUES (
-                            ${vin}, ${lot_number ? String(lot_number) : null}, ${auction_source}, 'INCREASE_BID',
-                            ${ownPreviousBid.max_proxy_bid}, ${proposedMaxBid}, ${clientId}, ${clientUser.name}, ${clientUser.email},
-                            ${reqInfo.ip}, ${userAgentHeader}, ${JSON.stringify(deviceInfo)}, 'FAILED', ${errorMsg}
+                            ${vin}, ${lot_number ? String(lot_number) : null}, ${auction_source || 'ADESA'}, 'INCREASE_BID',
+                            ${ownPreviousBid.max_proxy_bid}, ${proposedMaxBid}, ${clientId}, ${clientUser.name || null}, ${clientUser.email || null},
+                            ${clientIp}, ${userAgentHeader || null}, ${JSON.stringify(deviceInfo)}, 'FAILED', ${errorMsg}
                         )
                     `;
                 } catch (auditErr) {
@@ -129,9 +147,9 @@ export async function POST(request) {
                             previous_max_bid, new_max_bid, client_id, client_name, client_email,
                             ip_address, user_agent, device_info, request_status, error_reason
                         ) VALUES (
-                            ${vin}, ${lot_number ? String(lot_number) : null}, ${auction_source}, ${ownPreviousBid ? 'INCREASE_BID' : 'PROXY_BID'},
-                            ${ownPreviousBid?.max_proxy_bid || null}, ${proposedMaxBid}, ${clientId}, ${clientUser.name}, ${clientUser.email},
-                            ${reqInfo.ip}, ${userAgentHeader}, ${JSON.stringify(deviceInfo)}, 'REJECTED_LOWER_THAN_EXISTING', ${conflictWarning}
+                            ${vin}, ${lot_number ? String(lot_number) : null}, ${auction_source || 'ADESA'}, ${ownPreviousBid ? 'INCREASE_BID' : 'PROXY_BID'},
+                            ${ownPreviousBid?.max_proxy_bid || null}, ${proposedMaxBid}, ${clientId}, ${clientUser.name || null}, ${clientUser.email || null},
+                            ${clientIp}, ${userAgentHeader || null}, ${JSON.stringify(deviceInfo)}, 'REJECTED_LOWER_THAN_EXISTING', ${conflictWarning}
                         )
                     `;
                 } catch (auditErr) {
@@ -169,10 +187,10 @@ export async function POST(request) {
                     destination_id, destination_port, raw_vehicle_details,
                     submission_time, created_at, updated_at
                 ) VALUES (
-                    ${vin}, ${lot_number ? String(lot_number) : null}, ${auction_source}, ${auction_location},
-                    ${clientId}, ${clientUser.name}, ${clientUser.email},
+                    ${vin}, ${lot_number ? String(lot_number) : null}, ${auction_source || 'ADESA'}, ${auction_location || null},
+                    ${clientId}, ${clientUser.name || null}, ${clientUser.email || null},
                     ${proposedMaxBid}, TRUE, 'WINNING',
-                    ${sanitizedDestinationId}, ${destination_port}, ${JSON.stringify(raw_vehicle_details)},
+                    ${sanitizedDestinationId}, ${destination_port || null}, ${JSON.stringify(raw_vehicle_details || {})},
                     NOW(), NOW(), NOW()
                 )
                 ON CONFLICT (vin, client_id) DO UPDATE SET
@@ -201,9 +219,9 @@ export async function POST(request) {
                         previous_max_bid, new_max_bid, client_id, client_name, client_email,
                         ip_address, user_agent, device_info, request_status
                     ) VALUES (
-                        ${activeBid.id}, ${vin}, ${lot_number ? String(lot_number) : null}, ${auction_source}, ${actionType},
-                        ${prevAmount}, ${proposedMaxBid}, ${clientId}, ${clientUser.name}, ${clientUser.email},
-                        ${reqInfo.ip}, ${userAgentHeader}, ${JSON.stringify(deviceInfo)}, 'ACCEPTED'
+                        ${activeBid.id}, ${vin}, ${lot_number ? String(lot_number) : null}, ${auction_source || 'ADESA'}, ${actionType},
+                        ${prevAmount || null}, ${proposedMaxBid}, ${clientId}, ${clientUser.name || null}, ${clientUser.email || null},
+                        ${clientIp}, ${userAgentHeader || null}, ${JSON.stringify(deviceInfo)}, 'ACCEPTED'
                     )
                 `;
             } catch (auditErr) {
@@ -227,6 +245,99 @@ export async function POST(request) {
             }, { status: result.status || 400 });
         }
 
+        // --- SYNC TO PRIMARY DATABASE (auction_purchases) FOR ADMIN AUCTION BOARD ---
+        try {
+            await sql`ALTER TABLE auction_purchases ADD COLUMN IF NOT EXISTS motorx_fee NUMERIC(12, 2) DEFAULT 0.00`;
+
+            const cleanVin = vin.trim().toUpperCase();
+            const existingPurchases = await sql`
+                SELECT id, status 
+                FROM auction_purchases 
+                WHERE user_id = ${clientUser.id} AND vin = ${cleanVin}
+                ORDER BY created_at DESC 
+                LIMIT 1
+            `;
+
+            if (existingPurchases.length > 0 && existingPurchases[0].status === 'PENDING') {
+                await sql`
+                    UPDATE auction_purchases SET
+                        year = COALESCE(year, ${resolvedYear}),
+                        make = COALESCE(make, ${resolvedMake}),
+                        model = COALESCE(model, ${resolvedModel}),
+                        lot_number = ${lot_number ? String(lot_number).trim() : null},
+                        auction_source = ${auction_source || 'ADESA'},
+                        auction_location = ${auction_location || null},
+                        bid_amount = ${proposedMaxBid},
+                        freight_cost = ${numFreightCost},
+                        service_fee = ${numServiceFee},
+                        motorx_fee = ${numMotorXFee},
+                        total_landed = ${numTotalLanded},
+                        destination_id = ${sanitizedDestinationId},
+                        destination_port = ${destination_port || null},
+                        ip_address = ${clientIp},
+                        user_agent = ${userAgentHeader},
+                        device_info = ${JSON.stringify(deviceInfo)},
+                        raw_details = ${JSON.stringify(raw_vehicle_details || {})},
+                        updated_at = NOW()
+                    WHERE id = ${existingPurchases[0].id}
+                `;
+            } else {
+                await sql`
+                    INSERT INTO auction_purchases (
+                        user_id, client_name, client_email,
+                        vin, year, make, model, lot_number,
+                        auction_source, auction_location,
+                        bid_amount, freight_cost, service_fee, motorx_fee, total_landed,
+                        destination_id, destination_port,
+                        ip_address, user_agent, device_info,
+                        status, notes, raw_details,
+                        created_at, updated_at
+                    ) VALUES (
+                        ${clientUser.id},
+                        ${clientUser.name || 'Client'},
+                        ${clientUser.email || ''},
+                        ${cleanVin},
+                        ${resolvedYear},
+                        ${resolvedMake},
+                        ${resolvedModel},
+                        ${lot_number ? String(lot_number).trim() : null},
+                        ${auction_source || 'ADESA'},
+                        ${auction_location || null},
+                        ${proposedMaxBid},
+                        ${numFreightCost},
+                        ${numServiceFee},
+                        ${numMotorXFee},
+                        ${numTotalLanded},
+                        ${sanitizedDestinationId},
+                        ${destination_port || null},
+                        ${clientIp},
+                        ${userAgentHeader},
+                        ${JSON.stringify(deviceInfo)},
+                        'PENDING',
+                        ${notes || null},
+                        ${JSON.stringify(raw_vehicle_details || {})},
+                        NOW(),
+                        NOW()
+                    )
+                `;
+            }
+
+            // Flag other clients' pending bids on this VIN as outbid
+            await sql`
+                UPDATE auction_purchases 
+                SET notes = CASE 
+                    WHEN notes IS NULL OR notes = '' THEN 'Outbid by higher Motor X bid'
+                    WHEN notes NOT LIKE '%Outbid by higher Motor X bid%' THEN CONCAT(notes, ' [Outbid by higher Motor X bid]')
+                    ELSE notes 
+                END
+                WHERE vin = ${cleanVin} 
+                  AND user_id != ${clientUser.id}
+                  AND status = 'PENDING'
+            `;
+        } catch (syncErr) {
+            console.error("[Auction Purchases Sync Error]:", syncErr);
+        }
+
         // Secondary audit in primary database (non-blocking)
         logAudit({
             userId: clientUser.id,
@@ -242,8 +353,8 @@ export async function POST(request) {
                 auction_source
             },
             status: 'success',
-            ipAddress: reqInfo.ip,
-            userAgent: reqInfo.userAgent
+            ipAddress: clientIp,
+            userAgent: userAgentHeader
         }).catch(e => console.warn("[logAudit Non-blocking Error]:", e.message));
 
         return Response.json(result);

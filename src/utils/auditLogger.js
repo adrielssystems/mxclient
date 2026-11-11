@@ -105,7 +105,7 @@ export function getRequestInfo(request) {
 
     const userAgent = request.headers.get('user-agent') || 'unknown';
 
-    return { ipAddress, userAgent };
+    return { ipAddress, ip: ipAddress, userAgent };
 }
 
 /**

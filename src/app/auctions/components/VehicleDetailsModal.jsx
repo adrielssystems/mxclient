@@ -43,6 +43,9 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
   const [collisionWarning, setCollisionWarning] = useState(null); // When another client bid higher
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [auctionTiers, setAuctionTiers] = useState([]);
+  const [motorXRules, setMotorXRules] = useState({ broker_fee: 0, wire_fee: 0, client_markup_fee: 0, gate_fee: 0 });
+  const [showMotorXBreakdown, setShowMotorXBreakdown] = useState(false);
 
   // All Images array declared upfront so useEffect hooks can safely reference it
   const allImages = [
@@ -74,12 +77,21 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
   // Timer logic
   useEffect(() => {
     if (!vehicle.auctionEndDate) {
-       setTimeLeft('Buy Now Only');
+       setTimeLeft('Live Auction');
        return;
     }
+    const targetDate = vehicle.auctionEndDate instanceof Date 
+      ? vehicle.auctionEndDate 
+      : new Date(vehicle.auctionEndDate);
+
+    if (isNaN(targetDate.getTime())) {
+      setTimeLeft('Live Auction');
+      return;
+    }
+
     const updateTimer = () => {
       const now = new Date();
-      const diff = vehicle.auctionEndDate - now;
+      const diff = targetDate.getTime() - now.getTime();
       if (diff <= 0) {
         setTimeLeft('Ended');
       } else {
@@ -170,6 +182,65 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
     }
   }, [vehicle.vin]);
 
+  const auctionProvider = (vehicle.auctionSource || vehicle.auctionVendor || (vehicle.isRealSalvato ? 'SALVATO' : 'ADESA')).toUpperCase();
+
+  // Fetch dynamic Auction Fee Tiers and Client Op. Rules (MotorX Fees)
+  useEffect(() => {
+    // 1. Auction Fee Tiers for this vehicle's auction
+    fetch(`/api/client/auction-fees?provider=${encodeURIComponent(auctionProvider)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data?.tiers && Array.isArray(data.tiers)) {
+          setAuctionTiers(data.tiers);
+        }
+      })
+      .catch(err => console.error("Error fetching auction fee tiers:", err));
+
+    // 2. Client Op. Rules for this auction
+    fetch(`/api/client/op-rules?provider=${encodeURIComponent(auctionProvider)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data?.fees) {
+          setMotorXRules({
+            broker_fee: data.fees.broker_fee || 0,
+            wire_fee: data.fees.wire_fee || 0,
+            client_markup_fee: data.fees.client_markup_fee || 0,
+            gate_fee: data.fees.gate_fee || 0
+          });
+        }
+      })
+      .catch(err => console.error("Error fetching client Op. Rules:", err));
+  }, [auctionProvider]);
+
+  // Dynamic Auction Buy Fee calculation
+  const calculateDynamicBuyFee = (amount) => {
+    const val = parseFloat(amount) || 0;
+    if (val <= 0) return 0;
+
+    if (auctionTiers.length > 0) {
+      const match = auctionTiers.find(t => {
+        const min = parseFloat(t.min_amount) || 0;
+        const max = (t.max_amount !== null && t.max_amount !== undefined && t.max_amount !== '') 
+          ? parseFloat(t.max_amount) 
+          : Infinity;
+        return val >= min && val <= max;
+      });
+
+      if (match) {
+        const base = parseFloat(match.fee_amount) || 0;
+        const pct = parseFloat(match.fee_percent) || 0;
+        return base + (val * (pct / 100));
+      }
+      const highest = auctionTiers[auctionTiers.length - 1];
+      const base = parseFloat(highest.fee_amount) || 0;
+      const pct = parseFloat(highest.fee_percent) || 0;
+      return base + (val * (pct / 100));
+    }
+
+    // Fallback to static calculator
+    return calculateBuyFee(val);
+  };
+
   const calculateEstimatedFreight = (destId) => {
     switch (destId) {
       case 1: return 850;
@@ -183,6 +254,15 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
   const parsedBid = Math.round(Number(proxyBidInput.replace(/[^0-9]/g, '')) || 0);
   const isValidBid = parsedBid > 0 && parsedBid >= minBidAllowed && (!existingBid || parsedBid > Number(existingBid.max_proxy_bid));
 
+  const motorXTotalFee = (motorXRules.broker_fee || 0) + 
+                         (motorXRules.wire_fee || 0) + 
+                         (motorXRules.client_markup_fee || 0) + 
+                         (motorXRules.gate_fee || 0);
+
+  const currentPurchasePrice = parsedBid || vehicle.currentHighBid || 0;
+  const currentAuctionBuyFee = calculateDynamicBuyFee(currentPurchasePrice);
+  const currentTotalLanded = currentPurchasePrice + currentAuctionBuyFee + motorXTotalFee;
+
   // Handle Proxy Bid Submission
   const handlePlaceProxyBid = async () => {
     if (!isValidBid) return;
@@ -192,10 +272,18 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
     try {
       const payload = {
         vin: vehicle.vin,
+        year: vehicle.year,
+        make: vehicle.makeName || vehicle.make,
+        model: vehicle.modelName || vehicle.model,
         lot_number: vehicle.lotNumber || vehicle.lotId || vehicle.vehicleId,
         auction_source: vehicle.auctionSource || vehicle.auctionVendor || (vehicle.isRealSalvato ? 'Salvato' : 'ADESA'),
         auction_location: vehicle.location || vehicle.auctionLocation || null,
         max_proxy_bid: parsedBid,
+        bid_amount: parsedBid,
+        freight_cost: 0, // Estimated Freight removed per client requirement
+        service_fee: currentAuctionBuyFee,
+        motorx_fee: motorXTotalFee,
+        total_landed: currentTotalLanded,
         destination_id: selectedDestination?.id || null,
         destination_port: selectedDestination ? `${selectedDestination.country_name} - ${selectedDestination.port_name}` : null,
         raw_vehicle_details: {
@@ -203,8 +291,8 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
           damage: vehicle.damageType || vehicle.primaryDamage,
           primaryImageUrl: vehicle.primaryImageUrl,
           year: vehicle.year,
-          make: vehicle.makeName,
-          model: vehicle.modelName,
+          make: vehicle.makeName || vehicle.make,
+          model: vehicle.modelName || vehicle.model,
           drivable: vehicle.drivable,
           saleChannels: vehicle.saleChannels,
           lane: vehicle.lane,
@@ -616,22 +704,71 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
 
             {activeTab === 'calculator' && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
-                <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2 text-xs">
-                  <div className="flex justify-between py-1">
-                    <span className="text-slate-500">Estimated Purchase</span>
-                    <span className="font-bold text-slate-900">{formatCurrency(parsedBid || vehicle.currentHighBid || 0)}</span>
+                <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2.5 text-xs">
+                  {/* Estimated Purchase */}
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-slate-500 font-semibold">Estimated Purchase</span>
+                    <span className="font-bold text-slate-900">{formatCurrency(currentPurchasePrice)}</span>
                   </div>
-                  <div className="flex justify-between py-1">
-                    <span className="text-slate-500">Auction Buy Fee</span>
-                    <span className="font-bold text-slate-900">{formatCurrency(calculateBuyFee(parsedBid || vehicle.currentHighBid || 0))}</span>
+
+                  {/* Auction Buy Fee */}
+                  <div className="flex justify-between items-center py-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-slate-500 font-semibold">Auction Buy Fee</span>
+                      <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold uppercase">
+                        {auctionProvider}
+                      </span>
+                    </div>
+                    <span className="font-bold text-slate-900">{formatCurrency(currentAuctionBuyFee)}</span>
                   </div>
-                  <div className="flex justify-between py-1">
-                    <span className="text-slate-500">Estimated Freight</span>
-                    <span className="font-bold text-slate-900">{formatCurrency(freightCost)}</span>
+
+                  {/* MotorX Fee (from Op. Rules) */}
+                  <div className="py-1 border-t border-slate-100">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-slate-500 font-semibold">MotorX Fee</span>
+                        <button
+                          type="button"
+                          onClick={() => setShowMotorXBreakdown(!showMotorXBreakdown)}
+                          className="text-[10px] text-blue-600 hover:text-blue-800 font-bold underline cursor-pointer"
+                        >
+                          {showMotorXBreakdown ? 'Hide Breakdown' : 'Op. Rules'}
+                        </button>
+                      </div>
+                      <span className="font-bold text-slate-900">{formatCurrency(motorXTotalFee)}</span>
+                    </div>
+
+                    {/* Expandable Op. Rules Breakdown */}
+                    {showMotorXBreakdown && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="mt-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200 space-y-1.5 text-[11px]"
+                      >
+                        <div className="flex justify-between text-slate-600">
+                          <span>Broker Fee:</span>
+                          <span className="font-bold text-slate-800">{formatCurrency(motorXRules.broker_fee)}</span>
+                        </div>
+                        <div className="flex justify-between text-slate-600">
+                          <span>Wire Fee:</span>
+                          <span className="font-bold text-slate-800">{formatCurrency(motorXRules.wire_fee)}</span>
+                        </div>
+                        <div className="flex justify-between text-slate-600">
+                          <span>Markup Fee:</span>
+                          <span className="font-bold text-slate-800">{formatCurrency(motorXRules.client_markup_fee)}</span>
+                        </div>
+                        <div className="flex justify-between text-slate-600">
+                          <span>Gate Fee:</span>
+                          <span className="font-bold text-slate-800">{formatCurrency(motorXRules.gate_fee)}</span>
+                        </div>
+                      </motion.div>
+                    )}
                   </div>
-                  <div className="pt-2 border-t border-slate-200 flex justify-between font-black text-sm text-motorx-red">
+
+                  {/* Estimated Landed */}
+                  <div className="pt-2.5 border-t border-slate-200 flex justify-between font-black text-sm text-motorx-red">
                     <span>Estimated Landed</span>
-                    <span>{formatCurrency((parsedBid || vehicle.currentHighBid || 0) + calculateBuyFee(parsedBid || vehicle.currentHighBid || 0) + freightCost)}</span>
+                    <span>{formatCurrency(currentTotalLanded)}</span>
                   </div>
                 </div>
               </motion.div>
