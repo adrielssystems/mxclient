@@ -45,20 +45,78 @@ async function fetchRawLotsFromSalvato() {
   }
 
   const token = await getSalvatoToken();
-  const res = await fetch(`${SALVATO_API_URL}/lots?limit=500`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const headers = { Authorization: `Bearer ${token}` };
+  const byId = new Map();
 
-  if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(`Failed to fetch Salvato lots: HTTP ${res.status} - ${errorText}`);
+  // 1. Official Salvato Public API v1.0.0 flow: GET /auctions -> GET /auctions/:auctionId/lots
+  //    Prioritizes IN_PROGRESS and COMING_SOON live auction lots.
+  try {
+    const auctionsRes = await fetch(`${SALVATO_API_URL}/auctions?limit=50`, { headers });
+    if (auctionsRes.ok) {
+      const auctionsPayload = await auctionsRes.json();
+      const auctions = Array.isArray(auctionsPayload.data) ? auctionsPayload.data : [];
+
+      const activeAuctions = auctions.filter(
+        (a) => a.status === "IN_PROGRESS" || a.status === "COMING_SOON" || !a.status
+      );
+
+      const lotResponses = await Promise.all(
+        activeAuctions.map(async (auction) => {
+          const auctionId = auction.auctionId ?? auction.id;
+          if (!auctionId) return [];
+          try {
+            const lotsRes = await fetch(
+              `${SALVATO_API_URL}/auctions/${auctionId}/lots?limit=100`,
+              { headers }
+            );
+            if (!lotsRes.ok) return [];
+            const lotsPayload = await lotsRes.json();
+            const items = Array.isArray(lotsPayload.data) ? lotsPayload.data : [];
+            return items.map((lot) => ({
+              ...lot,
+              auctionId: lot.auctionId ?? auctionId,
+              startDate: lot.startDate || auction.startDate || null,
+              endDate: lot.endDate || auction.endDate || null,
+              status: lot.status || auction.status || "IN_PROGRESS",
+            }));
+          } catch {
+            return [];
+          }
+        })
+      );
+
+      for (const batch of lotResponses) {
+        for (const lot of batch) {
+          if (lot?.id != null) byId.set(String(lot.id), lot);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("[Salvato API] Active auctions fetch warning:", err.message);
   }
 
-  const data = await res.json();
-  const rawList = Array.isArray(data.data) ? data.data : [];
-  lotsCache = rawList;
+  // 2. Supplement with general /lots catalog when active auctions have few lots (e.g. staging)
+  if (byId.size < 50) {
+    try {
+      const res = await fetch(`${SALVATO_API_URL}/lots?limit=200`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        const rawList = Array.isArray(data.data) ? data.data : [];
+        for (const lot of rawList) {
+          if (lot?.id != null && !byId.has(String(lot.id))) {
+            byId.set(String(lot.id), lot);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("[Salvato API] Fallback /lots fetch warning:", err.message);
+    }
+  }
+
+  const combined = Array.from(byId.values());
+  lotsCache = combined;
   lotsCacheTime = now;
-  return rawList;
+  return combined;
 }
 
 function normalizeSalvatoLot(lot) {
@@ -93,6 +151,8 @@ function normalizeSalvatoLot(lot) {
 
   return {
     vehicleId: `SALVATO-${lot.id}`,
+    lotNumber: String(lot.id),
+    lotId: lot.id,
     vin: lot.vin || "N/A",
     year: lot.year || null,
     makeName: lot.make || "Unknown Make",
@@ -114,8 +174,11 @@ function normalizeSalvatoLot(lot) {
     currentHighBid: currentBid,
     buyNowPrice: null,
     startingBid: currentBid,
-    auctionId: lot.auctionId || "SALVATO-STAGE",
+    auctionId: lot.auctionId || "SALVATO",
+    auctionSource: "Salvato",
     auctionVendor: "Salvato",
+    auctionStatus: lot.status || "IN_PROGRESS",
+    location: lot.city && lot.state ? `${lot.city}, ${lot.state}` : (lot.state || lot.city || "Salvato US"),
     city: lot.city || "",
     state: lot.state || "TX",
     auctionEndDate: lot.endDate ? new Date(lot.endDate) : null,
@@ -204,8 +267,12 @@ export async function GET(request) {
     } else if (sort === "mileage_asc") {
       normalized.sort((a, b) => (a.mileage || 0) - (b.mileage || 0));
     } else {
-      // Default: prioritize lots with upcoming end date or recent
+      // Default: prioritize IN_PROGRESS -> COMING_SOON -> NOT_SCHEDULED, then earliest end date
+      const statusRank = { IN_PROGRESS: 0, COMING_SOON: 1 };
       normalized.sort((a, b) => {
+        const ra = statusRank[a.auctionStatus] ?? 2;
+        const rb = statusRank[b.auctionStatus] ?? 2;
+        if (ra !== rb) return ra - rb;
         if (a.auctionEndDate && b.auctionEndDate) return a.auctionEndDate - b.auctionEndDate;
         if (a.auctionEndDate) return -1;
         if (b.auctionEndDate) return 1;

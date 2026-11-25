@@ -82,6 +82,26 @@ export default function App() {
       .finally(() => setLoadingAdesa(false));
   }, [adesaPage, activeFilters.showLive, activeFilters.showBuyNow, user, userLoading]);
 
+  // Log LOGIN once per browser session for Customer Activity Monitor
+  useEffect(() => {
+    if (userLoading || !user?.id) return;
+    const key = `mx_login_logged_${user.id}`;
+    if (typeof window !== 'undefined' && !sessionStorage.getItem(key)) {
+      sessionStorage.setItem(key, '1');
+      fetch('/api/client/activity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          activity_type: 'LOGIN',
+          account_source: 'MOTORX',
+          account_identifier: user.email || user.id,
+          target_type: 'ACCOUNT',
+          target_title: user.email || user.name || user.id
+        })
+      }).catch(() => {});
+    }
+  }, [userLoading, user?.id]);
+
   if (!userLoading && user && user.can_access_auctions !== true) {
     return null;
   }
@@ -200,8 +220,18 @@ export default function App() {
     return filters;
   };
 
-  // Group inventory by modalities (Filtered by activeTab if needed)
-  const combinedInventory = [...mappedAdesa, ...salvatoLots];
+  // Interleave ADESA and Salvato in "All Auctions" so Salvato lots appear immediately alongside ADESA
+  const combinedInventory = (() => {
+    if (activeTab === 'ADESA') return mappedAdesa;
+    if (activeTab === 'Salvato') return salvatoLots;
+    const mixed = [];
+    const maxLen = Math.max(mappedAdesa.length, salvatoLots.length);
+    for (let i = 0; i < maxLen; i++) {
+      if (i < mappedAdesa.length) mixed.push(mappedAdesa[i]);
+      if (i < salvatoLots.length) mixed.push(salvatoLots[i]);
+    }
+    return mixed;
+  })();
   const filteredInventory = combinedInventory.filter(v => {
     // 1. Tab Filtering
     let matchTab = true;
@@ -274,12 +304,19 @@ export default function App() {
     // Timer logic
     useEffect(() => {
       if (!vehicle.auctionEndDate) {
-         setTimeLeft('Buy Now Only');
+         setTimeLeft(vehicle.isRealSalvato ? 'Upcoming' : 'Buy Now Only');
          return;
+      }
+      const targetDate = vehicle.auctionEndDate instanceof Date
+        ? vehicle.auctionEndDate
+        : new Date(vehicle.auctionEndDate);
+      if (isNaN(targetDate.getTime())) {
+        setTimeLeft('Live Auction');
+        return;
       }
       const updateTimer = () => {
         const now = new Date();
-        const diff = vehicle.auctionEndDate - now;
+        const diff = targetDate.getTime() - now.getTime();
         if (diff <= 0) {
           setTimeLeft('Ended');
         } else {
@@ -297,7 +334,7 @@ export default function App() {
       updateTimer();
       const timerInterval = setInterval(updateTimer, 1000);
       return () => clearInterval(timerInterval);
-    }, [vehicle.auctionEndDate]);
+    }, [vehicle.auctionEndDate, vehicle.isRealSalvato]);
     
     useEffect(() => {
       let interval;
@@ -382,8 +419,17 @@ export default function App() {
           </div>
         </div>
 
-        <div className="flex items-center gap-1 mt-2 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">
-          <MapPin className="w-3 h-3 flex-shrink-0" /> <span className="truncate">{vehicle.auctionVendor}</span>
+        <div className="flex items-center justify-between gap-2 mt-2 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+          <div className="flex items-center gap-1 truncate min-w-0">
+            <MapPin className="w-3 h-3 flex-shrink-0" /> <span className="truncate">{vehicle.location || vehicle.auctionVendor}</span>
+          </div>
+          <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shrink-0 border ${
+            vehicle.isRealSalvato
+              ? 'bg-amber-50 text-amber-700 border-amber-200'
+              : 'bg-blue-50 text-blue-700 border-blue-200'
+          }`}>
+            {vehicle.isRealSalvato ? 'SALVATO' : 'ADESA'}
+          </span>
         </div>
         
         {/* Modalities */}
@@ -616,11 +662,13 @@ export default function App() {
             onOpenVehicleModal={(bidRecord) => {
               // Construct vehicle object compatible with modal
               const details = bidRecord.raw_vehicle_details || bidRecord.raw_details || {};
+              const resolvedSrc = bidRecord.auction_source || bidRecord.auctionSource || details.auctionSource || details.auctionVendor || 'ADESA';
               const v = {
                 vin: bidRecord.vin,
                 lotNumber: bidRecord.lot_number || bidRecord.lotNumber || details.lotNumber,
-                auctionSource: bidRecord.auction_source || bidRecord.auctionSource || details.auctionSource || 'ADESA',
-                auctionVendor: bidRecord.auction_source || details.auctionVendor || 'ADESA',
+                auctionSource: resolvedSrc,
+                auctionVendor: resolvedSrc,
+                isRealSalvato: String(resolvedSrc).toUpperCase().includes('SALVATO') || Boolean(details.isRealSalvato),
                 currentHighBid: Number(bidRecord.max_proxy_bid || details.currentHighBid || 0),
                 buyNowPrice: details.buyNowPrice || null,
                 year: details.year || bidRecord.year,

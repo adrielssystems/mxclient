@@ -3,6 +3,7 @@ import auctionsSql from "@/app/api/utils/auctions_sql";
 import { resolveClientId } from "@/app/api/utils/impersonate";
 import { getRequestInfo, logAudit } from "@/utils/auditLogger";
 import { parseUserAgent } from "@/utils/deviceDetector";
+import { logCustomerActivity } from "@/utils/activityLogger";
 
 export const dynamic = "force-dynamic";
 
@@ -230,6 +231,7 @@ export async function POST(request) {
 
             return {
                 success: true,
+                actionType,
                 bid: activeBid,
                 message: actionType === 'INCREASE_BID' 
                     ? `Your Maximum Proxy Bid has been increased to $${proposedMaxBid.toLocaleString()}.` 
@@ -337,6 +339,30 @@ export async function POST(request) {
         } catch (syncErr) {
             console.error("[Auction Purchases Sync Error]:", syncErr);
         }
+
+        // Log Customer Activity for Admin Auction Monitor
+        const vehicleTitle = `${resolvedYear || ''} ${resolvedMake || ''} ${resolvedModel || ''}`.trim() || vin;
+        const thumbUrl = raw_vehicle_details?.images?.[0] || raw_vehicle_details?.image || raw_vehicle_details?.thumbnail || null;
+        logCustomerActivity({
+            request,
+            activity_type: result.actionType === 'INCREASE_BID' ? 'INCREASED_BID' : 'PLACED_BID',
+            client_id: clientUser.id,
+            placed_by_name: clientUser.name || 'Client',
+            placed_by_email: clientUser.email || null,
+            account_source: (auction_source || 'ADESA').toUpperCase(),
+            account_identifier: clientUser.email || clientUser.id,
+            target_type: 'BID',
+            target_title: vehicleTitle,
+            vin: vin.trim().toUpperCase(),
+            lot_number: lot_number ? String(lot_number).trim() : null,
+            thumbnail_url: thumbUrl,
+            bid_amount: proposedMaxBid,
+            metadata: {
+                auction_location,
+                total_landed: numTotalLanded,
+                destination_port
+            }
+        }).catch(() => {});
 
         // Secondary audit in primary database (non-blocking)
         logAudit({

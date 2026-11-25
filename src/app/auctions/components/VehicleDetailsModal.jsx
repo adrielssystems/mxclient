@@ -45,13 +45,37 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [auctionTiers, setAuctionTiers] = useState([]);
   const [motorXRules, setMotorXRules] = useState({ broker_fee: 0, wire_fee: 0, client_markup_fee: 0, gate_fee: 0 });
-  const [showMotorXBreakdown, setShowMotorXBreakdown] = useState(false);
 
   // All Images array declared upfront so useEffect hooks can safely reference it
   const allImages = [
     vehicle.primaryImageUrl,
     ...(vehicle.additionalImageUrls || [])
   ].filter(Boolean);
+
+  // Track LOT_VIEWED activity for Admin Customer Activity Monitor
+  useEffect(() => {
+    if (!vehicle?.vin) return;
+    const provider = (
+      vehicle.auctionSource ||
+      vehicle.auctionVendor ||
+      (vehicle.isRealSalvato ? 'SALVATO' : 'ADESA')
+    ).toUpperCase();
+    const vehicleMake = vehicle.makeName || vehicle.make || '';
+    const vehicleModel = vehicle.modelName || vehicle.model || '';
+    fetch('/api/client/activity', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        activity_type: 'LOT_VIEWED',
+        account_source: provider,
+        target_type: 'VEHICLE',
+        target_title: `${vehicle.year || ''} ${vehicleMake} ${vehicleModel}`.trim() || vehicle.vin,
+        vin: vehicle.vin,
+        lot_number: vehicle.lotNumber || vehicle.lotId || vehicle.vehicleId || null,
+        thumbnail_url: vehicle.primaryImageUrl || null
+      })
+    }).catch(() => {});
+  }, [vehicle?.vin]);
 
   // Helper to format pure integer with thousand separators
   const formatInteger = (val) => {
@@ -182,7 +206,11 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
     }
   }, [vehicle.vin]);
 
-  const auctionProvider = (vehicle.auctionSource || vehicle.auctionVendor || (vehicle.isRealSalvato ? 'SALVATO' : 'ADESA')).toUpperCase();
+  const resolvedAuctionSource =
+    vehicle.isRealSalvato || String(vehicle.vehicleId || '').toUpperCase().startsWith('SALVATO')
+      ? 'Salvato'
+      : (vehicle.auctionSource || vehicle.auctionVendor || 'ADESA');
+  const auctionProvider = resolvedAuctionSource.toUpperCase();
 
   // Fetch dynamic Auction Fee Tiers and Client Op. Rules (MotorX Fees)
   useEffect(() => {
@@ -346,8 +374,8 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             vin: vehicle.vin,
-            auction_source: vehicle.auctionSource || 'ADESA',
-            lot_number: vehicle.lotNumber || vehicle.lotId,
+            auction_source: resolvedAuctionSource,
+            lot_number: vehicle.lotNumber || vehicle.lotId || vehicle.vehicleId,
             raw_details: {
               year: vehicle.year,
               make: vehicle.makeName || vehicle.make,
@@ -361,8 +389,9 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
               buyNowPrice: vehicle.buyNowPrice || null,
               mileage: vehicle.mileage || vehicle.odometerReading || 0,
               condition: vehicle.condition || 'Clean Title',
-              auctionVendor: vehicle.auctionVendor || vehicle.auctionSource || 'ADESA',
-              auctionSource: vehicle.auctionSource || 'ADESA',
+              auctionVendor: vehicle.auctionVendor || resolvedAuctionSource,
+              auctionSource: resolvedAuctionSource,
+              isRealSalvato: auctionProvider === 'SALVATO',
               modalities: vehicle.modalities || ['Live Auction'],
               isBestDeal: vehicle.isBestDeal || false,
               aiScore: vehicle.aiScore || null,
@@ -481,7 +510,7 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
                   {(vehicle.condition || 'LIVE AUCTION').replace(/_/g, ' ')}
                 </span>
                 <span className="flex items-center gap-1 text-slate-500 text-xs font-bold uppercase tracking-wider">
-                  <MapPin className="w-3 h-3" /> {vehicle.auctionVendor || vehicle.location || 'ADESA'}
+                  <MapPin className="w-3 h-3" /> {resolvedAuctionSource}{vehicle.location && vehicle.location !== resolvedAuctionSource ? ` • ${vehicle.location}` : ''}
                 </span>
                 <div className={`flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-bold border ${timeLeft === 'Ended' ? 'bg-slate-100 text-slate-500 border-slate-200' : 'bg-red-50 text-motorx-red border-red-100'}`}>
                   <Clock className="w-3.5 h-3.5" />
@@ -688,7 +717,7 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
                   </div>
                   <div className="bg-white p-3 rounded-lg border border-slate-200">
                     <span className="text-slate-500 font-semibold block">Auction Source</span>
-                    <span className="font-bold text-slate-800">{vehicle.auctionSource || 'ADESA'}</span>
+                    <span className="font-bold text-slate-800">{resolvedAuctionSource}</span>
                   </div>
                   <div className="bg-white p-3 rounded-lg border border-slate-200">
                     <span className="text-slate-500 font-semibold block">Primary Damage</span>
@@ -722,47 +751,12 @@ export default function VehicleDetailsModal({ vehicle, onClose, formatCurrency, 
                     <span className="font-bold text-slate-900">{formatCurrency(currentAuctionBuyFee)}</span>
                   </div>
 
-                  {/* MotorX Fee (from Op. Rules) */}
+                  {/* MotorX Fee (consolidated total — markup breakdown intentionally hidden from clients) */}
                   <div className="py-1 border-t border-slate-100">
                     <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-slate-500 font-semibold">MotorX Fee</span>
-                        <button
-                          type="button"
-                          onClick={() => setShowMotorXBreakdown(!showMotorXBreakdown)}
-                          className="text-[10px] text-blue-600 hover:text-blue-800 font-bold underline cursor-pointer"
-                        >
-                          {showMotorXBreakdown ? 'Hide Breakdown' : 'Op. Rules'}
-                        </button>
-                      </div>
+                      <span className="text-slate-500 font-semibold">MotorX Fee</span>
                       <span className="font-bold text-slate-900">{formatCurrency(motorXTotalFee)}</span>
                     </div>
-
-                    {/* Expandable Op. Rules Breakdown */}
-                    {showMotorXBreakdown && (
-                      <motion.div 
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        className="mt-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200 space-y-1.5 text-[11px]"
-                      >
-                        <div className="flex justify-between text-slate-600">
-                          <span>Broker Fee:</span>
-                          <span className="font-bold text-slate-800">{formatCurrency(motorXRules.broker_fee)}</span>
-                        </div>
-                        <div className="flex justify-between text-slate-600">
-                          <span>Wire Fee:</span>
-                          <span className="font-bold text-slate-800">{formatCurrency(motorXRules.wire_fee)}</span>
-                        </div>
-                        <div className="flex justify-between text-slate-600">
-                          <span>Markup Fee:</span>
-                          <span className="font-bold text-slate-800">{formatCurrency(motorXRules.client_markup_fee)}</span>
-                        </div>
-                        <div className="flex justify-between text-slate-600">
-                          <span>Gate Fee:</span>
-                          <span className="font-bold text-slate-800">{formatCurrency(motorXRules.gate_fee)}</span>
-                        </div>
-                      </motion.div>
-                    )}
                   </div>
 
                   {/* Estimated Landed */}
